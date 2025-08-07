@@ -209,7 +209,7 @@ func unlock_class_ability():
 func apply_injury(injury: InjuryType, duration: float):
 	injury_type = injury
 	injury_duration = duration
-	injury_start_time = Time.get_time_dict_from_system()["unix"]
+	injury_start_time = Time.get_unix_time_from_system()
 	is_on_quest = false  # Remove from any active quest
 
 func heal_injury():
@@ -221,7 +221,7 @@ func is_injured() -> bool:
 	if injury_type == InjuryType.NONE:
 		return false
 	
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	var elapsed_time = current_time - injury_start_time
 	
 	if elapsed_time >= injury_duration:

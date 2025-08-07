@@ -12,6 +12,12 @@ enum QuestType {
 	EMERGENCY
 }
 
+enum QuestStatus {
+	NOTSTARTED,
+	INPROGRESS,
+	COMPLETED,
+	FAILED
+}
 enum QuestRank {
 	F, E, D, C, B, A, S, SS, SSS
 }
@@ -51,10 +57,9 @@ enum QuestRank {
 # Quest state
 @export var start_time: float = 0.0
 @export var assigned_party: Array[Character] = []
-@export var is_active: bool = false
-@export var is_completed: bool = false
 @export var success_rate: float = 0.0
 @export var individual_checks: Array[bool] = []
+@export var active_quest_status = QuestStatus.NOTSTARTED
 
 func _init():
 	generate_random_quest()
@@ -335,8 +340,8 @@ func start_quest(party: Array[Character]) -> bool:
 	for character in assigned_party:
 		character.is_on_quest = true
 	
-	is_active = true
-	start_time = Time.get_time_dict_from_system()["windows"]
+	self.active_quest_status = QuestStatus.INPROGRESS
+	start_time = Time.get_unix_time_from_system()
 	calculate_success_rate()
 	
 	return true
@@ -386,10 +391,10 @@ func calculate_party_modifiers() -> float:
 	return modifiers
 
 func update_quest_progress() -> bool:
-	if not is_active or is_completed:
+	if active_quest_status != QuestStatus.COMPLETED or active_quest_status == QuestStatus.FAILED:
 		return false
 	
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	var elapsed_time = current_time - start_time
 	
 	if elapsed_time >= duration:
@@ -399,28 +404,27 @@ func update_quest_progress() -> bool:
 	return false
 
 func complete_quest():
-	if is_completed:
-		return
-	
-	is_completed = true
-	is_active = false
+	#if self.active_quest_status == QuestStatus.COMPLETED :
+		#return
 	
 	# Perform individual success checks
 	individual_checks.clear()
 	var successful_members = 0
 	
 	for character in assigned_party:
-		var individual_success = randf() < success_rate
-		individual_checks.append(individual_success)
-		if individual_success:
+		
+		var individual_success = randf_range(0,1) # set chance to succeed to random for now COME BACK LATER TO FIX
+		
+		if individual_success > .6:
 			successful_members += 1
+			character.improve_substat_from_quest(get_substat_name_for_quest_type(), success_rate)
+			individual_checks.append(true)
+		else : 
+			individual_checks.append(false)
 		
 		character.is_on_quest = false
 		
-		# Chance to improve substat
-		if individual_success:
-			character.improve_substat_from_quest(get_substat_name_for_quest_type(), success_rate)
-	
+		
 	# Calculate final success rate and rewards
 	var final_success_rate = float(successful_members) / assigned_party.size()
 	
@@ -429,12 +433,17 @@ func complete_quest():
 		final_success_rate = 0.0  # Complete failure for no-partial quests
 	elif final_success_rate < 0.6:
 		final_success_rate = 0.0  # Less than 60% counts as failure
-	
+		
+	if final_success_rate > .6 and allow_partial_failure :
+		self.active_quest_status = QuestStatus.COMPLETED
+	else : 
+		self.active_quest_status = QuestStatus.FAILED
+
 	apply_rewards(final_success_rate)
 	apply_injuries_on_failure(final_success_rate)
 
 func apply_rewards(final_success_rate: float):
-	var experience_per_member = int(base_experience * max(final_success_rate, 0.6 if final_success_rate > 0 else 0))
+	var experience_per_member = int(base_experience * max(final_success_rate, 0.6 if final_success_rate > 0.0 else 0.0))
 	var gold_per_member = int((gold_reward * 0.8) / assigned_party.size())  # 80% to party, 20% to guild
 	
 	for i in range(assigned_party.size()):
@@ -487,18 +496,20 @@ func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 		_: return 300.0
 
 func get_time_remaining() -> float:
-	if not is_active:
+	if not self.active_quest_status == QuestStatus.INPROGRESS:
 		return 0.0
 	
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	var elapsed_time = current_time - start_time
 	return max(0.0, duration - elapsed_time)
 
 func get_progress_percentage() -> float:
-	if not is_active:
-		return 100.0 if is_completed else 0.0
+	if self.active_quest_status == QuestStatus.COMPLETED :
+		return 100.0
+	else :
+		return 100 - (get_time_remaining()/duration)*100
 	
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	var elapsed_time = current_time - start_time
 	return min(100.0, (elapsed_time / duration) * 100.0)
 
@@ -508,7 +519,7 @@ func get_party_display_info() -> Array:
 		var character = assigned_party[i]
 		var status = "?"  # Unknown until completion
 		
-		if is_completed and i < individual_checks.size():
+		if self.active_quest_status == QuestStatus.COMPLETED and i < individual_checks.size():
 			status = "✓" if individual_checks[i] else "✗"
 		
 		party_info.append({

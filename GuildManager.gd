@@ -31,12 +31,12 @@ signal transformation_unlocked(transformation_name: String)
 # Progression Tracking
 @export var total_quests_completed: int = 0
 @export var quests_completed_by_rank: Dictionary = {}
-@export var transformations_unlocked: Array[String] = []
+@export var transformations_unlocked: Dictionary = {"Roster Size"=5,"Healer's Guild"=false,"Armory"=false,"Market"=false,"Training Ground's"=false,"Library"=false,"Workshop"=false}
 
 # Save System
 @export var last_save_time: float = 0.0
 @export var auto_save_interval: float = 600.0  # 10 minutes
-@export var save_file_path: String = "user://guild_save.dat"
+@export var save_file_path: String = "res://Save_Data/guild_save.json"
 
 # Recruitment Settings
 @export var recruitment_quality_modifier: float = 1.0
@@ -44,7 +44,7 @@ signal transformation_unlocked(transformation_name: String)
 @export var recruit_stay_duration: float = 600.0  # 10 minutes
 
 func _ready():
-	load_game()
+	#load_game()
 	initialize_guild()
 	
 	# Initialize quest completion tracking
@@ -327,7 +327,7 @@ func complete_transformation(transformation_type: String):
 	match transformation_type:
 		"roster_expansion_1":
 			max_roster_size = 10
-			transformations_unlocked.append(transformation_type)
+			transformations_unlocked["Roster Size"] = 10
 			transformation_unlocked.emit("Roster Expansion")
 
 func update_auto_save(delta: float):
@@ -357,7 +357,7 @@ func save_game():
 		"quests_completed_by_rank": quests_completed_by_rank,
 		"transformations_unlocked": transformations_unlocked,
 		"recruitment_quality_modifier": recruitment_quality_modifier,
-		"timestamp": Time.get_time_dict_from_system()["unix"]
+		"timestamp": Time.get_unix_time_from_system()
 	}
 	
 	var file = FileAccess.open(save_file_path, FileAccess.WRITE)
@@ -401,14 +401,14 @@ func load_game():
 	emergency_quests = deserialize_quests(save_data.get("emergency_quests", []))
 	total_quests_completed = save_data.get("total_quests_completed", 0)
 	quests_completed_by_rank = save_data.get("quests_completed_by_rank", {})
-	transformations_unlocked = save_data.get("transformations_unlocked", [])
+	transformations_unlocked = save_data.get("transformations_unlocked", ["none"])
 	recruitment_quality_modifier = save_data.get("recruitment_quality_modifier", 1.0)
 	
 	# Handle offline progress for time-based systems
-	handle_offline_progress(save_data.get("timestamp", Time.get_time_dict_from_system()["unix"]))
+	handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
 
 func handle_offline_progress(last_save_timestamp: float):
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	var offline_seconds = current_time - last_save_timestamp
 	
 	if offline_seconds <= 0:
@@ -545,10 +545,9 @@ func quest_to_dict(quest: Quest) -> Dictionary:
 		"food": quest.food,
 		"start_time": quest.start_time,
 		"assigned_party": serialize_characters(quest.assigned_party),
-		"is_active": quest.is_active,
-		"is_completed": quest.is_completed,
+		"active_quest_status" : quest.active_quest_status,
 		"success_rate": quest.success_rate,
-		"individual_checks": quest.individual_checks
+		#"individual_checks": quest.individual_checks
 	}
 
 func dict_to_quest(data: Dictionary) -> Quest:
@@ -580,10 +579,9 @@ func dict_to_quest(data: Dictionary) -> Quest:
 	quest.food = data.get("food", 0)
 	quest.start_time = data.get("start_time", 0.0)
 	quest.assigned_party = deserialize_characters(data.get("assigned_party", []))
-	quest.is_active = data.get("is_active", false)
-	quest.is_completed = data.get("is_completed", false)
+	quest.active_quest_status = data.get("active_quest_status", Quest.QuestStatus.NOTSTARTED)
 	quest.success_rate = data.get("success_rate", 0.0)
-	quest.individual_checks = data.get("individual_checks", [])
+	#quest.individual_checks = data.get("individual_checks", [])
 	return quest
 
 func clear_save_file():

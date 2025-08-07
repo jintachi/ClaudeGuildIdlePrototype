@@ -3,6 +3,8 @@ extends Control
 
 @onready var guild_manager: GuildManager = $GuildManager
 
+@export var _theme = load("res://theme.tres")
+
 # UI Containers
 @onready var main_hall_container: Control = $MainHall
 @onready var roster_container: Control = $RosterTab
@@ -55,6 +57,8 @@ func _ready():
 	show_main_hall()
 	update_ui()
 	
+	self.connect("child_entered_tree",_set_theme)
+	
 	# Connect to guild manager signals
 	guild_manager.character_recruited.connect(_on_character_recruited)
 	guild_manager.quest_started.connect(_on_quest_started)
@@ -83,6 +87,9 @@ func setup_ui_connections():
 	save_button.pressed.connect(_on_save_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	new_game_button.pressed.connect(_on_new_game_pressed)
+
+func _set_theme(child:Node) -> void:
+	child.theme = _theme
 
 func _process(_delta):
 	update_active_quests_display()
@@ -146,13 +153,15 @@ func update_active_quests_display():
 		active_quests_panel.add_child(quest_panel)
 
 func create_active_quest_panel(quest: Quest) -> Control:
+	
 	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(300, 100)
+	panel.custom_minimum_size = Vector2(300, 150)	
 	
 	var vbox = VBoxContainer.new()
-	panel.add_child(vbox)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 5)
+	panel.add_child(vbox)
+	
 	
 	# Quest title
 	var title = Label.new()
@@ -170,7 +179,7 @@ func create_active_quest_panel(quest: Quest) -> Control:
 	var time_label = Label.new()
 	var time_remaining = quest.get_time_remaining()
 	var minutes = int(time_remaining / 60)
-	var seconds = int(time_remaining % 60)
+	var seconds = int(time_remaining) % 60
 	time_label.text = "Time remaining: %02d:%02d" % [minutes, seconds]
 	vbox.add_child(time_label)
 	
@@ -256,6 +265,8 @@ func create_promotion_quest_for_character(character: Character) -> Quest:
 	
 	return quest
 
+
+#TODO : Update the Roster Display Properly to display members actively on quests.  Once a quest is complete, make the character available again.  Also display current Injuries on the characters.  Update panel sizes as wells
 func update_roster_display():
 	# Clear existing displays
 	for child in roster_list.get_children():
@@ -346,12 +357,25 @@ func update_quests_display():
 
 func create_quest_panel(quest: Quest) -> Control:
 	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(450, 150)
+	panel.custom_minimum_size = Vector2(450, 210)
 	
+	# Set anchors to full rect
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	# Or if in a container, set size flags
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	var vbox = VBoxContainer.new()
 	panel.add_child(vbox)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 3)
+	
+	# Select button
+	var select_button = Button.new()
+	select_button.text = "Select Quest"
+	select_button.pressed.connect(func(): select_quest(quest))
+	vbox.add_child(select_button)
 	
 	# Quest title
 	var title_label = Label.new()
@@ -382,12 +406,6 @@ func create_quest_panel(quest: Quest) -> Control:
 	var seconds = int(quest.duration) % 60
 	duration_label.text = "Duration: %02d:%02d" % [minutes, seconds]
 	vbox.add_child(duration_label)
-	
-	# Select button
-	var select_button = Button.new()
-	select_button.text = "Select Quest"
-	select_button.pressed.connect(func(): select_quest(quest))
-	vbox.add_child(select_button)
 	
 	return panel
 
