@@ -1,6 +1,8 @@
 class_name GuildManager
 extends Node
 
+## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND
+
 signal character_recruited(character: Character)
 signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
@@ -227,7 +229,13 @@ func complete_quest(quest: Quest):
 	total_quests_completed += 1
 	quests_completed_by_rank[quest.quest_rank] = quests_completed_by_rank.get(quest.quest_rank, 0) + 1
 	
+	#quest.active_quest_status = quest.QuestStatus.COMPLETED
+	
+	## TODO: Track down why this doesn't get emit.
 	quest_completed.emit(quest)
+	
+	for adven in quest.assigned_party :
+		adven.is_on_quest = false
 	
 	# Generate replacement quest
 	generate_replacement_quest(quest.quest_rank)

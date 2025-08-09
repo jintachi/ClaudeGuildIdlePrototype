@@ -32,7 +32,7 @@ enum QuestRank {
 
 # Party requirements
 @export var min_party_size: int = 1
-@export var max_party_size: int = 4
+@export var max_party_size: int = 5
 @export var required_tank: bool = false
 @export var required_healer: bool = false
 @export var required_support: bool = false
@@ -61,8 +61,11 @@ enum QuestRank {
 @export var individual_checks: Array[bool] = []
 @export var active_quest_status = QuestStatus.NOTSTARTED
 
+signal quest_completed(quest:Quest)
+
 func _init():
 	generate_random_quest()
+	
 
 static func create_quest(type: QuestType, rank: QuestRank) -> Quest:
 	var quest = Quest.new()
@@ -123,13 +126,14 @@ func generate_requirements():
 	
 	# Party size requirements
 	min_party_size = 1
-	max_party_size = min(4, 1 + int(quest_rank / 2))
+	#max_party_size = min(4, 1 + int(quest_rank / 2))
 	
 	# Class requirements based on quest type and rank
 	match quest_type:
 		QuestType.CARAVAN_GUARDING:
 			if quest_rank >= QuestRank.C:
 				required_tank = true
+				min_party_size = 2
 			if quest_rank >= QuestRank.B:
 				required_healer = true
 				min_party_size = 3
@@ -141,7 +145,7 @@ func generate_requirements():
 				required_healer = true
 				min_party_size = 2
 		QuestType.STEALTH:
-			max_party_size = 2  # Stealth missions prefer smaller groups
+			max_party_size = 1  # Stealth missions prefer smaller groups
 		QuestType.DIPLOMACY:
 			if quest_rank >= QuestRank.B:
 				required_support = true
@@ -391,7 +395,7 @@ func calculate_party_modifiers() -> float:
 	return modifiers
 
 func update_quest_progress() -> bool:
-	if active_quest_status != QuestStatus.COMPLETED or active_quest_status == QuestStatus.FAILED:
+	if active_quest_status == QuestStatus.FAILED:
 		return false
 	
 	var current_time = Time.get_unix_time_from_system()
@@ -422,8 +426,6 @@ func complete_quest():
 		else : 
 			individual_checks.append(false)
 		
-		character.is_on_quest = false
-		
 		
 	# Calculate final success rate and rewards
 	var final_success_rate = float(successful_members) / assigned_party.size()
@@ -441,6 +443,7 @@ func complete_quest():
 
 	apply_rewards(final_success_rate)
 	apply_injuries_on_failure(final_success_rate)
+		
 
 func apply_rewards(final_success_rate: float):
 	var experience_per_member = int(base_experience * max(final_success_rate, 0.6 if final_success_rate > 0.0 else 0.0))
@@ -459,10 +462,10 @@ func apply_rewards(final_success_rate: float):
 			character.personal_gold += int(gold_per_member * 0.6)
 
 func apply_injuries_on_failure(final_success_rate: float):
-	if final_success_rate >= 0.6:
+	if final_success_rate >= 0.5:
 		return  # No injuries on success
 	
-	var injury_chance = 0.3 + (0.4 * (1.0 - final_success_rate))  # 30-70% chance based on failure severity
+	var injury_chance = 0.1 + (0.5 * (1.0 - final_success_rate))  # 30-70% chance based on failure severity
 	
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
@@ -494,6 +497,7 @@ func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 		Character.InjuryType.EXHAUSTION: return 180.0      # 3 minutes
 		Character.InjuryType.POISON: return 360.0          # 6 minutes
 		_: return 300.0
+		
 
 func get_time_remaining() -> float:
 	if not self.active_quest_status == QuestStatus.INPROGRESS:
@@ -505,6 +509,7 @@ func get_time_remaining() -> float:
 
 func get_progress_percentage() -> float:
 	if self.active_quest_status == QuestStatus.COMPLETED :
+		
 		return 100.0
 	else :
 		return 100 - (get_time_remaining()/duration)*100

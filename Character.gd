@@ -206,6 +206,13 @@ func unlock_class_ability():
 				pass # Unlock "Damage Shield" ability
 		# Add more class abilities later
 
+
+func get_injury_duration() -> float :
+	var cur_time =  Time.get_unix_time_from_system()
+	var elapsed_time = cur_time - injury_start_time
+	var duration_remaining = injury_duration - elapsed_time
+	return duration_remaining
+
 func apply_injury(injury: InjuryType, duration: float):
 	injury_type = injury
 	injury_duration = duration

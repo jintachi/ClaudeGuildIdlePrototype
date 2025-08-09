@@ -266,7 +266,7 @@ func create_promotion_quest_for_character(character: Character) -> Quest:
 	return quest
 
 
-#TODO : Update the Roster Display Properly to display members actively on quests.  Once a quest is complete, make the character available again.  Also display current Injuries on the characters.  Update panel sizes as wells
+#TODO : Update the Roster Display Properly to display members actively on quests.  Once a quest is complete, make the character available again.  Also display current Injuries on the characters.  Update panel sizes as wellsq
 func update_roster_display():
 	# Clear existing displays
 	for child in roster_list.get_children():
@@ -321,7 +321,11 @@ func create_character_panel(character: Character) -> Control:
 	# Status
 	var status_label = Label.new()
 	if character.is_injured():
-		status_label.text = "INJURED - %s" % get_injury_name(character.injury_type)
+		var injury_duration = character.get_injury_duration()
+		var injury_minutes:int = injury_duration / 60
+		var injury_seconds:float = injury_duration - (injury_minutes * 60)
+		var display_inj = str(injury_minutes, ": ", injury_seconds)
+		status_label.text = "INJURED - %s, %s" % [get_injury_name(character.injury_type), display_inj]
 		status_label.modulate = Color.RED
 	elif character.is_on_quest:
 		status_label.text = "ON QUEST"
@@ -465,6 +469,8 @@ func create_party_selection_panel(character: Character) -> Control:
 func create_party_member_panel(character: Character) -> Control:
 	var hbox = HBoxContainer.new()
 	
+	hbox.size_flags_horizontal = Control.SIZE_EXPAND
+	
 	var info_label = Label.new()
 	info_label.text = "%s (%s) Lvl %d" % [character.character_name, character.get_class_name(), character.level]
 	info_label.custom_minimum_size.x = 200
@@ -591,10 +597,15 @@ func _on_quest_started(quest: Quest):
 
 func _on_quest_completed(quest: Quest):
 	print("Quest completed: ", quest.quest_name)
+	quest.active_quest_status = quest.QuestStatus.COMPLETED
+	for member in quest.assigned_party :
+		member.is_on_quest=false
 	# Show completion popup or notification
 	show_quest_completion_popup(quest)
 	update_ui()
 
+
+## TODO: Change this section so that instead of a popup, the display of the quest progress changes to a "COMPLETE QUEST" Button, which then will pull up this pop up
 func show_quest_completion_popup(quest: Quest):
 	var popup = AcceptDialog.new()
 	add_child(popup)
@@ -607,6 +618,13 @@ func show_quest_completion_popup(quest: Quest):
 		party_text += "%s: %s\n" % [member.name, "SUCCESS" if member.status == "✓" else "FAILED"]
 		if member.status == "✓":
 			success_count += 1
+	
+	
+	
+	## TODO: Add a series of tabs or a cleaner display for which units got EXP, and any levelup gains, maybe a click-through series of tabs for each character.
+	for _char in quest.assigned_party :
+		_char.is_on_quest = false
+	
 	
 	var success_rate = float(success_count) / party_info.size()
 	var result_text = "QUEST COMPLETED!\n\n"
@@ -653,11 +671,14 @@ func _on_save_pressed():
 	guild_manager.save_game()
 	print("Game saved!")
 
+## TODO: Add a UI for loading games, this should only be from the main menu.  May need to separate out the save and load functions.
 func _on_load_pressed():
 	guild_manager.load_game()
 	update_ui()
 	print("Game loaded!")
 
+
+## TODO: Ensure that this is generating a new random seed that will be saved for the run.
 func _on_new_game_pressed():
 	var confirm = ConfirmationDialog.new()
 	add_child(confirm)
