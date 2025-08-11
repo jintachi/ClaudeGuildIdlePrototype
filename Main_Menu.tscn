@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dmpeyc0u2vh3d" path="res://main_menu.gd" id="1_m625n"]
 [ext_resource type="PackedScene" uid="uid://ctr4p8jbhykl4" path="res://Main.tscn" id="2_wugcc"]
-[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="3_gtid3"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://Assets/Themes/theme.tres" id="3_gtid3"]
 
 [node name="MainMenu" type="Node" node_paths=PackedStringArray("new_game", "load_game")]
 script = ExtResource("1_m625n")

@@ -66,7 +66,6 @@ signal quest_completed(quest:Quest)
 func _init():
 	generate_random_quest()
 	
-
 static func create_quest(type: QuestType, rank: QuestRank) -> Quest:
 	var quest = Quest.new()
 	quest.quest_type = type

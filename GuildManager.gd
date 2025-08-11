@@ -3,6 +3,7 @@ extends Node
 
 ## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND
 
+
 signal character_recruited(character: Character)
 signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
@@ -60,11 +61,11 @@ func _process(delta):
 	check_for_transformations()
 
 func initialize_guild():
-	if roster.is_empty():
-		# Start with one basic character
-		var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
-		add_character_to_roster(starter)
-	
+	#if roster.is_empty():
+		## Start with one basic character
+		#var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
+		#add_character_to_roster(starter)
+	#
 	if available_quests.is_empty():
 		generate_initial_quests()
 	
