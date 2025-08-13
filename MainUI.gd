@@ -3,7 +3,7 @@ extends Control
 
 @onready var guild_manager: GuildManager = $GuildManager
 
-@export var _theme = load("res://theme.tres")
+@export var _theme = load("res://Assets/Themes/theme.tres")
 
 # UI Containers
 @onready var main_hall_container: Control = $MainHall
@@ -48,6 +48,19 @@ extends Control
 @onready var load_button: Button = $MainHall/SaveLoadPanel/LoadButton
 @onready var new_game_button: Button = $MainHall/SaveLoadPanel/NewGameButton
 
+# Debug Panel Elements
+@onready var dbg_influence_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/InfluenceEdit
+@onready var dbg_gold_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/GoldEdit
+@onready var dbg_food_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/FoodEdit
+@onready var dbg_materials_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/MaterialsEdit
+@onready var dbg_armor_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/ArmorEdit
+@onready var dbg_weapons_edit: LineEdit = $MainHall/DebugPanel/VBox/ResourcesGrid/WeaponsEdit
+@onready var dbg_apply_resources_btn: Button = $MainHall/DebugPanel/VBox/ButtonsRow/ApplyResourcesButton
+@onready var dbg_free_refresh_recruits_btn: Button = $MainHall/DebugPanel/VBox/ButtonsRow/FreeRefreshRecruitsButton
+@onready var dbg_rank_option: OptionButton = $MainHall/DebugPanel/VBox/QuestGenRow/RankOption
+@onready var dbg_type_option: OptionButton = $MainHall/DebugPanel/VBox/QuestGenRow/TypeOption
+@onready var dbg_generate_quest_btn: Button = $MainHall/DebugPanel/VBox/QuestGenRow/GenerateQuestButton
+
 # Current state
 var current_selected_quest: Quest = null
 var current_party: Array[Character] = []
@@ -64,6 +77,9 @@ func _ready():
 	guild_manager.quest_started.connect(_on_quest_started)
 	guild_manager.quest_completed.connect(_on_quest_completed)
 	guild_manager.emergency_quest_available.connect(_on_emergency_quest_available)
+
+	_debug_populate_rank_and_type_options()
+	_debug_sync_resource_fields()
 
 func setup_ui_connections():
 	# Navigation
@@ -82,6 +98,11 @@ func setup_ui_connections():
 	
 	# Recruitment
 	refresh_recruits_button.pressed.connect(_on_refresh_recruits_pressed)
+
+	# Debug
+	dbg_apply_resources_btn.pressed.connect(_on_debug_apply_resources)
+	dbg_free_refresh_recruits_btn.pressed.connect(_on_debug_free_refresh_recruits)
+	dbg_generate_quest_btn.pressed.connect(_on_debug_generate_quest)
 	
 	# Save/Load
 	save_button.pressed.connect(_on_save_pressed)
@@ -130,6 +151,26 @@ func hide_all_tabs():
 func update_ui():
 	update_resources_display()
 	update_main_hall_display()
+	_debug_sync_resource_fields()
+
+func _debug_sync_resource_fields():
+	dbg_influence_edit.text = str(guild_manager.influence)
+	dbg_gold_edit.text = str(guild_manager.gold)
+	dbg_food_edit.text = str(guild_manager.food)
+	dbg_materials_edit.text = str(guild_manager.building_materials)
+	dbg_armor_edit.text = str(guild_manager.armor_pieces)
+	dbg_weapons_edit.text = str(guild_manager.weapons)
+
+func _debug_populate_rank_and_type_options():
+	# Ranks
+	dbg_rank_option.clear()
+	for rank_name in Quest.QuestRank.keys():
+		dbg_rank_option.add_item(rank_name)
+	# Types (add "Random" at index 0)
+	dbg_type_option.clear()
+	dbg_type_option.add_item("Random")
+	for type_name in Quest.QuestType.keys():
+		dbg_type_option.add_item(type_name)
 
 func update_resources_display():
 	var resources = guild_manager.get_guild_status_summary().resources
@@ -667,13 +708,47 @@ func _on_refresh_recruits_pressed():
 	else:
 		show_error_popup(result.message)
 
+func _on_debug_apply_resources():
+	var resources := {
+		"influence": int(dbg_influence_edit.text.to_int()),
+		"gold": int(dbg_gold_edit.text.to_int()),
+		"food": int(dbg_food_edit.text.to_int()),
+		"building_materials": int(dbg_materials_edit.text.to_int()),
+		"armor": int(dbg_armor_edit.text.to_int()),
+		"weapons": int(dbg_weapons_edit.text.to_int()),
+	}
+	guild_manager.debug_set_resources(resources)
+	update_ui()
+
+func _on_debug_free_refresh_recruits():
+	guild_manager.debug_generate_recruits()
+	update_recruitment_display()
+
+func _on_debug_generate_quest():
+	var selected_rank_index := dbg_rank_option.get_selected_id()
+	if selected_rank_index < 0:
+		selected_rank_index = 0
+	# Type index: 0 is Random, else map by name
+	var selected_type_idx := dbg_type_option.get_selected()
+	var type_id := -1
+	if selected_type_idx > 0:
+		var type_name := dbg_type_option.get_item_text(selected_type_idx)
+		var keys := Quest.QuestType.keys()
+		for i in range(keys.size()):
+			if keys[i] == type_name:
+				type_id = i
+				break
+	var quest := guild_manager.debug_generate_quest(selected_rank_index, type_id)
+	print("Generated quest:", quest.quest_name)
+	update_quests_display()
+
 func _on_save_pressed():
-	guild_manager.save_game()
+	SaveManager.save_game(guild_manager)
 	print("Game saved!")
 
 ## TODO: Add a UI for loading games, this should only be from the main menu.  May need to separate out the save and load functions.
 func _on_load_pressed():
-	guild_manager.load_game()
+	SaveManager.load_game(guild_manager)
 	update_ui()
 	print("Game loaded!")
 
@@ -685,7 +760,8 @@ func _on_new_game_pressed():
 	confirm.dialog_text = "Are you sure you want to start a new game? This will delete your current save file."
 	confirm.title = "New Game"
 	confirm.confirmed.connect(func(): 
-		guild_manager.clear_save_file()
+		# Reset via SaveManager so state and file are both cleared
+		SaveManager.clear_save_file(guild_manager)
 		update_ui()
 		print("New game started!")
 	)

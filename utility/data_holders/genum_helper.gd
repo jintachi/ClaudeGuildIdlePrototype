@@ -1,5 +1,6 @@
 ## This acts as a middle-layer where if I need strings, but want the consistency of Enums.
 class_name GenumHelper
+extends Node
 
 ## Used to get the name of an Audio Bus based on its corresponding Enum in [class Genum]
 const BUS_NAME : Dictionary[Genum.BusID, String] = {

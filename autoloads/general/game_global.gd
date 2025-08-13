@@ -1,5 +1,3 @@
-# Current feature worked on for Riley: Crafting, coding-in_progress
-
 ## The actual Global containing all of the game's core information.
 extends Node
 
@@ -10,6 +8,7 @@ func _ready() -> void:
 	sound_loader.load_audio()
 	sound_loader = null
 	
+
 	#var expression = Expression.new()
 	#
 	#var error = expression.parse("print(\"Hello World!\")")

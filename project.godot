@@ -13,6 +13,20 @@ config_version=5
 config/name="ClaudeGuildIdle"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+config/tags=PackedStringArray("idler", "solo_project")
+
+[autoload]
+
+MusicManager="*res://autoloads/audio/music_manager.gd"
+AudioLoader="*res://autoloads/audio/sound_loader.gd"
+SoundManager="*res://autoloads/audio/sound_manager.gd"
+GameGlobal="*res://autoloads/general/game_global.gd"
+GameGlobalEvents="*res://autoloads/general/game_global_events.gd"
+SaveManager="*res://autoloads/saving/save_manager.gd"
+Genums="*res://utility/data_holders/genum.gd"
+GenumsHelper="*res://utility/data_holders/genum_helper.gd"
+Guild_Manager="*res://autoloads/general/guild_manager.gd"
+RNG="*res://autoloads/general/rng_manager.gd"
 
 [editor_plugins]
 

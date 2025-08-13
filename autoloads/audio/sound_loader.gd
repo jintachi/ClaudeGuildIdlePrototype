@@ -1,4 +1,5 @@
 class_name SoundLoader
+extends Node
 
 #region Loaders
 ## Loads all audio types via their respective loading methods

@@ -1,5 +1,6 @@
 ## This is where all the game's common Enums are listed.
 class_name Genum
+extends Node
 
 ## The Enum used for Audio Buses.
 enum BusID {

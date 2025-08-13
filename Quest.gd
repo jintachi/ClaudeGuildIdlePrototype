@@ -77,8 +77,8 @@ func generate_random_quest():
 	var types = QuestType.values()
 	var ranks = QuestRank.values()
 	
-	quest_type = types[randi() % types.size()]
-	quest_rank = ranks[randi() % ranks.size()]
+	quest_type = types[RNG.randi() % types.size()]
+	quest_rank = ranks[RNG.randi() % ranks.size()]
 	generate_quest_from_template(quest_type, quest_rank)
 
 func generate_quest_from_template(type: QuestType, rank: QuestRank):
@@ -150,28 +150,28 @@ func generate_requirements():
 				required_support = true
 	
 	# Stat requirements
-	min_total_health = int(50 * rank_multiplier * randf_range(0.8, 1.2))
-	min_total_defense = int(20 * rank_multiplier * randf_range(0.8, 1.2))
-	min_total_attack_power = int(30 * rank_multiplier * randf_range(0.8, 1.2))
-	min_total_spell_power = int(15 * rank_multiplier * randf_range(0.8, 1.2))
-	min_substat_requirement = int(quest_rank * randf_range(0.5, 1.5))
+	min_total_health = int(50 * rank_multiplier * RNG.randf_range(0.8, 1.2))
+	min_total_defense = int(20 * rank_multiplier * RNG.randf_range(0.8, 1.2))
+	min_total_attack_power = int(30 * rank_multiplier * RNG.randf_range(0.8, 1.2))
+	min_total_spell_power = int(15 * rank_multiplier * RNG.randf_range(0.8, 1.2))
+	min_substat_requirement = int(quest_rank * RNG.randf_range(0.5, 1.5))
 
 func generate_rewards():
 	var rank_multiplier = get_rank_multiplier()
 	
 	base_experience = int(20 * rank_multiplier)
-	gold_reward = int(15 * rank_multiplier * randf_range(0.8, 1.4))
-	influence_reward = int(5 * rank_multiplier * randf_range(0.9, 1.1))
+	gold_reward = int(15 * rank_multiplier * RNG.randf_range(0.8, 1.4))
+	influence_reward = int(5 * rank_multiplier * RNG.randf_range(0.9, 1.1))
 	
 	# Random additional rewards
-	if randf() < 0.3:
-		building_materials = int(rank_multiplier * randf_range(1, 3))
-	if randf() < 0.2:
-		armor_pieces = int(rank_multiplier * randf_range(1, 2))
-	if randf() < 0.2:
-		weapons = int(rank_multiplier * randf_range(1, 2))
-	if randf() < 0.4:
-		food = int(rank_multiplier * randf_range(2, 5))
+	if RNG.randf() < 0.3:
+		building_materials = int(rank_multiplier * RNG.randf_range(1, 3))
+	if RNG.randf() < 0.2:
+		armor_pieces = int(rank_multiplier * RNG.randf_range(1, 2))
+	if RNG.randf() < 0.2:
+		weapons = int(rank_multiplier * RNG.randf_range(1, 2))
+	if RNG.randf() < 0.4:
+		food = int(rank_multiplier * RNG.randf_range(2, 5))
 
 func generate_quest_details():
 	var type_names = {
@@ -191,7 +191,7 @@ func generate_quest_details():
 	quest_name = rank_name + "-Rank " + type_name + " Mission"
 	
 	var descriptions = get_quest_descriptions()
-	description = descriptions[quest_type][randi() % descriptions[quest_type].size()]
+	description = descriptions[quest_type][RNG.randi() % descriptions[quest_type].size()]
 
 func get_quest_descriptions() -> Dictionary:
 	return {
@@ -416,7 +416,7 @@ func complete_quest():
 	
 	for character in assigned_party:
 		
-		var individual_success = randf_range(0,1) # set chance to succeed to random for now COME BACK LATER TO FIX
+		var individual_success = RNG.randf_range(0,1)
 		
 		if individual_success > .6:
 			successful_members += 1
@@ -470,7 +470,7 @@ func apply_injuries_on_failure(final_success_rate: float):
 		var character = assigned_party[i]
 		var member_failed = not individual_checks[i]
 		
-		if member_failed and randf() < injury_chance:
+		if member_failed and RNG.randf() < injury_chance:
 			apply_random_injury(character)
 
 func apply_random_injury(character: Character):
@@ -482,7 +482,7 @@ func apply_random_injury(character: Character):
 		Character.InjuryType.POISON
 	]
 	
-	var injury_type = injury_types[randi() % injury_types.size()]
+	var injury_type = injury_types[RNG.randi() % injury_types.size()]
 	var base_duration = get_base_injury_duration(injury_type)
 	var rank_multiplier = 1.0 + (quest_rank * 0.1)  # Higher rank quests = longer injuries
 	
@@ -493,8 +493,8 @@ func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 		Character.InjuryType.PHYSICAL_WOUND: return 300.0  # 5 minutes
 		Character.InjuryType.MENTAL_TRAUMA: return 240.0   # 4 minutes
 		Character.InjuryType.CURSED_AFFLICTION: return 480.0  # 8 minutes
-		Character.InjuryType.EXHAUSTION: return 180.0      # 3 minutes
-		Character.InjuryType.POISON: return 360.0          # 6 minutes
+		Character.InjuryType.EXHAUSTION: return 180.0	# 3 minutes
+		Character.InjuryType.POISON: return 360.0	# 6 minutes
 		_: return 300.0
 		
 
