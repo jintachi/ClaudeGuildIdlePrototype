@@ -1,4 +1,4 @@
-extends Node
+extends GuildManager
 
 # TODO: Personalize save system for Moonlit Cafe
 
@@ -35,8 +35,8 @@ func save_game(gm: GuildManager) -> void:
 		"transformations_unlocked": gm.transformations_unlocked,
 		"recruitment_quality_modifier": gm.recruitment_quality_modifier,
 		"timestamp": Time.get_unix_time_from_system(),
-		"rng_seed": RNG.get_seed(),
-		"rng_state": RNG.get_state()
+		"rng_seed": RNG.wrapper.get_seed(),
+		"rng_state": RNG.wrapper.get_state()
 	}
 
 	var file := FileAccess.open(save_file_path, FileAccess.WRITE)
@@ -88,12 +88,12 @@ func load_game(gm: GuildManager) -> void:
 	var saved_seed: int = int(save_data.get("rng_seed", 0))
 	var saved_state: int = int(save_data.get("rng_state", 0))
 	if saved_seed != 0:
-		RNG.set_seed(saved_seed)
+		RNG.wrapper.set_seed(saved_seed)
 	if saved_state != 0:
-		RNG.set_state(saved_state)
+		RNG.wrapper.set_state(saved_state)
 	
 	# Handle offline progress for time-based systems
-	gm.handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
+	handle_offline_progress(gm,save_data.get("timestamp", Time.get_unix_time_from_system()))
 
 ## Centralized auto-save timer; call from game loop with the GuildManager reference.
 func update_auto_save(delta: float, gm: GuildManager) -> void:
@@ -126,9 +126,31 @@ func clear_save_file(gm: GuildManager) -> void:
 	gm.transformations_unlocked.clear()
 	gm.recruitment_quality_modifier = 1.0
 
-	gm.initialize_guild()
 	# New run -> new RNG seed
-	RNG.randomize_with_new_seed()
+	RNG.wrapper.randomize_with_new_seed()
+	# Update recruitment rotation
+	
+func handle_offline_progress(gm:GuildManager,last_save_timestamp: float):
+	var current_time = Time.get_unix_time_from_system()
+	var offline_seconds = current_time - last_save_timestamp
+	
+	if offline_seconds <= 0:
+		return
+	
+	# Update quest progress for active quests
+	var completed_offline = []
+	for quest in gm.active_quests:
+		quest.start_time -= offline_seconds  # Simulate time passage
+		if quest.get_time_remaining() <= 0:
+			quest.complete_quest()
+			completed_offline.append(quest)
+	
+	for quest in completed_offline:
+		GameGlobalEvents.emit_signal("quest_completed",quest)
+		
+	var rotations_missed = int(offline_seconds / gm.recruitment_hub.recruit_refresh_time)
+	for i in range(min(rotations_missed, gm.recruitment_hub.max_offline_rotations)):  # Limit to 3 rotations max
+		GameGlobalEvents.emit_signal("rotate_recruits")
 #endregion
 
 #region Serialization Helpers

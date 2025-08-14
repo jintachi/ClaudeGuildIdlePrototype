@@ -11,9 +11,9 @@ config_version=5
 [application]
 
 config/name="ClaudeGuildIdle"
+config/tags=PackedStringArray("idler", "solo_project")
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
-config/tags=PackedStringArray("idler", "solo_project")
 
 [autoload]
 
@@ -25,8 +25,8 @@ GameGlobalEvents="*res://autoloads/general/game_global_events.gd"
 SaveManager="*res://autoloads/saving/save_manager.gd"
 Genums="*res://utility/data_holders/genum.gd"
 GenumsHelper="*res://utility/data_holders/genum_helper.gd"
-Guild_Manager="*res://autoloads/general/guild_manager.gd"
 RNG="*res://autoloads/general/rng_manager.gd"
+GuildManager="*res://mechanics/Guild Manager/guild_manager.gd"
 
 [editor_plugins]
 

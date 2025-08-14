@@ -1,0 +1,83 @@
+[gd_scene load_steps=2 format=3 uid="uid://b6tulj2i8o07b"]
+
+[ext_resource type="Script" uid="uid://c7jpf84l10u85" path="res://scenes/WorldMap/QuestHub/quest_hub.gd" id="1_4g2xi"]
+
+[node name="QuestBoard" type="Control" node_paths=PackedStringArray("available_quest_list", "party_selection_panel", "quest_info_label", "start_quest_button", "party_list", "selected_quest")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_4g2xi")
+available_quest_list = NodePath("AvailableQuests/HBoxContainer/ScrollContainer/AvailableQuestList")
+party_selection_panel = NodePath("AvailableQuests/HBoxContainer/PartySelection")
+quest_info_label = NodePath("AvailableQuests/HBoxContainer/PartySelection/QuestInfoLabel")
+start_quest_button = NodePath("AvailableQuests/HBoxContainer/PartySelection/StartQuestButton")
+party_list = NodePath("AvailableQuests/HBoxContainer")
+selected_quest = NodePath("AvailableQuests/HBoxContainer/PartySelection/ScrollContainer/SelectedQuest")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "AVAILABLE QUESTS"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 70.0
+text = "← Back"
+
+[node name="AvailableQuests" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 80.0
+offset_right = 1140.0
+offset_bottom = 640.0
+
+[node name="Label" type="Label" parent="AvailableQuests"]
+layout_mode = 2
+text = "Available Quests"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="AvailableQuests"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="AvailableQuests/HBoxContainer"]
+custom_minimum_size = Vector2(565, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AvailableQuestList" type="VBoxContainer" parent="AvailableQuests/HBoxContainer/ScrollContainer"]
+layout_mode = 2
+
+[node name="PartySelection" type="Panel" parent="AvailableQuests/HBoxContainer"]
+layout_mode = 2
+
+[node name="QuestInfoLabel" type="Label" parent="AvailableQuests/HBoxContainer/PartySelection"]
+layout_mode = 0
+offset_right = 270.0
+offset_bottom = 80.0
+text = "Select a quest first"
+autowrap_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="AvailableQuests/HBoxContainer/PartySelection"]
+custom_minimum_size = Vector2(565, 0)
+layout_mode = 0
+offset_top = 90.0
+offset_right = 270.0
+offset_bottom = 320.0
+
+[node name="SelectedQuest" type="VBoxContainer" parent="AvailableQuests/HBoxContainer/PartySelection/ScrollContainer"]
+layout_mode = 2
+
+[node name="StartQuestButton" type="Button" parent="AvailableQuests/HBoxContainer/PartySelection"]
+layout_mode = 0
+offset_top = 330.0
+offset_right = 270.0
+offset_bottom = 360.0
+text = "Start Quest"

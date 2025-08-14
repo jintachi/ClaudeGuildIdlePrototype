@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[node name="LoadingScreen" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ColorRect" type="ColorRect" parent="."]
+color = Color(0,0,0,1)
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Label" type="Label" parent="."]
+text = "Now Loading..."
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100
+offset_top = -30
+offset_right = 100
+offset_bottom = 30
+custom_colors/font_color = Color(1,1,1,1)
+align = 1
+valign = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -240
+offset_top = -60
+offset_right = -20
+offset_bottom = -20
+custom_minimum_size = Vector2(220, 40)
+percent_visible = true
+modulate = Color(1,1,1,1)

@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://ui7fvswog7yp"]
+
+[ext_resource type="Script" uid="uid://dmpeyc0u2vh3d" path="res://scenes/MainMenu/main_menu.gd" id="1_tq1mk"]
+
+[node name="MainMenu" type="CanvasLayer" node_paths=PackedStringArray("new_game_button", "load_game_button", "options_button", "quit_button")]
+script = ExtResource("1_tq1mk")
+new_game_button = NodePath("CenterContainer/VBoxContainer/NewGameButton")
+load_game_button = NodePath("CenterContainer/VBoxContainer/LoadGameButton")
+options_button = NodePath("CenterContainer/VBoxContainer/OptionsButton")
+quit_button = NodePath("CenterContainer/VBoxContainer/QuitButton")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="NewGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "New Game"
+
+[node name="LoadGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Load Game"
+
+[node name="OptionsButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Options"
+
+[node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Quit"

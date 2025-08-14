@@ -1,0 +1,113 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqqcexx2m321r"]
+
+[ext_resource type="Script" uid="uid://b3h1fy4cvwj64" path="res://ui/debug_panel.gd" id="1_qoggv"]
+
+[node name="Debug" type="CanvasLayer"]
+
+[node name="DebugPanel" type="Panel" parent="." node_paths=PackedStringArray("debug_resources", "debug_quest_hub")]
+offset_left = 10.0
+offset_top = 460.0
+offset_right = 800.0
+offset_bottom = 650.0
+script = ExtResource("1_qoggv")
+debug_resources = NodePath("VBox/DebugResources")
+debug_quest_hub = NodePath("VBox/DebugQuestHub")
+
+[node name="VBox" type="VBoxContainer" parent="DebugPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="DebugPanel/VBox"]
+layout_mode = 2
+text = "DEBUG TOOLS"
+
+[node name="DebugResources" type="VBoxContainer" parent="DebugPanel/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="ResourcesGrid" type="GridContainer" parent="DebugPanel/VBox/DebugResources"]
+layout_mode = 2
+columns = 6
+
+[node name="InfluenceLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Influence"
+
+[node name="InfluenceEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="GoldLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Gold"
+
+[node name="GoldEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="FoodLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Food"
+
+[node name="FoodEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="MaterialsLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Materials"
+
+[node name="MaterialsEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="ArmorLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Armor"
+
+[node name="ArmorEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="WeaponsLabel" type="Label" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "Weapons"
+
+[node name="WeaponsEdit" type="LineEdit" parent="DebugPanel/VBox/DebugResources/ResourcesGrid"]
+layout_mode = 2
+text = "0"
+
+[node name="ButtonsRow" type="HBoxContainer" parent="DebugPanel/VBox/DebugResources"]
+layout_mode = 2
+
+[node name="ApplyResourcesButton" type="Button" parent="DebugPanel/VBox/DebugResources/ButtonsRow"]
+layout_mode = 2
+text = "Apply Resources"
+
+[node name="FreeRefreshRecruitsButton" type="Button" parent="DebugPanel/VBox/DebugResources/ButtonsRow"]
+layout_mode = 2
+text = "Free Refresh Recruits"
+
+[node name="DebugQuestHub" type="VBoxContainer" parent="DebugPanel/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="QuestGenRow" type="HBoxContainer" parent="DebugPanel/VBox/DebugQuestHub"]
+layout_mode = 2
+
+[node name="RankLabel" type="Label" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
+layout_mode = 2
+text = "Rank"
+
+[node name="RankOption" type="OptionButton" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
+layout_mode = 2
+
+[node name="TypeLabel" type="Label" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
+layout_mode = 2
+text = "Type"
+
+[node name="TypeOption" type="OptionButton" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
+layout_mode = 2
+
+[node name="GenerateQuestButton" type="Button" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
+layout_mode = 2
+text = "Generate Quest"

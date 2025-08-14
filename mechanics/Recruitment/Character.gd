@@ -76,7 +76,7 @@ func _init(name: String = "", char_class: CharacterClass = CharacterClass.ATTACK
 func generate_random_name() -> String:
 	var first_names = ["Aeliana", "Borin", "Caelen", "Dara", "Elowen", "Finn", "Gilda", "Hamon", "Iris", "Joren", "Kira", "Lael", "Mira", "Nolan", "Orin", "Piper", "Quinn", "Raven", "Sera", "Thane", "Uma", "Vex", "Wren", "Xara", "Yara", "Zephyr"]
 	var last_names = ["Ironforge", "Swiftbow", "Goldleaf", "Stormwind", "Brightblade", "Shadowmere", "Frostborn", "Firehart", "Moonwhisper", "Starweaver", "Thornfield", "Wildwood", "Blackstone", "Silverstream", "Dragonbane", "Wolfheart", "Eagleeye", "Bearclaw", "Lionmane", "Foxglove"]
-	return first_names[RNG.randi() % first_names.size()] + " " + last_names[RNG.randi() % last_names.size()]
+	return first_names[RNG.wrapper.randi() % first_names.size()] + " " + last_names[RNG.wrapper.randi() % last_names.size()]
 
 func generate_base_stats():
 	var base_multiplier = 1.0 + (quality - 1) * 0.1  # Quality bonus
@@ -116,14 +116,14 @@ func generate_base_stats():
 			luck = int(8 * base_multiplier)
 
 func generate_random_substats():
-	# Randomly assign 1-3 substats to new recruits
-	var substat_count = RNG.randi_range(1, 3)
+	# Randomly assign 0-1 substats to new recruits
+	var substat_count = RNG.wrapper.randi_range(0,1)
 	var available_substats = ["gathering", "hunting_trapping", "diplomacy", "caravan_guarding", "escorting", "stealth", "odd_jobs"]
 	available_substats.shuffle()
 	
 	for i in range(substat_count):
 		var substat = available_substats[i]
-		var value = RNG.randi_range(1, 5)
+		var value = RNG.wrapper.randi_range(1, 5)
 		set(substat, value)
 
 func level_up():
@@ -134,13 +134,13 @@ func level_up():
 	var class_modifiers = get_class_level_modifiers()
 	
 	# Apply stat increases with randomness
-	health += RNG.randi_range(int(3 * class_modifiers.health * quality_bonus), int(8 * class_modifiers.health * quality_bonus))
-	defense += RNG.randi_range(int(1 * class_modifiers.defense * quality_bonus), int(3 * class_modifiers.defense * quality_bonus))
-	mana += RNG.randi_range(int(2 * class_modifiers.mana * quality_bonus), int(6 * class_modifiers.mana * quality_bonus))
-	spell_power += RNG.randi_range(int(1 * class_modifiers.spell_power * quality_bonus), int(4 * class_modifiers.spell_power * quality_bonus))
-	attack_power += RNG.randi_range(int(1 * class_modifiers.attack_power * quality_bonus), int(4 * class_modifiers.attack_power * quality_bonus))
-	movement_speed += RNG.randi_range(int(0 * class_modifiers.movement_speed * quality_bonus), int(2 * class_modifiers.movement_speed * quality_bonus))
-	luck += RNG.randi_range(int(0 * class_modifiers.luck * quality_bonus), int(2 * class_modifiers.luck * quality_bonus))
+	health += RNG.wrapper.randi_range(int(3 * class_modifiers.health * quality_bonus), int(8 * class_modifiers.health * quality_bonus))
+	defense += RNG.wrapper.randi_range(int(1 * class_modifiers.defense * quality_bonus), int(3 * class_modifiers.defense * quality_bonus))
+	mana += RNG.wrapper.randi_range(int(2 * class_modifiers.mana * quality_bonus), int(6 * class_modifiers.mana * quality_bonus))
+	spell_power += RNG.wrapper.randi_range(int(1 * class_modifiers.spell_power * quality_bonus), int(4 * class_modifiers.spell_power * quality_bonus))
+	attack_power += RNG.wrapper.randi_range(int(1 * class_modifiers.attack_power * quality_bonus), int(4 * class_modifiers.attack_power * quality_bonus))
+	movement_speed += RNG.wrapper.randi_range(int(0 * class_modifiers.movement_speed * quality_bonus), int(2 * class_modifiers.movement_speed * quality_bonus))
+	luck += RNG.wrapper.randi_range(int(0 * class_modifiers.luck * quality_bonus), int(2 * class_modifiers.luck * quality_bonus))
 	
 	check_promotion_eligibility()
 
@@ -159,7 +159,7 @@ func get_class_level_modifiers() -> Dictionary:
 
 func improve_substat_from_quest(quest_type: String, success_rate: float):
 	# Low chance to improve relevant substat based on quest type and success
-	if RNG.randf() < 0.1 * success_rate:  # 10% base chance modified by success rate
+	if RNG.wrapper.randf() < 0.1 * success_rate:  # 10% base chance modified by success rate
 		var current_value = get(quest_type)
 		set(quest_type, current_value + 1)
 

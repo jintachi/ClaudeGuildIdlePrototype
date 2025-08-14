@@ -1,0 +1,43 @@
+[gd_scene load_steps=2 format=3 uid="uid://dgptbchsat1pl"]
+
+[ext_resource type="Script" uid="uid://cdo4j3kch00n7" path="res://scenes/WorldMap/RecruitersHub/Recruiters_Hub.gd" id="1_nnmyp"]
+
+[node name="RecruitersHub" type="Control" node_paths=PackedStringArray("back_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_nnmyp")
+back_button = NodePath("BackButton")
+
+[node name="Title" type="Label" parent="."]
+offset_right = 200.0
+offset_bottom = 30.0
+text = "RECRUITMENT"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="."]
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 70.0
+text = "← Back"
+
+[node name="RefreshButton" type="Button" parent="."]
+offset_left = 120.0
+offset_top = 40.0
+offset_right = 250.0
+offset_bottom = 70.0
+text = "Refresh (10 Influence)"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(1130, 560)
+offset_left = 10.0
+offset_top = 80.0
+offset_right = 600.0
+offset_bottom = 450.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
