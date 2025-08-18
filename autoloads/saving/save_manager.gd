@@ -1,4 +1,4 @@
-extends GuildManager
+extends Node
 
 # TODO: Personalize save system for Moonlit Cafe
 

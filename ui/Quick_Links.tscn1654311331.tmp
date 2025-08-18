@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://dkprvoaa8eh0s"]
+
+[ext_resource type="Script" uid="uid://dul6a05etgit6" path="res://ui/quick_links.gd" id="1_3dh6c"]
+
+[node name="CanvasLayer" type="CanvasLayer"]
+script = ExtResource("1_3dh6c")
+
+[node name="QuickLinks" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(200, 30)
+offset_right = 200.0
+offset_bottom = 136.0

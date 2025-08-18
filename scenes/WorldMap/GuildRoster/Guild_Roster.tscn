@@ -1,12 +1,16 @@
-[gd_scene format=3 uid="uid://ctnmlmva6yoqs"]
+[gd_scene load_steps=2 format=3 uid="uid://ctnmlmva6yoqs"]
 
-[node name="RosterTab" type="Control"]
+[ext_resource type="Script" uid="uid://ba3vvd44otjfi" path="res://scenes/WorldMap/GuildRoster/Guild_Roster.gd" id="1_lwk7s"]
+
+[node name="GuildRoster" type="Control" node_paths=PackedStringArray("roster_list")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_lwk7s")
+roster_list = NodePath("ScrollContainer/VBoxContainer")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 0

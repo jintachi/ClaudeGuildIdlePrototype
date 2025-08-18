@@ -61,7 +61,6 @@ enum QuestRank {
 @export var individual_checks: Array[bool] = []
 @export var active_quest_status = QuestStatus.NOTSTARTED
 
-signal quest_completed(quest:Quest)
 
 func _init():
 	generate_random_quest()

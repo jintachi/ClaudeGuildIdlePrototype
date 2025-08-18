@@ -4,14 +4,16 @@
 
 [node name="Debug" type="CanvasLayer"]
 
-[node name="DebugPanel" type="Panel" parent="." node_paths=PackedStringArray("debug_resources", "debug_quest_hub")]
+[node name="DebugPanel" type="Panel" parent="." node_paths=PackedStringArray("debug_recruit_hub", "debug_resources", "debug_quest_hub", "debug_guild_roster")]
 offset_left = 10.0
 offset_top = 460.0
 offset_right = 800.0
 offset_bottom = 650.0
 script = ExtResource("1_qoggv")
+debug_recruit_hub = NodePath("VBox/DebugRecruitHub")
 debug_resources = NodePath("VBox/DebugResources")
 debug_quest_hub = NodePath("VBox/DebugQuestHub")
+debug_guild_roster = NodePath("VBox/DebugGuildRoster")
 
 [node name="VBox" type="VBoxContainer" parent="DebugPanel"]
 layout_mode = 2
@@ -111,3 +113,27 @@ layout_mode = 2
 [node name="GenerateQuestButton" type="Button" parent="DebugPanel/VBox/DebugQuestHub/QuestGenRow"]
 layout_mode = 2
 text = "Generate Quest"
+
+[node name="DebugRecruitHub" type="VBoxContainer" parent="DebugPanel/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="RecruitHubLabel" type="Label" parent="DebugPanel/VBox/DebugRecruitHub"]
+layout_mode = 2
+text = "Recruitment Debug Tools"
+
+[node name="ForceRefreshButton" type="Button" parent="DebugPanel/VBox/DebugRecruitHub"]
+layout_mode = 2
+text = "Force Refresh Recruits"
+
+[node name="DebugGuildRoster" type="VBoxContainer" parent="DebugPanel/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="GuildRosterLabel" type="Label" parent="DebugPanel/VBox/DebugGuildRoster"]
+layout_mode = 2
+text = "Guild Roster Debug Tools"
+
+[node name="PrintRosterButton" type="Button" parent="DebugPanel/VBox/DebugGuildRoster"]
+layout_mode = 2
+text = "Print Current Roster"

@@ -1,3 +1,60 @@
+[gd_scene load_steps=2 format=3 uid="uid://hm7vcmawhqfv"]
 
+[ext_resource type="Script" uid="uid://d2w2gc3kn6hox" path="res://ui/notification_popup.gd" id="1_gq7b7"]
 
+[node name="NotificationPopup" type="Panel" node_paths=PackedStringArray("progress_bar", "label")]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("1_gq7b7")
+progress_bar = NodePath("Control/ProgressBar")
+label = NodePath("Control/MarginContainer/Label")
 
+[node name="Control" type="Control" parent="."]
+custom_minimum_size = Vector2(176, 40)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -176.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -176.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/margin_bottom = 1
+
+[node name="Label" type="Label" parent="Control/MarginContainer"]
+layout_mode = 2
+text = "Popup Text Goes Here!"
+
+[node name="ProgressBar" type="ProgressBar" parent="Control"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -176.0
+offset_top = -6.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_vertical = 8
+fill_mode = 1
+show_percentage = false

@@ -2,7 +2,6 @@ class_name RNGManager
 extends Node
 
 var wrapper: RandomNumberGenerator = RandomNumberGenerator.new()
-var seed
 var state: int = 0
 
 func _ready() -> void:

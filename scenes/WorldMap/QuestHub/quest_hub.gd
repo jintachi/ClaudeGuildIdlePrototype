@@ -1,5 +1,5 @@
 class_name QuestHub
-extends GuildManager
+extends Node
 
 signal back_pressed
 
@@ -7,6 +7,7 @@ signal back_pressed
 var current_selected_quest: Quest = null
 var current_party: Array[Character] = []
 
+@export var scene_name : StringName = "Quest Hub"
 @export var available_quest_list : VBoxContainer
 @export var party_selection_panel : Panel
 @export var quest_info_label : Label
@@ -20,6 +21,7 @@ func _ready():
 
 func _on_back_pressed():
 	emit_signal("back_pressed")
+	GuildManager.previous_scene_before_map = get_tree().current_scene.scene_file_path
 	get_tree().change_scene_to_file("res://scenes/WorldMap/World_Map.tscn")
 
 func update_quests_display():
@@ -31,6 +33,14 @@ func update_quests_display():
 		var quest_panel = create_quest_panel(quest)
 		available_quest_list.add_child(quest_panel)
 
+func generate_initial_quests():
+	# Generate some basic F
+	for i in range(5):
+		var quest_rank = Quest.QuestRank.F
+		var quest_type = Quest.QuestType.values()[RNG.wrapper.randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
+		var quest = Quest.create_quest(quest_type, quest_rank)
+		GuildManager.available_quests.append(quest)
+		
 
 func create_quest_panel(quest: Quest) -> Control:
 	var panel = Panel.new()

@@ -1,10 +1,10 @@
 [gd_resource type="Theme" load_steps=2 format=3 uid="uid://bxlt2ju7qgrqv"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wvktn"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
 bg_color = Color(0.1, 0.1, 0.1, 0.6)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
@@ -13,6 +13,13 @@ corner_radius_bottom_left = 3
 corner_detail = 5
 
 [resource]
+Button/font_sizes/font_size = 10
 HBoxContainer/constants/separation = 8
+Label/font_sizes/font_size = 10
+MarginContainer/constants/margin_bottom = 6
+MarginContainer/constants/margin_left = 8
+MarginContainer/constants/margin_right = 8
+MarginContainer/constants/margin_top = 6
+Panel/constants/mouse_filter = 1
 Panel/styles/panel = SubResource("StyleBoxFlat_wvktn")
-VBoxContainer/constants/separation = 5
+VBoxContainer/constants/separation = 2

@@ -1,7 +1,5 @@
 extends Node
 
-@export var guild_hall : PackedScene = preload("res://scenes/WorldMap/GuildHall/Guild_Hall.tscn")
-
 var save_file_path := "res://Save_Data/guild_save.json"
 
 @export var new_game_button : Button 
@@ -52,7 +50,9 @@ func _on_new_game_confirmed():
 
 func _start_new_game():
 	GameGlobalEvents.emit_signal("new_game",true)
-	get_tree().change_scene_to_packed(guild_hall)
+	print("GameGlobalEvents.emit_signal(\"scene_transition","Guild Hall\") emit by new game from Main_menu")
+	self.visible = false
+	GameGlobalEvents.scene_transition.emit("Guild Hall", GuildManager.guild_hall)
 
 func _on_load_game_pressed():
 	# Load save data before transitioning
@@ -61,7 +61,7 @@ func _on_load_game_pressed():
 		if save_manager.has_method("load_game"):
 			# You may need to pass a GuildManager instance here if required
 			save_manager.load_game(null)
-	get_tree().change_scene_to_packed(guild_hall)
+			self.visible = false
 
 func _on_options_pressed():
 	# Placeholder: Show a message or transition to options scene

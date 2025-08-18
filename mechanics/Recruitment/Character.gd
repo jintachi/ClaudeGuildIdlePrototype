@@ -30,7 +30,7 @@ enum InjuryType {
 # Base Stats
 @export var character_name: String
 @export var character_class: CharacterClass
-@export var quality: Quality
+@export var quality: Quality = Quality.ONE_STAR
 @export var rank: Rank = Rank.F
 @export var level: int = 1
 @export var experience: int = 0
@@ -280,6 +280,7 @@ func get_recruitment_cost() -> Dictionary:
 	}
 
 func get_upkeep_cost() -> int:
+	@warning_ignore("integer_division") # we are inentionally ignoring decimals.
 	return 1 + (rank / 3)  # Food cost increases with rank
 
 func can_go_on_quest() -> bool:

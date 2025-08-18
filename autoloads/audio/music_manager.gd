@@ -116,7 +116,7 @@ func _sfx_crossover(sfx_name: StringName) -> void:
 	
 	# Constantly checking when a sound finishes and when it's the used sound.
 	while sfx_name in SoundManager.playing:
-		await GameGlobal.delay(1)
+		await GuildManager.delay(1)
 		print(SoundManager.playing)
 	
 	# Tween the ost back in.

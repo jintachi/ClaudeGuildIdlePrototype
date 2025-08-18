@@ -1,3 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://coh8as3jvgd8y"]
 
+[ext_resource type="Script" uid="uid://qyncrfjlavs7" path="res://ui/notifications.gd" id="1_415ip"]
 
+[node name="Notifications" type="CanvasLayer"]
+script = ExtResource("1_415ip")
 
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+offset_right = 40.0
+offset_bottom = 40.0

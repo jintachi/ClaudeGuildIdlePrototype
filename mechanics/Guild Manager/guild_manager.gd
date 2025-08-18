@@ -1,6 +1,18 @@
+## The Guild Manager - now also containing global game state
 extends Node
 
-## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND
+#region Global Variables (merged from GameGlobal)
+var active_scene : StringName
+var scene_node : Node
+var previous_scene_before_map : StringName = ""
+var previous_scene_node : Node
+var current_roster : Array[Character]
+var current_recruit_list : Array[Character]
+var project_theme : Theme = preload("res://Assets/Themes/theme.tres")
+#endregion
+
+@warning_ignore_start("unused_signal")
+
 #region Local Signals
 signal character_recruited(character: Character)
 signal quest_started(quest: Quest)
@@ -8,6 +20,9 @@ signal quest_completed(quest: Quest)
 signal emergency_quest_available(requirements: Dictionary)
 signal transformation_unlocked(transformation_name: String)
 #endregion
+
+@warning_ignore_restore("unused_signal")
+
 
 #region Export Vars
 # Guild Resources
@@ -22,6 +37,8 @@ signal transformation_unlocked(transformation_name: String)
 var recruitment_hub:RecruitersHub
 var quest_board:QuestHub
 var guild_roster:GuildRoster
+var guild_hall:GuildHall
+var world_map:WorldMap
 
 # Quest Management
 @export var available_quests: Array[Quest] = []
@@ -36,47 +53,48 @@ var guild_roster:GuildRoster
 
 #endregion
 
-
-func _init():
+func _ready():
+	# Initialize global state (merged from GameGlobal)
+	#var sound_loader = SoundLoader.new()
+	#sound_loader.load_audio()
+	#sound_loader = null
+	# GameGlobalEvents.scene_transition.connect(_listen_to_scene_change)
 	GameGlobalEvents.new_game.connect(initialize_guild)
 	
 func _process(delta):
-	update_quest_timers(delta)
 	if is_instance_valid(recruitment_hub):
 		recruitment_hub.update_recruitment_timer(delta)
-	SaveManager.update_auto_save(delta, self)
-	check_for_transformations()
+		update_quest_timers(delta)
+		check_for_transformations()
+		SaveManager.update_auto_save(delta, self)
 
 func initialize_guild(new_game:bool):
 	if !new_game:
-		recruitment_hub = GameGlobal.gm.recruitment_hub
-		quest_board = GameGlobal.gm.quest_board
-		guild_roster = GameGlobal.gm.guild_roster
+		# LOAD STUFf	
+		# TODO : Load save data from initialized data
+		print("Load Data Now...")
 	else :
-		recruitment_hub = RecruitersHub.new()
-		quest_board = QuestHub.new()
-		guild_roster = GuildRoster.new()
-		
-	if guild_roster.roster.is_empty():
-		# Start with one basic character
-		var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
-		guild_roster.roster.append(starter)
-		GameGlobalEvents.generate_recruits.emit()
+		if guild_roster == null :
+			print("Initialized")
+			world_map = WorldMap.new()
+			recruitment_hub = RecruitersHub.new()
+			quest_board = QuestHub.new()
+			guild_roster = GuildRoster.new()
+			guild_hall = GuildHall.new()
+			
+			var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
+			current_roster.append(starter)
+			
+			GameGlobalEvents.generate_recruits.emit()
 	
-	if available_quests.is_empty():
-		generate_initial_quests()		
+			GameGlobalEvents.game_loaded.emit()
+			
+			if available_quests.is_empty():
+				quest_board.generate_initial_quests()
 
-	# Initialize quest completion tracking
-	for rank in Quest.QuestRank.values():
-		quests_completed_by_rank[rank] = 0
-
-func generate_initial_quests():
-	# Generate some basic F
-	for i in range(5):
-		var quest_rank = Quest.QuestRank.F
-		var quest_type = Quest.QuestType.values()[RNG.wrapper.randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
-		var quest = Quest.create_quest(quest_type, quest_rank)
-		available_quests.append(quest)
+			# Initialize quest completion tracking
+			for rank in Quest.QuestRank.values():
+				quests_completed_by_rank[rank] = 0
 
 func spend_resources(cost: Dictionary):
 	influence -= cost.get("influence", 0)
@@ -176,17 +194,20 @@ func complete_quest(quest: Quest):
 func generate_replacement_quest(completed_rank: Quest.QuestRank):
 	# Generate a new quest of similar or slightly higher rank
 	var new_rank = completed_rank
-	if RNG.wrapper.randf() < 0.2 and completed_rank < Quest.QuestRank.SSS:  # 20% chance for higher rank
+	if RNG.randf() < 0.2 and completed_rank < Quest.QuestRank.SSS:  # 20% chance for higher rank
 		new_rank = Quest.QuestRank.values()[completed_rank + 1]
 	
-	var quest_type = Quest.QuestType.values()[RNG.wrapper.randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
+	var quest_type = Quest.QuestType.values()[RNG.randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
 	var new_quest = Quest.create_quest(quest_type, new_rank)
 	available_quests.append(new_quest)
 
 func get_available_characters() -> Array[Character]:
-	return guild_roster.roster.filter(func(c): return c.can_go_on_quest())
+	if is_instance_valid(guild_roster) : 
+		return guild_roster.roster.filter(func(c): return c.can_go_on_quest())
+	else : return []
 
 func get_characters_needing_promotion() -> Array[Character]:
+	if !is_instance_valid(guild_roster) : return []
 	return guild_roster.roster.filter(func(c): return c.promotion_quest_available)
 
 func check_for_transformations():
@@ -246,9 +267,9 @@ func get_guild_status_summary() -> Dictionary:
 	return {
 		"active_quests_count": active_quests.size(),
 		"available_characters": get_available_characters().size(),
-		"total_characters": guild_roster.roster.size(),
+		#"total_characters": guild_roster.roster.size(),
 		"characters_needing_promotion": get_characters_needing_promotion().size(),
-		"available_recruits": guild_roster.available_recruits.size(),
+		#"available_recruits": guild_roster.available_recruits.size(),
 		"resources": {
 			"influence": influence,
 			"gold": gold,
@@ -265,3 +286,20 @@ func _on_quest_completed(quest: Quest):
 	for member in quest.assigned_party :
 		member.is_on_quest=false
 	GameGlobalEvents.emit_signal("quest_completed",quest)
+
+#region Global Helper Functions (merged from GameGlobal)
+func delay(time: float) -> void:
+	await get_tree().create_timer(time).timeout
+
+func get_time() -> float: # get time in seconds
+	return Time.get_unix_time_from_system()
+
+func _set_prev_scene() -> void:
+	previous_scene_before_map = active_scene
+	previous_scene_node = scene_node
+
+func _listen_to_scene_change(next_scene: StringName, scene_obj: Node) -> void:
+	_set_prev_scene()
+	active_scene = next_scene
+	scene_node = scene_obj
+#endregion

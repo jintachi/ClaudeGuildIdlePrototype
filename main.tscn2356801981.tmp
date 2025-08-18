@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://cihwrh4gyftyb"]
+
+[ext_resource type="PackedScene" uid="uid://djv7ov0qev6q6" path="res://ui/UI.tscn" id="3_h2yge"]
+
+[node name="Main" type="Node"]
+
+[node name="Ui" parent="." node_paths=PackedStringArray("quick_links", "notifications", "debug_panel") instance=ExtResource("3_h2yge")]
+layer = 1
+quick_links = NodePath("QuickLinks")
+notifications = NodePath("Notifications")
+debug_panel = NodePath("Debug")
+
+[node name="Debug" parent="Ui" index="0"]
+layer = 1
+
+[node name="MainMenu" parent="Ui" index="13"]
+layer = 1
+visible = true
+
+[node name="Notifications" parent="Ui" index="14"]
+layer = 1
+
+[editable path="Ui"]

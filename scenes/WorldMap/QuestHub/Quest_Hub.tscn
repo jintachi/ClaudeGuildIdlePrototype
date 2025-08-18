@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c7jpf84l10u85" path="res://scenes/WorldMap/QuestHub/quest_hub.gd" id="1_4g2xi"]
 
-[node name="QuestBoard" type="Control" node_paths=PackedStringArray("available_quest_list", "party_selection_panel", "quest_info_label", "start_quest_button", "party_list", "selected_quest")]
+[node name="QuestHub" type="Control" node_paths=PackedStringArray("available_quest_list", "party_selection_panel", "quest_info_label", "start_quest_button", "party_list", "selected_quest")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,35 +1,27 @@
 class_name GuildHall
-extends GuildManager
+extends Node
 
+@export var scene_name : StringName = "Guild Hall"
 @export var _theme = load("res://Assets/Themes/theme.tres")
-@export var scene_name : StringName
 @export var resources_display : Label
 @export var active_quests_panel : VBoxContainer
 @export var promotion_panel : VBoxContainer
 
 
 func _ready():
-	
 	#GameGlobalEvents.quest_completed.connect(_on_quest_completed)
-	emergency_quest_available.connect(_on_emergency_quest_available)
+	GuildManager.emergency_quest_available.connect(_on_emergency_quest_available)
 	GameGlobalEvents.quest_completed.connect(show_quest_completion_popup)
-	
-
-#func setup_ui_connections():
-	#
-	#GameGlobalEvents.new_game.connect()
-
 
 func _process(_delta):
-	update_active_quests_display()
+	if GuildManager.active_scene == scene_name : update_ui()
 
 func update_ui():
 	update_resources_display()
 	update_main_hall_display()
 
-
 func update_resources_display():
-	var resources = get_guild_status_summary().resources
+	var resources = GuildManager.get_guild_status_summary().resources
 	resources_display.text = "Influence: %d | Gold: %d | Food: %d | Materials: %d | Armor: %d | Weapons: %d" % [
 		resources.influence, resources.gold, resources.food, 
 		resources.building_materials, resources.armor, resources.weapons
@@ -53,7 +45,7 @@ func update_active_quests_display():
 func create_active_quest_panel(quest: Quest) -> Control:
 	
 	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(300, 150)	
+	panel.custom_minimum_size = Vector2(300, 150)
 	
 	var vbox = VBoxContainer.new()
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -128,7 +120,7 @@ func create_promotion_panel(character: Character) -> Control:
 func start_promotion_quest(character: Character):
 	# Create a promotion quest specific to the character
 	var promotion_quest = create_promotion_quest_for_character(character)
-	available_quests.append(promotion_quest)
+	GuildManager.available_quests.append(promotion_quest)
 	print("Promotion quest created for ", character.character_name)
 
 func create_promotion_quest_for_character(character: Character) -> Quest:

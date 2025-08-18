@@ -1,0 +1,128 @@
+[gd_scene load_steps=17 format=3 uid="uid://djv7ov0qev6q6"]
+
+[ext_resource type="Script" uid="uid://cyvd0e1aii63d" path="res://ui/ui.gd" id="1_u132g"]
+[ext_resource type="PackedScene" uid="uid://dkprvoaa8eh0s" path="res://ui/Quick_Links.tscn" id="1_xmm75"]
+[ext_resource type="PackedScene" uid="uid://coh8as3jvgd8y" path="res://ui/Notifications.tscn" id="2_qesnl"]
+[ext_resource type="PackedScene" uid="uid://bqqcexx2m321r" path="res://ui/DEBUG.tscn" id="3_hxwew"]
+[ext_resource type="PackedScene" uid="uid://ui7fvswog7yp" path="res://scenes/MainMenu/Main_Menu.tscn" id="5_a6px5"]
+[ext_resource type="PackedScene" uid="uid://cqxrdqs1ejoh5" path="res://scenes/WorldMap/BlacksmithsGuild/Blacksmiths_Guild.tscn" id="6_a4etw"]
+[ext_resource type="PackedScene" uid="uid://ctr4p8jbhykl4" path="res://scenes/WorldMap/GuildHall/Guild_Hall.tscn" id="7_jo024"]
+[ext_resource type="PackedScene" uid="uid://ctnmlmva6yoqs" path="res://scenes/WorldMap/GuildRoster/Guild_Roster.tscn" id="8_evet4"]
+[ext_resource type="PackedScene" uid="uid://ckrvdi2pbrcbv" path="res://scenes/WorldMap/HealersGuild/Healers_Guild.tscn" id="9_kgudc"]
+[ext_resource type="PackedScene" uid="uid://b4l8knpmh4owx" path="res://scenes/WorldMap/Inn/Inn.tscn" id="10_46jmb"]
+[ext_resource type="PackedScene" uid="uid://v6t8leaue4rk" path="res://scenes/WorldMap/MerchantsGuild/Merchants_Guild.tscn" id="11_vergi"]
+[ext_resource type="PackedScene" uid="uid://bf22jq56t5d4s" path="res://scenes/WorldMap/Recreation/Recreation.tscn" id="12_4g6kr"]
+[ext_resource type="PackedScene" uid="uid://dgptbchsat1pl" path="res://scenes/WorldMap/RecruitersHub/Recruiters_Hub.tscn" id="13_gw1de"]
+[ext_resource type="PackedScene" uid="uid://bj61ctv1r1t67" path="res://scenes/WorldMap/WorldMapLoader.tscn" id="14_qhpl8"]
+[ext_resource type="PackedScene" uid="uid://3ihhgxjyrl0a" path="res://scenes/WorldMap/World_Map.tscn" id="15_paqan"]
+[ext_resource type="PackedScene" uid="uid://b6tulj2i8o07b" path="res://scenes/WorldMap/QuestHub/Quest_Hub.tscn" id="16_jo024"]
+
+[node name="Ui" type="CanvasLayer" node_paths=PackedStringArray("ui_main_hub", "quick_links", "notifications", "debug_panel", "guild_hall_ui", "guild_roster_ui", "recruitment_ui", "quest_hub_ui", "blacksmiths_guild_ui", "merchants_guild_ui", "recreation_ui", "inn_ui", "healers_guild_ui")]
+layer = 2
+script = ExtResource("1_u132g")
+ui_main_hub = NodePath("HBoxContainer/UI_NODES")
+quick_links = NodePath("HBoxContainer/QuickLinks")
+notifications = NodePath("HBoxContainer/UI_NODES/Notifications")
+debug_panel = NodePath("HBoxContainer/UI_NODES/Debug")
+guild_hall_ui = NodePath("HBoxContainer/UI_NODES/GuildHall")
+guild_roster_ui = NodePath("HBoxContainer/UI_NODES/GuildRoster")
+recruitment_ui = NodePath("HBoxContainer/UI_NODES/RecruitersHub")
+quest_hub_ui = NodePath("HBoxContainer/UI_NODES/QuestHub")
+blacksmiths_guild_ui = NodePath("HBoxContainer/UI_NODES/BlacksmithsGuild")
+merchants_guild_ui = NodePath("HBoxContainer/UI_NODES/MerchantsGuild")
+recreation_ui = NodePath("HBoxContainer/UI_NODES/Recreation")
+inn_ui = NodePath("HBoxContainer/UI_NODES/Inn")
+healers_guild_ui = NodePath("HBoxContainer/UI_NODES/HealersGuild")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UI_NODES" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+
+[node name="Debug" parent="HBoxContainer/UI_NODES" instance=ExtResource("3_hxwew")]
+layer = 99
+visible = false
+
+[node name="BlacksmithsGuild" parent="HBoxContainer/UI_NODES" instance=ExtResource("6_a4etw")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="GuildHall" parent="HBoxContainer/UI_NODES" instance=ExtResource("7_jo024")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="GuildRoster" parent="HBoxContainer/UI_NODES" instance=ExtResource("8_evet4")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="HealersGuild" parent="HBoxContainer/UI_NODES" instance=ExtResource("9_kgudc")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="Inn" parent="HBoxContainer/UI_NODES" instance=ExtResource("10_46jmb")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="MerchantsGuild" parent="HBoxContainer/UI_NODES" instance=ExtResource("11_vergi")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="Recreation" parent="HBoxContainer/UI_NODES" instance=ExtResource("12_4g6kr")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="RecruitersHub" parent="HBoxContainer/UI_NODES" instance=ExtResource("13_gw1de")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+scene_name = &"Recruiter\'s Hub"
+recruit_rotation_timer = 0.0
+max_roster_size = 5
+recruit_refresh_time = 5.0
+max_offline_rotations = 3
+recruitment_quality_modifier = 1.0
+max_available_recruits = 3
+recruit_stay_duration = 60.0
+
+[node name="LoadingScreen" parent="HBoxContainer/UI_NODES" instance=ExtResource("14_qhpl8")]
+visible = false
+layout_mode = 1
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="WorldMap" parent="HBoxContainer/UI_NODES" instance=ExtResource("15_paqan")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="QuestHub" parent="HBoxContainer/UI_NODES" instance=ExtResource("16_jo024")]
+visible = false
+layout_mode = 1
+mouse_filter = 1
+
+[node name="MainMenu" parent="HBoxContainer/UI_NODES" instance=ExtResource("5_a6px5")]
+visible = false
+
+[node name="Notifications" parent="HBoxContainer/UI_NODES" instance=ExtResource("2_qesnl")]
+layer = 40
+visible = false
+
+[node name="QuickLinks" parent="HBoxContainer" instance=ExtResource("1_xmm75")]
+z_index = 100
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
