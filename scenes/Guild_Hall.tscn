@@ -1,0 +1,508 @@
+[gd_scene load_steps=3 format=3 uid="uid://ctr4p8jbhykl4"]
+
+[ext_resource type="Script" uid="uid://c5wjl256wa053" path="res://scenes/guild_hall.gd" id="1"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_uu6xs"]
+
+[node name="Guild Hall" type="Control" node_paths=PackedStringArray("main_hall_container", "roster_container", "quests_container", "recruitment_container", "town_map_container", "resources_display", "active_quests_panel", "promotion_panel", "roster_button", "quests_button", "recruitment_button", "town_map_button", "back_to_hall_roster", "back_to_hall_quests", "back_to_hall_recruitment", "back_to_hall_town", "roster_list", "available_quests_list", "party_selection_panel", "party_list", "start_quest_button", "quest_info_label", "quest_requirements_panel", "current_party_stats_panel", "assigned_members_panel", "available_recruits_list", "refresh_recruits_button", "recruit_button", "current_resources_panel", "cost_panel", "projected_resources_panel", "selected_recruit_info_panel", "save_button", "load_button", "new_game_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_uu6xs")
+script = ExtResource("1")
+main_hall_container = NodePath("MainHall")
+roster_container = NodePath("RosterTab")
+quests_container = NodePath("QuestsTab")
+recruitment_container = NodePath("RecruitmentTab")
+town_map_container = NodePath("TownMap")
+resources_display = NodePath("MainHall/ResourcesPanel/ResourcesLabel")
+active_quests_panel = NodePath("MainHall/ActiveQuestsPanel")
+promotion_panel = NodePath("MainHall/PromotionPanel")
+roster_button = NodePath("MainHall/NavigationPanel/RosterButton")
+quests_button = NodePath("MainHall/NavigationPanel/QuestsButton")
+recruitment_button = NodePath("MainHall/NavigationPanel/RecruitmentButton")
+town_map_button = NodePath("MainHall/NavigationPanel/TownMapButton")
+back_to_hall_roster = NodePath("RosterTab/BackButton")
+back_to_hall_quests = NodePath("QuestsTab/VBoxContainer/HBoxContainer/BackButton")
+back_to_hall_recruitment = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer/BackButton")
+back_to_hall_town = NodePath("TownMap/BackButton")
+roster_list = NodePath("RosterTab/ScrollContainer/VBoxContainer")
+available_quests_list = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/ScrollContainer/VBoxContainer")
+party_selection_panel = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection")
+party_list = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Available Recruits Vbox/ScrollContainer/VBoxContainer")
+start_quest_button = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/StartQuestButton")
+quest_info_label = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/QuestInfoLabel")
+quest_requirements_panel = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/Quest Requirements Hbox")
+current_party_stats_panel = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/Current Party Stats Hbox")
+assigned_members_panel = NodePath("QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Assigned Members List")
+available_recruits_list = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel")
+refresh_recruits_button = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer/RefreshButton")
+recruit_button = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/RecruitButton")
+current_resources_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/CurrentResources")
+cost_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/Cost")
+projected_resources_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/RemainingResources")
+selected_recruit_info_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/SelectedRecruitPanel")
+save_button = NodePath("MainHall/SaveLoadPanel/SaveButton")
+load_button = NodePath("MainHall/SaveLoadPanel/LoadButton")
+new_game_button = NodePath("MainHall/SaveLoadPanel/NewGameButton")
+
+[node name="MainHall" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="MainHall"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "GUILD MANAGEMENT SYSTEM"
+horizontal_alignment = 1
+
+[node name="ResourcesPanel" type="Panel" parent="MainHall"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 800.0
+offset_bottom = 70.0
+
+[node name="ResourcesLabel" type="Label" parent="MainHall/ResourcesPanel"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 5.0
+offset_right = 780.0
+offset_bottom = 25.0
+text = "Influence: 100 | Gold: 50 | Food: 20 | Materials: 0 | Armor: 0 | Weapons: 0"
+
+[node name="NavigationPanel" type="HBoxContainer" parent="MainHall"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 80.0
+offset_right = 500.0
+offset_bottom = 120.0
+
+[node name="RosterButton" type="Button" parent="MainHall/NavigationPanel"]
+layout_mode = 2
+text = "Roster"
+
+[node name="QuestsButton" type="Button" parent="MainHall/NavigationPanel"]
+layout_mode = 2
+text = "Quests"
+
+[node name="RecruitmentButton" type="Button" parent="MainHall/NavigationPanel"]
+layout_mode = 2
+text = "Recruitment"
+
+[node name="TownMapButton" type="Button" parent="MainHall/NavigationPanel"]
+layout_mode = 2
+text = "Town Map"
+
+[node name="ActiveQuestsPanel" type="VBoxContainer" parent="MainHall"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 130.0
+offset_right = 500.0
+offset_bottom = 400.0
+
+[node name="Label" type="Label" parent="MainHall/ActiveQuestsPanel"]
+layout_mode = 2
+text = "ACTIVE QUESTS"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainHall/ActiveQuestsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainHall/ActiveQuestsPanel/ScrollContainer"]
+layout_mode = 2
+
+[node name="PromotionPanel" type="VBoxContainer" parent="MainHall"]
+layout_mode = 0
+offset_left = 520.0
+offset_top = 130.0
+offset_right = 800.0
+offset_bottom = 400.0
+
+[node name="Label" type="Label" parent="MainHall/PromotionPanel"]
+layout_mode = 2
+text = "PROMOTION READY"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainHall/PromotionPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainHall/PromotionPanel/ScrollContainer"]
+layout_mode = 2
+
+[node name="SaveLoadPanel" type="HBoxContainer" parent="MainHall"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 420.0
+offset_right = 300.0
+offset_bottom = 450.0
+
+[node name="SaveButton" type="Button" parent="MainHall/SaveLoadPanel"]
+layout_mode = 2
+text = "Save Game"
+
+[node name="LoadButton" type="Button" parent="MainHall/SaveLoadPanel"]
+layout_mode = 2
+text = "Load Game"
+
+[node name="NewGameButton" type="Button" parent="MainHall/SaveLoadPanel"]
+layout_mode = 2
+text = "New Game"
+
+[node name="RosterTab" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="RosterTab"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "GUILD ROSTER"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="RosterTab"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 70.0
+text = "← Back"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="RosterTab"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 80.0
+offset_right = 800.0
+offset_bottom = 450.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RosterTab/ScrollContainer"]
+layout_mode = 2
+
+[node name="QuestsTab" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="QuestsTab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="QuestsTab/VBoxContainer"]
+layout_mode = 2
+
+[node name="Quest Counter" type="Label" parent="QuestsTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "The Quest Counter"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="QuestsTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="QuestsTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "Guild Hall"
+
+[node name="HSeparator" type="HSeparator" parent="QuestsTab/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="AvailableQuests" type="VBoxContainer" parent="QuestsTab/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests"]
+layout_mode = 2
+text = "Available Quests"
+
+[node name="HSeparator2" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VSeparator2" type="VSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer"]
+layout_mode = 2
+
+[node name="PartySelection" type="Control" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="QuestInfoLabel" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Select a quest first"
+autowrap_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+
+[node name="Quest Requirements Hbox" type="HBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+
+[node name="Stat example" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/Quest Requirements Hbox"]
+layout_mode = 2
+text = "DEF: 30+"
+
+[node name="VSeparator" type="VSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/Quest Requirements Hbox"]
+layout_mode = 2
+
+[node name="Stat example2" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/Quest Requirements Hbox"]
+layout_mode = 2
+text = "HP: 30+"
+
+[node name="Current Party Stats Hbox" type="HBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Available Recruits Vbox" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Available Recruits" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Available Recruits Vbox"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Available Party Members"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Available Recruits Vbox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Available Recruits Vbox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VSeparator" type="VSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="Assigned Members List" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
+
+[node name="Assigned Members Label" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer/HBoxContainer/Assigned Members List"]
+layout_mode = 2
+text = "Assigned Members
+"
+
+[node name="StartQuestButton" type="Button" parent="QuestsTab/VBoxContainer/AvailableQuests/HBoxContainer/PartySelection/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+text = "Start Quest"
+
+[node name="RecruitmentTab" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RecruitmentTab"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="RecruitmentTab/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Recruitment Counter"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RefreshButton" type="Button" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Refresh (10 Influence)"
+
+[node name="VSeparator3" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_stretch_ratio = 20.0
+theme_override_constants/separation = 4
+
+[node name="VSeparator4" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 10
+size_flags_stretch_ratio = 20.0
+theme_override_constants/separation = 4
+
+[node name="BackButton" type="Button" parent="RecruitmentTab/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(90, 30)
+layout_mode = 2
+size_flags_horizontal = 10
+text = "Guild Hall"
+
+[node name="HSeparator" type="HSeparator" parent="RecruitmentTab/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="RecruitmentTab/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel/ScrollContainer"]
+layout_mode = 2
+
+[node name="Current And Cost Vsplit2" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightPanel" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer"]
+layout_mode = 2
+
+[node name="SelectedRecruitPanel" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HSeparator3" type="HSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel"]
+layout_mode = 2
+
+[node name="Hbox" type="HBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="CurrentResources" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CurrentResourceLabel" type="Label" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/CurrentResources"]
+layout_mode = 2
+text = "Current Resources"
+
+[node name="Current And Cost Vsplit2" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox"]
+layout_mode = 2
+
+[node name="Cost" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Recruit Cost Label" type="Label" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/Cost"]
+layout_mode = 2
+text = "Recruit's Resource Cost"
+
+[node name="Current And Cost Vsplit" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox"]
+layout_mode = 2
+
+[node name="RemainingResources" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Remaining Resources Label" type="Label" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/RemainingResources"]
+layout_mode = 2
+text = "Projected Resources Remaining"
+
+[node name="HSeparator4" type="HSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel"]
+layout_mode = 2
+
+[node name="RecruitButton" type="Button" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 10
+text = "Select a Recruit"
+flat = true
+
+[node name="TownMap" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="TownMap"]
+layout_mode = 0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "TOWN MAP"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="TownMap"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 70.0
+text = "← Back"
+
+[node name="Panel" type="Panel" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+metadata/_edit_lock_ = true

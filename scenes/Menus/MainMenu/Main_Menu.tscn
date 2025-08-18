@@ -1,0 +1,66 @@
+[gd_scene load_steps=3 format=3 uid="uid://ui7fvswog7yp"]
+
+[ext_resource type="Script" uid="uid://cq6nc1t743p6t" path="res://scenes/Menus/MainMenu/main_menu.gd" id="1_grof6"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="MainMenu" type="Control" node_paths=PackedStringArray("new_game", "load_game", "quit_game")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_grof6")
+new_game = NodePath("CenterContainer/VBoxContainer/NewGameButton")
+load_game = NodePath("CenterContainer/VBoxContainer/LoadGameButton")
+quit_game = NodePath("CenterContainer/VBoxContainer/QuitGameButton")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.3, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(300, 400)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Guild Idle Prototype"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="NewGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "New Game"
+
+[node name="LoadGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Load Game"
+
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="QuitGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "Quit Game"

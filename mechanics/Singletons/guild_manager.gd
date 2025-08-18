@@ -1,4 +1,3 @@
-class_name GuildManager
 extends Node
 
 ## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND

@@ -275,6 +275,7 @@ func get_recruitment_cost() -> Dictionary:
 		"influence": base_influence,
 		"gold": base_gold,
 		"food": quality * 2,
+		"building_materials": 0,
 		"armor": 0 if quality == Quality.ONE_STAR else quality - 1,
 		"weapons": 0 if quality == Quality.ONE_STAR else quality - 1
 	}
