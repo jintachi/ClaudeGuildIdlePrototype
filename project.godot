@@ -12,6 +12,7 @@ config_version=5
 
 config/name="ClaudeGuildIdle"
 config/tags=PackedStringArray("idler", "solo")
+run/main_scene="uid://ui7fvswog7yp"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
