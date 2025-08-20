@@ -22,6 +22,7 @@ signal character_recruited(character: Character)
 signal character_promoted(character: Character)
 signal character_injured(character: Character)
 signal character_healed(character: Character)
+signal character_status_changed(character: Character)
 #endregion
 
 #region Quest Management Signals

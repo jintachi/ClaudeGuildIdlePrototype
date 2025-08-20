@@ -20,12 +20,6 @@ extends Control
 @export var promotion_panel: VBoxContainer
 
 # Navigation Buttons (now handled by Navigation components)
-# Legacy exports kept for compatibility but not used
-@export var roster_button: Button
-@export var quests_button: Button
-@export var recruitment_button: Button
-@export var town_map_button: Button
-
 
 # Roster Tab Elements
 @export var roster_list: VBoxContainer
@@ -46,6 +40,7 @@ extends Control
 @export var cost_panel: VBoxContainer
 @export var projected_resources_panel: VBoxContainer
 @export var selected_recruit_info_panel: VBoxContainer
+@export var recruits_grid: GridContainer
 
 # Save/Load Buttons
 @export var scale_05_button: Button
@@ -81,6 +76,10 @@ func _ready():
 	
 	# Setup navigation contexts after UI is ready
 	call_deferred("setup_navigation_contexts")
+	
+	# Ensure recruits are generated
+	if GuildManager.available_recruits.is_empty():
+		GuildManager.generate_recruits()
 	
 	show_main_hall()
 	update_ui()
@@ -320,9 +319,7 @@ func setup_ui_connections():
 	new_game_button.pressed.connect(_on_new_game_pressed)
 	
 	# Accept All Completed Quests
-	var accept_all_button = get_node_or_null("MainHall/MainHallVbox/MainHallContent/AwaitingCompletionPanel/AcceptAllButton")
-	if accept_all_button:
-		accept_all_button.pressed.connect(_on_accept_all_quest_results)
+	accept_all_button.pressed.connect(_on_accept_all_quest_results)
 	
 
 
@@ -339,16 +336,18 @@ func setup_signal_connections():
 	GuildManager.quest_started.connect(_on_guild_manager_quest_started)
 	GuildManager.quest_completed.connect(_on_guild_manager_quest_completed)
 	GuildManager.emergency_quest_available.connect(_on_guild_manager_emergency_quest)
+	GuildManager.game_data_loaded.connect(_on_game_data_loaded)
 	
 	# Connect to SignalBus signals
 	SignalBus.character_injured.connect(_on_character_injured)
+	SignalBus.character_status_changed.connect(_on_character_status_changed)
 
 
 
 func _process(_delta):
-	# Only update quest displays if we're in the main hall and there are active quests
-	if main_hall_container.visible and not GuildManager.active_quests.is_empty():
-		# Update time remaining for active quests without redrawing panels
+	# Update quest timers continuously if there are active quests (regardless of current tab)
+	if not GuildManager.active_quests.is_empty():
+		# Update time remaining and progress bars for active quests without redrawing panels
 		update_active_quest_timers()
 
 func setup_navigation_contexts():
@@ -438,6 +437,11 @@ func show_quests_tab():
 func show_recruitment_tab():
 	hide_all_tabs()
 	recruitment_container.visible = true
+	
+	# Ensure recruits are generated
+	if GuildManager.available_recruits.is_empty():
+		GuildManager.generate_recruits()
+	
 	update_recruitment_display()
 	update_all_navigation_contexts("recruitment")
 
@@ -496,26 +500,13 @@ func update_active_quests_display():
 		print("Warning: active_quests_panel is null")
 		return
 	
-	# Clear existing displays
-	var scroll_container = active_quests_panel.get_child(1)  # Get the ScrollContainer
-	if not scroll_container:
-		print("Warning: ScrollContainer not found in active_quests_panel")
-		return
+	for child in active_quests_panel.get_children():
+		child.queue_free()
 	
-	if scroll_container.get_child_count() > 0:
-		var active_container = scroll_container.get_child(0)  # Get the VBoxContainer
-		if active_container:
-			for child in active_container.get_children():
-				child.queue_free()
-			
-			# Show only active quests (not awaiting completion)
-			for quest in GuildManager.active_quests:
-				var quest_panel = create_active_quest_panel(quest)
-				active_container.add_child(quest_panel)
-		else:
-			print("Warning: VBoxContainer not found in ScrollContainer")
-	else:
-		print("Warning: ScrollContainer has no children")
+	# Show only active quests (not awaiting completion)
+	for quest in GuildManager.active_quests:
+		var quest_panel = create_active_quest_panel(quest)
+		active_quests_panel.add_child(quest_panel)
 
 func update_awaiting_completion_display():
 	"""Update the awaiting completion quests display"""
@@ -523,54 +514,41 @@ func update_awaiting_completion_display():
 	if not awaiting_completion_panel:
 		print("Warning: awaiting_completion_panel is null")
 		return
+
+	for child in awaiting_completion_panel.get_children():
+		child.queue_free()
 	
-	# Clear existing displays
-	var scroll_container = awaiting_completion_panel.get_child(1)  # Get the ScrollContainer (second child after AcceptAllButton)
-	if not scroll_container:
-		print("Warning: ScrollContainer not found in awaiting_completion_panel")
-		return
-	
-	if scroll_container.get_child_count() > 0:
-		var awaiting_container = scroll_container.get_child(0)  # Get the VBoxContainer
-		if awaiting_container:
-			for child in awaiting_container.get_children():
-				child.queue_free()
-			
-			# Show quests awaiting completion
-			for quest in GuildManager.awaiting_completion_quests:
-				var quest_panel = create_awaiting_completion_panel(quest)
-				awaiting_container.add_child(quest_panel)
-		else:
-			print("Warning: VBoxContainer not found in ScrollContainer")
-	else:
-		print("Warning: ScrollContainer has no children")
+	# Show quests awaiting completion
+	for quest in GuildManager.awaiting_completion_quests:
+		var quest_panel = create_awaiting_completion_panel(quest)
+		awaiting_completion_panel.add_child(quest_panel)
 
 func update_active_quest_timers():
-	"""Update time remaining labels for active quests without redrawing panels"""
+	"""Update time remaining labels and progress bars for active quests without redrawing panels"""
 	# Safety check - ensure the panel exists
 	if not active_quests_panel:
 		return
 	
-	var scroll_container = active_quests_panel.get_child(1)  # Get the ScrollContainer
-	if not scroll_container or scroll_container.get_child_count() == 0:
-		return
-	
-	var active_container = scroll_container.get_child(0)  # Get the VBoxContainer
-	if not active_container:
-		return
-	
-	for i in range(active_container.get_child_count()):
-		var panel = active_container.get_child(i)
+	for i in range(active_quests_panel.get_child_count()):
+		var panel = active_quests_panel.get_child(i)
 		if panel and panel.get_child_count() > 0:
 			var vbox = panel.get_child(0)
 			if vbox and vbox.get_child_count() > 2:  # Should have title, progress bar, time label
-				var time_label = vbox.get_child(2)  # Time remaining label
-				if time_label is Label and i < GuildManager.active_quests.size():
+				if i < GuildManager.active_quests.size():
 					var quest = GuildManager.active_quests[i]
-					var time_remaining = quest.get_time_remaining()
-					var minutes = int(time_remaining / 60)
-					var seconds = int(time_remaining) % 60
-					time_label.text = "Time remaining: %02d:%02d" % [minutes, seconds]
+					
+					# Update progress bar (second child)
+					var progress_bar = vbox.get_child(1)
+					if progress_bar is ProgressBar:
+						progress_bar.value = quest.get_progress_percentage()
+					
+					# Update time label (third child)
+					var time_label = vbox.get_child(2)
+					if time_label is Label:
+						var time_remaining = quest.get_time_remaining()
+						var minutes = int(time_remaining / 60)
+						var seconds = int(time_remaining) % 60
+						time_label.text = "Time remaining: %02d:%02d" % [minutes, seconds]
 
 func create_active_quest_panel(quest: Quest) -> Control:
 	"""Create a panel for active quests (not awaiting completion)"""
@@ -690,32 +668,24 @@ func update_completed_quests_display():
 	if not completed_quests_panel:
 		print("Warning: completed_quests_panel is null")
 		return
-	
-	# Clear existing completed quest panels
-	var scroll_container = completed_quests_panel.get_child(1)  # Get the ScrollContainer
-	if not scroll_container:
-		print("Warning: ScrollContainer not found in completed_quests_panel")
-		return
-	
-	if scroll_container.get_child_count() > 0:
-		var completed_container = scroll_container.get_child(0)  # Get the VBoxContainer
-		if completed_container:
-			for child in completed_container.get_children():
-				child.queue_free()
-			
-			# Display all completed quests
-			for quest in GuildManager.completed_quests:
-				var quest_panel = create_completed_quest_panel(quest)
-				completed_container.add_child(quest_panel)
-		else:
-			print("Warning: VBoxContainer not found in ScrollContainer")
+
+	if completed_quests_panel:
+		for child in completed_quests_panel.get_children():
+			child.queue_free()
+		
+		# Display all completed quests
+		for quest in GuildManager.completed_quests:
+			var quest_panel = create_completed_quest_panel(quest)
+			quest_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			completed_quests_panel.add_child(quest_panel)
+
 	else:
 		print("Warning: ScrollContainer has no children")
 
 func create_completed_quest_panel(quest: Quest) -> Control:
 	"""Create a panel displaying completed quest information"""
 	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(300, 200)
+	panel.custom_minimum_size = Vector2(300, 0)
 	
 	var vbox = VBoxContainer.new()
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -973,13 +943,16 @@ func update_character_panel_states(selected_character: Character):
 			var inner_panel = child.get_child(0)  # The Panel inside the Button
 			
 			if inner_panel is Panel:
-				# Use theme-based selection method
+				# Clear any existing theme overrides
+				inner_panel.remove_theme_stylebox_override("panel")
+				
+				# Use modulation for selection feedback
 				if character == selected_character:
-					# Selected state: use the "selected" theme variation
-					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("selected", "CharacterPanel"))
+					# Selected state: brighten the panel
+					inner_panel.modulate = Color(1.2, 1.2, 1.0)  # Light yellow tint
 				else:
-					# Unselected state: use the default "panel" theme variation
-					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("panel", "CharacterPanel"))
+					# Unselected state: normal appearance
+					inner_panel.modulate = Color.WHITE
 				
 				# Update experience bar if it exists
 				update_character_panel_experience(child, character)
@@ -1010,6 +983,49 @@ func refresh_all_character_panels():
 		if child.has_meta("character"):
 			var character = child.get_meta("character")
 			update_character_panel_experience(child, character)
+			update_character_panel_status(child, character)
+
+func update_character_panel_status(panel_button: Control, character: Character):
+	"""Update the status label in a character panel"""
+	if not panel_button or not character:
+		return
+	
+	# Find the status label in the panel
+	var inner_panel = panel_button.get_child(0)
+	if not inner_panel or not inner_panel is Panel:
+		return
+	
+	var vbox = inner_panel.get_child(0)
+	if not vbox or not vbox is VBoxContainer:
+		return
+	
+	# Look for the status label (it should be the last child)
+	if vbox.get_child_count() >= 5:  # Name, Experience, Stats, Substats, Status
+		var status_label = vbox.get_child(4)  # Status label is the last child
+		if status_label is Label:
+			# Update status text and color
+			if character.is_injured():
+				var injury_duration = character.get_injury_duration()
+				var injury_minutes:int = injury_duration / 60
+				var injury_seconds:float = injury_duration - (injury_minutes * 60)
+				var display_inj = str(injury_minutes, ": ", injury_seconds)
+				status_label.text = "INJURED - %s, %s" % [get_injury_name(character.injury_type), display_inj]
+				status_label.modulate = Color.RED
+			elif character.promotion_quest_available:
+				status_label.text = "READY FOR PROMOTION"
+				status_label.modulate = Color.GREEN
+			else:
+				# Use the new status system
+				status_label.text = character.get_status_name().to_upper()
+				match character.character_status:
+					Character.CharacterStatus.AVAILABLE:
+						status_label.modulate = Color.WHITE
+					Character.CharacterStatus.ON_QUEST:
+						status_label.modulate = Color.YELLOW
+					Character.CharacterStatus.WAITING_FOR_RESULTS:
+						status_label.modulate = Color.CYAN
+					Character.CharacterStatus.WAITING_TO_PROGRESS:
+						status_label.modulate = Color.ORANGE
 #endregion
 
 #region Quest Counter
@@ -1601,12 +1617,17 @@ func refresh_party_selection_grid():
 #region Recruitment Counter
 func update_recruitment_display():
 	# Clear existing displays
-	for child in guild_roster_grid.get_children():
-		child.queue_free()
+	if recruits_grid:
+		for child in recruits_grid.get_children():
+			child.queue_free()
+	
+	# Force generate recruits if none available
+	if GuildManager.available_recruits.is_empty():
+		GuildManager.generate_recruits()
 	
 	for recruit in GuildManager.available_recruits:
 		var recruit_panel = create_recruit_panel(recruit)
-		guild_roster_grid.add_child(recruit_panel)
+		recruits_grid.add_child(recruit_panel)
 	
 	# Initialize UI state
 	current_selected_recruit = null
@@ -1910,10 +1931,29 @@ func _on_guild_manager_quest_completed(quest: Quest):
 func _on_guild_manager_emergency_quest(requirements: Dictionary):
 	SignalBus.emergency_quest_available.emit(requirements)
 
+func _on_game_data_loaded():
+	"""Handle when game data has been loaded - update all displays"""
+	print("Game data loaded, updating UI displays...")
+	update_ui()
+
 func _on_character_injured(character: Character):
 	# Emit injury notification with character name and injury type
 	var injury_name = get_injury_name(character.injury_type)
 	SignalBus.character_injured_notification.emit(character.character_name, injury_name)
+
+func _on_character_status_changed(character: Character):
+	"""Handle when character status changes - update UI displays"""
+	# Update roster display if we're on the roster tab
+	if roster_container.visible:
+		# Find and update the specific character panel
+		for child in roster_list.get_children():
+			if child.has_meta("character") and child.get_meta("character") == character:
+				update_character_panel_status(child, character)
+				break
+	
+	# Update party selection grid if we're on the quests tab
+	if quests_container.visible:
+		refresh_party_selection_grid()
 
 # Button signal handlers
 func _on_start_quest_pressed():
@@ -2107,14 +2147,19 @@ func _on_accept_quest_results(quest: Quest):
 	update_awaiting_completion_display()
 	update_completed_quests_display()
 	
-	# Refresh character panels to update experience bars
+	# Update roster display to reflect character status changes
+	update_roster_display()
+	
+	# Refresh character panels to update experience bars and status
 	refresh_all_character_panels()
+	
+	# Refresh party selection grid to update status borders
+	refresh_party_selection_grid()
 
 func _on_accept_all_quest_results():
 	"""Handle when player clicks 'Accept All Completed Quests' button"""
 	# Accept all quests awaiting completion
-	var quests_to_accept = GuildManager.awaiting_completion_quests.duplicate()
-	for quest in quests_to_accept:
+	for quest in GuildManager.awaiting_completion_quests:
 		GuildManager.accept_quest_results(quest)
 	
 	# Update all displays
@@ -2122,8 +2167,14 @@ func _on_accept_all_quest_results():
 	update_awaiting_completion_display()
 	update_completed_quests_display()
 	
-	# Refresh character panels to update experience bars
+	# Update roster display to reflect character status changes
+	update_roster_display()
+	
+	# Refresh character panels to update experience bars and status
 	refresh_all_character_panels()
+	
+	# Refresh party selection grid to update status borders
+	refresh_party_selection_grid()
 
 func _show_new_game_confirmation():
 	var confirm = ConfirmationDialog.new()

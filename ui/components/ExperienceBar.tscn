@@ -5,6 +5,7 @@
 
 [node name="ExperienceBar" type="VBoxContainer" node_paths=PackedStringArray("level_label", "experience_label", "progress_bar")]
 size_flags_horizontal = 3
+mouse_filter = 2
 script = ExtResource("1_experience")
 level_label = NodePath("ExperienceInfo/LevelLabel")
 experience_label = NodePath("ExperienceInfo/ExperienceLabel")
@@ -13,6 +14,7 @@ progress_bar = NodePath("MarginContainer/ProgressBar")
 [node name="ExperienceInfo" type="HBoxContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 
 [node name="LevelLabel" type="Label" parent="ExperienceInfo"]
 layout_mode = 2
@@ -28,12 +30,14 @@ horizontal_alignment = 2
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
 size_flags_vertical = 3
+mouse_filter = 2
 theme = ExtResource("2_guvxm")
 
 [node name="ProgressBar" type="ProgressBar" parent="MarginContainer"]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 size_flags_vertical = 2
+mouse_filter = 2
 theme = ExtResource("2_guvxm")
 show_percentage = false
 

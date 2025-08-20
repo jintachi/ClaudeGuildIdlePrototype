@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dm8vh6t4daxkl" path="res://ui/components/StatsComparisonTable.tscn" id="4_t8m9n"]
 [ext_resource type="PackedScene" uid="uid://nd6jwxmofr8v" path="res://ui/components/AdventurerInspectionPanel.tscn" id="5_lhw86"]
 
-[node name="Guild Hall" type="Control" node_paths=PackedStringArray("main_hall_container", "roster_container", "quests_container", "recruitment_container", "town_map_container", "resources_display", "active_quests_panel", "completed_quests_panel", "promotion_panel", "roster_list", "adventurer_inspection_panel", "roster_inspection_panel", "available_quests_list", "start_quest_button", "quest_info_label", "stats_comparison_table", "guild_roster_grid", "refresh_recruits_button", "recruit_button", "current_resources_panel", "cost_panel", "projected_resources_panel", "selected_recruit_info_panel", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
+[node name="Guild Hall" type="Control" node_paths=PackedStringArray("main_hall_container", "roster_container", "quests_container", "recruitment_container", "town_map_container", "resources_display", "active_quests_panel", "awaiting_completion_panel", "accept_all_button", "completed_quests_panel", "promotion_panel", "roster_list", "adventurer_inspection_panel", "roster_inspection_panel", "available_quests_list", "start_quest_button", "quest_info_label", "stats_comparison_table", "guild_roster_grid", "refresh_recruits_button", "recruit_button", "current_resources_panel", "cost_panel", "projected_resources_panel", "selected_recruit_info_panel", "recruits_grid", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +21,9 @@ quests_container = NodePath("QuestsTab")
 recruitment_container = NodePath("RecruitmentTab")
 town_map_container = NodePath("TownMap")
 resources_display = NodePath("MainHall/MainHallVbox/TopBar/ResourcesPanel/ResourcesLabel")
-active_quests_panel = NodePath("MainHall/MainHallVbox/MainHallContent/QuestUpdatesPanel/ActiveQuestsPanel")
+active_quests_panel = NodePath("MainHall/MainHallVbox/MainHallContent/QuestUpdatesPanel/ActiveQuestsPanel/ScrollContainer/VBoxContainer")
+awaiting_completion_panel = NodePath("MainHall/MainHallVbox/MainHallContent/QuestUpdatesPanel/AwaitingCompletionPanel/ScrollContainer/PendingQuestsVbox")
+accept_all_button = NodePath("MainHall/MainHallVbox/MainHallContent/QuestUpdatesPanel/AcceptAllButton")
 completed_quests_panel = NodePath("MainHall/MainHallVbox/MainHallContent/CompletedQuestsPanel")
 promotion_panel = NodePath("MainHall/MainHallVbox/MainHallContent/PromotionPanel")
 roster_list = NodePath("RosterTab/RosterVbox/RosterContent/LeftPanel/ScrollContainer/VBoxContainer")
@@ -31,13 +33,14 @@ available_quests_list = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestP
 start_quest_button = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/StartQuestButton")
 quest_info_label = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/QuestInfoLabel")
 stats_comparison_table = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/StatsComparisonTable")
-guild_roster_grid = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/PartySelectionGrid/ScrollContainer/GuildRoster")
+guild_roster_grid = NodePath("QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelectionGrid/ScrollContainer/GuildRoster")
 refresh_recruits_button = NodePath("RecruitmentTab/VBoxContainer/TopBar/RefreshButton")
 recruit_button = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/RecruitButton")
 current_resources_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/CurrentResources")
 cost_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/Cost")
 projected_resources_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/Hbox/RemainingResources")
 selected_recruit_info_panel = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/MarginContainer/RightPanel/SelectedRecruitPanel")
+recruits_grid = NodePath("RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel/ScrollContainer/VBoxContainer/RecruitsGrid")
 scale_05_button = NodePath("MainHall/MainHallVbox/BottomBar/UIScalingPanel/Scale05Button")
 scale_075_button = NodePath("MainHall/MainHallVbox/BottomBar/UIScalingPanel/Scale075Button")
 scale_1_button = NodePath("MainHall/MainHallVbox/BottomBar/UIScalingPanel/Scale1Button")
@@ -59,6 +62,7 @@ grow_vertical = 2
 color = Color(0.2, 0.2, 0.3, 1)
 
 [node name="MainHall" type="Control" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -152,7 +156,6 @@ size_flags_vertical = 3
 [node name="CompletedQuestsPanel" type="VBoxContainer" parent="MainHall/MainHallVbox/MainHallContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 
 [node name="Label" type="Label" parent="MainHall/MainHallVbox/MainHallContent/CompletedQuestsPanel"]
 layout_mode = 2
@@ -238,7 +241,6 @@ layout_mode = 2
 text = "New Game"
 
 [node name="RosterTab" type="Control" parent="."]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -298,9 +300,6 @@ size_flags_horizontal = 3
 [node name="AdventurerInspectionPanel" parent="RosterTab/RosterVbox/RosterContent/RightPanel" instance=ExtResource("5_lhw86")]
 layout_mode = 2
 
-[node name="MainContainer" parent="RosterTab/RosterVbox/RosterContent/RightPanel/AdventurerInspectionPanel" index="1"]
-offset_bottom = 46.0
-
 [node name="QuestsTab" type="Control" parent="."]
 visible = false
 layout_mode = 1
@@ -354,7 +353,7 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.6
+size_flags_stretch_ratio = 0.8
 
 [node name="ScrollContainer" type="ScrollContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/HBoxContainer"]
 layout_mode = 2
@@ -367,6 +366,34 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="VSeparator2" type="VSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent"]
+layout_mode = 2
+
+[node name="PartySelectionGrid" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ActiveDutyRoster" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelectionGrid"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Guild's Active Roster: Select Members To Add..."
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelectionGrid"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelectionGrid"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="GuildRoster" type="GridContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelectionGrid/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 4
+
+[node name="VSeparator3" type="VSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent"]
 layout_mode = 2
 
 [node name="PartySelection" type="Control" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent"]
@@ -394,29 +421,6 @@ layout_mode = 2
 
 [node name="HSeparator" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer"]
 layout_mode = 2
-
-[node name="PartySelectionGrid" type="VBoxContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ActiveDutyRoster" type="Label" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/PartySelectionGrid"]
-layout_mode = 2
-size_flags_vertical = 0
-text = "Active Duty Roster"
-
-[node name="HSeparator" type="HSeparator" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/PartySelectionGrid"]
-layout_mode = 2
-
-[node name="ScrollContainer" type="ScrollContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/PartySelectionGrid"]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="GuildRoster" type="GridContainer" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer/PartySelectionGrid/ScrollContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-columns = 4
 
 [node name="StartQuestButton" type="Button" parent="QuestsTab/VBoxContainer/AvailableQuests/QuestPanelContent/PartySelection/VBoxContainer"]
 layout_mode = 2
@@ -471,6 +475,10 @@ size_flags_vertical = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel/ScrollContainer"]
 layout_mode = 2
+
+[node name="RecruitsGrid" type="GridContainer" parent="RecruitmentTab/VBoxContainer/HBoxContainer2/LeftPanel/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="Current And Cost Vsplit2" type="VSeparator" parent="RecruitmentTab/VBoxContainer/HBoxContainer2"]
 layout_mode = 2

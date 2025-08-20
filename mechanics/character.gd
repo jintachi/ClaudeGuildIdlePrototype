@@ -234,7 +234,6 @@ func get_portrait_texture() -> Texture2D:
 #region Leveling and Progression
 func level_up():
 	level += 1
-	experience = 0
 	
 	# Get class-based stat gain probabilities and amounts
 	var stat_gains = calculate_level_up_stat_gains()
@@ -591,4 +590,6 @@ func is_waiting_to_progress() -> bool:
 
 func set_status(new_status: CharacterStatus):
 	character_status = new_status
+	# Emit signal to notify UI of status change
+	SignalBus.character_status_changed.emit(self)
 #endregion

@@ -497,7 +497,7 @@ func calculate_party_modifiers_for_party(party: Array[Character]) -> float:
 	return modifiers
 
 func update_quest_progress() -> bool:
-	if active_quest_status == QuestStatus.FAILED:
+	if active_quest_status == QuestStatus.FAILED or active_quest_status == QuestStatus.AWAITING_COMPLETION:
 		return false
 	
 	var current_time = Time.get_unix_time_from_system()
@@ -510,8 +510,8 @@ func update_quest_progress() -> bool:
 	return false
 
 func complete_quest():
-	#if self.active_quest_status == QuestStatus.COMPLETED :
-		#return
+	if self.active_quest_status == QuestStatus.COMPLETED or self.active_quest_status == QuestStatus.AWAITING_COMPLETION:
+		return
 	
 	# Perform individual success checks
 	individual_checks.clear()
@@ -581,7 +581,7 @@ func accept_quest_results():
 			SignalBus.character_injured_notification.emit(character.character_name, injury_name)
 			character.set_status(Character.CharacterStatus.AVAILABLE)  # Injured characters stay injured but available
 		else:
-			character.set_status(Character.CharacterStatus.WAITING_TO_PROGRESS)
+			character.set_status(Character.CharacterStatus.AVAILABLE)  # Characters become available after quest completion
 		
 		# Emit character level up notification if applicable
 		# Note: This will be handled by the character's add_experience method
@@ -813,15 +813,12 @@ func get_time_remaining() -> float:
 	return max(0.0, duration - elapsed_time)
 
 func get_progress_percentage() -> float:
-	if self.active_quest_status == QuestStatus.COMPLETED :
-		
+	if self.active_quest_status == QuestStatus.COMPLETED:
 		return 100.0
-	else :
-		return 100 - (get_time_remaining()/duration)*100
-	
-	var current_time = Time.get_unix_time_from_system()
-	var elapsed_time = current_time - start_time
-	return min(100.0, (elapsed_time / duration) * 100.0)
+	else:
+		var current_time = Time.get_unix_time_from_system()
+		var elapsed_time = current_time - start_time
+		return min(100.0, (elapsed_time / duration) * 100.0)
 
 func get_party_display_info() -> Array:
 	var party_info = []

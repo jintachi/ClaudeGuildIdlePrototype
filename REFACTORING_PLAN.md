@@ -88,10 +88,10 @@ Move all business logic to `GuildManager`:
 - [x] Create `MainHallRoom` as first example room
 - [x] Add UI business logic methods to `GuildManager`
 
-### Phase 2: Room Extraction
-- [ ] Extract roster functionality to `RosterRoom`
-- [ ] Extract quest functionality to `QuestsRoom`
-- [ ] Extract recruitment functionality to `RecruitmentRoom`
+### Phase 2: Room Extraction (COMPLETED)
+- [x] Extract roster functionality to `RosterRoom`
+- [x] Extract quest functionality to `QuestsRoom`
+- [x] Extract recruitment functionality to `RecruitmentRoom`
 - [ ] Update main guild hall to use room system
 
 ### Phase 3: New Room Creation

@@ -7,6 +7,7 @@ signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
 signal emergency_quest_available(requirements: Dictionary)
 signal transformation_unlocked(transformation_name: String)
+signal game_data_loaded()
 
 # Guild Resources
 @export var influence: int = 100
@@ -73,6 +74,10 @@ func initialize_guild():
 	
 	if available_recruits.is_empty():
 		generate_recruits()
+	
+	# Emit signal to notify UI that guild has been initialized (for new games)
+	# Use call_deferred to ensure this happens after the scene is ready
+	call_deferred("emit_signal", "game_data_loaded")
 
 func generate_initial_quests():
 	# Generate some basic F and D rank quests to start
@@ -539,6 +544,9 @@ func load_game_from_slot(slot: int):
 	
 	# Handle offline progress for time-based systems
 	handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
+	
+	# Emit signal to notify UI that game data has been loaded
+	game_data_loaded.emit()
 
 func handle_offline_progress(last_save_timestamp: float):
 	var current_time = Time.get_unix_time_from_system()
