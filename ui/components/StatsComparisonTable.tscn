@@ -1,0 +1,53 @@
+[gd_scene load_steps=3 format=3 uid="uid://dm8vh6t4daxkl"]
+
+[ext_resource type="Script" path="res://ui/components/stats_comparison_table.gd" id="1_m3k8v"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_h4d9k"]
+
+[node name="StatsComparisonTable" type="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+theme = ExtResource("2_h4d9k")
+script = ExtResource("1_m3k8v")
+
+[node name="HeaderContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="StatLabel" type="Label" parent="HeaderContainer"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Stat"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="HeaderContainer"]
+layout_mode = 2
+
+[node name="RequiredLabel" type="Label" parent="HeaderContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Required"
+horizontal_alignment = 1
+
+[node name="VSeparator2" type="VSeparator" parent="HeaderContainer"]
+layout_mode = 2
+
+[node name="CurrentLabel" type="Label" parent="HeaderContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Current"
+horizontal_alignment = 1
+
+[node name="VSeparator3" type="VSeparator" parent="HeaderContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="HeaderContainer"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "Status"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="StatsContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3

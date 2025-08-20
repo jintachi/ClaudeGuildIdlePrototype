@@ -1,6 +1,7 @@
 class_name Quest
 extends Resource
 
+#region Enums
 enum QuestType {
 	GATHERING,
 	HUNTING_TRAPPING,
@@ -18,10 +19,13 @@ enum QuestStatus {
 	COMPLETED,
 	FAILED
 }
+
 enum QuestRank {
 	F, E, D, C, B, A, S, SS, SSS
 }
+#endregion
 
+#region Basic Quest Properties
 @export var quest_name: String
 @export var quest_type: QuestType
 @export var quest_rank: QuestRank
@@ -29,23 +33,26 @@ enum QuestRank {
 @export var duration: float  # in seconds
 @export var difficulty_modifier: float
 @export var allow_partial_failure: bool = true
+#endregion
 
-# Party requirements
+#region Party Requirements
 @export var min_party_size: int = 1
 @export var max_party_size: int = 5
 @export var required_tank: bool = false
 @export var required_healer: bool = false
 @export var required_support: bool = false
 @export var required_attacker: bool = false
+#endregion
 
-# Stat requirements
+#region Stat Requirements
 @export var min_total_health: int = 0
 @export var min_total_defense: int = 0
 @export var min_total_attack_power: int = 0
 @export var min_total_spell_power: int = 0
 @export var min_substat_requirement: int = 0
+#endregion
 
-# Rewards
+#region Rewards
 @export var base_experience: int
 @export var gold_reward: int
 @export var influence_reward: int
@@ -53,13 +60,18 @@ enum QuestRank {
 @export var armor_pieces: int = 0
 @export var weapons: int = 0
 @export var food: int = 0
+#endregion
 
-# Quest state
+#region Quest State
 @export var start_time: float = 0.0
 @export var assigned_party: Array[Character] = []
 @export var success_rate: float = 0.0
 @export var individual_checks: Array[bool] = []
 @export var active_quest_status = QuestStatus.NOTSTARTED
+
+# Quest completion snapshot - stores injury state at completion time
+@export var completion_injuries: Dictionary = {}  # character_id -> injury_type
+#endregion
 
 signal quest_completed(quest:Quest)
 
@@ -443,23 +455,109 @@ func complete_quest():
 
 	apply_rewards(final_success_rate)
 	apply_injuries_on_failure(final_success_rate)
+	
+	# Capture injury state at completion time
+	capture_completion_injuries()
 		
 
 func apply_rewards(final_success_rate: float):
-	var experience_per_member = int(base_experience * max(final_success_rate, 0.6 if final_success_rate > 0.0 else 0.0))
+	# Enhanced experience calculation with multiple factors
+	var base_exp_per_member = calculate_enhanced_experience(final_success_rate)
 	var gold_per_member = int((gold_reward * 0.8) / assigned_party.size())  # 80% to party, 20% to guild
 	
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
 		var member_success = individual_checks[i]
 		
+		# Calculate individual experience with character-specific modifiers
+		var individual_exp = calculate_individual_experience(character, base_exp_per_member, member_success, final_success_rate)
+		
+		# Record quest completion in character history
+		var rewards = {
+			"gold": gold_per_member if member_success else int(gold_per_member * 0.6),
+			"experience": individual_exp if member_success else int(individual_exp * 0.6),
+			"influence": 0  # Will be added when we implement influence rewards
+		}
+		
+		character.record_quest_completion(quest_name, member_success, rewards)
+		
 		if member_success:
-			character.add_experience(experience_per_member)
+			character.add_experience(individual_exp)
 			character.personal_gold += gold_per_member
 		else:
 			# Partial experience for failure (60% of success amount)
-			character.add_experience(int(experience_per_member * 0.6))
+			character.add_experience(int(individual_exp * 0.6))
 			character.personal_gold += int(gold_per_member * 0.6)
+
+func calculate_enhanced_experience(final_success_rate: float) -> int:
+	"""Calculate enhanced experience based on multiple factors"""
+	var base_exp = base_experience
+	
+	# Success rate multiplier (higher success = more XP)
+	var success_multiplier = 1.0 + (final_success_rate - 0.6) * 0.5  # 0.8x to 1.2x
+	
+	# Quest type multiplier (different quest types give different XP)
+	var quest_type_multiplier = get_quest_type_experience_multiplier()
+	
+	# Quest rank multiplier (higher rank = more XP)
+	var rank_multiplier = 1.0 + (quest_rank * 0.2)  # 1.0x to 2.8x for rank 0-9
+	
+	# Party size efficiency (smaller parties get more XP per person)
+	var party_size_efficiency = 1.0 + (max_party_size - assigned_party.size()) * 0.1  # 1.0x to 1.3x
+	
+	var enhanced_exp = int(base_exp * success_multiplier * quest_type_multiplier * rank_multiplier * party_size_efficiency)
+	
+	return enhanced_exp
+
+func calculate_individual_experience(character: Character, base_exp: int, member_success: bool, final_success_rate: float) -> int:
+	"""Calculate individual character experience with personal modifiers"""
+	var individual_exp = base_exp
+	
+	# Character rank bonus (higher ranks get more XP)
+	var rank_bonus = 1.0 + (character.rank * 0.1)  # 1.0x to 1.8x for F to SSS
+	
+	# Character quality bonus (higher quality = more XP)
+	var quality_bonus = 1.0 + (character.quality - 1) * 0.2  # 1.0x to 1.4x for 1-3 stars
+	
+	# Substat relevance bonus (if character has relevant substat for this quest)
+	var substat_bonus = get_substat_relevance_bonus(character)
+	
+	# Rest bonus (characters who haven't quested recently get bonus XP)
+	var rest_bonus = get_rest_bonus(character)
+	
+	var final_exp = int(individual_exp * rank_bonus * quality_bonus * substat_bonus * rest_bonus)
+	
+	return final_exp
+
+func get_quest_type_experience_multiplier() -> float:
+	"""Get experience multiplier based on quest type"""
+	match quest_type:
+		QuestType.GATHERING: return 1.0  # Standard XP
+		QuestType.HUNTING_TRAPPING: return 1.1  # Slightly more XP
+		QuestType.DIPLOMACY: return 1.15  # Social quests give good XP
+		QuestType.CARAVAN_GUARDING: return 1.1  # Guarding gives decent XP
+		QuestType.ESCORTING: return 1.05  # Slightly above standard
+		QuestType.STEALTH: return 1.25  # Stealth quests are challenging
+		QuestType.ODD_JOBS: return 0.9  # Odd jobs give less XP
+		QuestType.EMERGENCY: return 1.5  # Emergency quests give bonus XP
+		_: return 1.0
+
+func get_substat_relevance_bonus(character: Character) -> float:
+	"""Get bonus XP if character has relevant substat for this quest"""
+	var relevant_substat = get_substat_name_for_quest_type()
+	var substat_value = character.get(relevant_substat)
+	
+	if substat_value > 0:
+		# Bonus XP based on substat level (1-5% bonus per substat level)
+		return 1.0 + (substat_value * 0.01)
+	
+	return 1.0
+
+func get_rest_bonus(character: Character) -> float:
+	"""Get bonus XP for characters who haven't quested recently"""
+	# This is a placeholder - we'll implement this when we add quest history tracking
+	# For now, return 1.0 (no bonus)
+	return 1.0
 
 func apply_injuries_on_failure(final_success_rate: float):
 	if final_success_rate >= 0.5:
@@ -488,6 +586,21 @@ func apply_random_injury(character: Character):
 	var rank_multiplier = 1.0 + (quest_rank * 0.1)  # Higher rank quests = longer injuries
 	
 	character.apply_injury(injury_type, base_duration * rank_multiplier)
+	
+	# Emit injury notification signal
+	SignalBus.character_injured.emit(character)
+
+func capture_completion_injuries():
+	"""Capture the injury state of all party members at quest completion time"""
+	completion_injuries.clear()
+	
+	for character in assigned_party:
+		# Store character ID and injury type at completion
+		completion_injuries[character.character_name] = character.injury_type
+
+func get_completion_injuries() -> Dictionary:
+	"""Get the injury state that was captured at quest completion time"""
+	return completion_injuries
 
 func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 	match injury_type:

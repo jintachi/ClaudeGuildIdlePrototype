@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=7 format=3 uid="uid://bxlt2ju7qgrqv"]
+[gd_resource type="Theme" load_steps=8 format=3 uid="uid://bxlt2ju7qgrqv"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
 content_margin_left = 8.0
@@ -92,6 +92,22 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quest_panel_selected"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+bg_color = Color(0.12, 0.12, 0.16, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.8, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [resource]
 default_base_scale = 1.0
 default_font_size = 12
@@ -123,5 +139,6 @@ Panel/constants/mouse_filter = 1
 Panel/styles/panel = SubResource("StyleBoxFlat_panel")
 ProgressBar/colors/font_color = Color(0.9, 0.9, 1, 1)
 ProgressBar/styles/background = SubResource("StyleBoxFlat_progress_bar")
+QuestPanel/styles/selected = SubResource("StyleBoxFlat_quest_panel_selected")
 ScrollContainer/colors/bg = Color(0.1, 0.1, 0.15, 0.3)
 VBoxContainer/constants/separation = 4

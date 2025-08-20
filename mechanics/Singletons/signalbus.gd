@@ -57,4 +57,37 @@ signal dialog_confirmed(dialog_type: String)
 signal scene_transition_requested(scene_path: String)
 #endregion
 
+#region Options Menu Signals
+signal options_menu_opened
+signal options_menu_closed
+signal resolution_changed(resolution: Vector2i)
+signal resolution_confirmation_needed(resolution: Vector2i)
+signal resolution_confirmed(resolution: Vector2i)
+signal resolution_reverted(resolution: Vector2i)
+signal settings_applied
+signal settings_reset_to_defaults
+#endregion
+
+#region UI Scaling Signals
+signal ui_scaling_changed(scale_factor: float, ui_scale_factor: float)
+signal scaling_mode_changed(mode: int)
+#endregion
+
+#region Input Management Signals
+signal keybinding_changed(action_name: String, binding)
+signal keybindings_reset
+signal action_executed(action_name: String)
+signal scene_navigation_requested(from_scene: String, to_scene: String)
+#endregion
+
+#region Notification System Signals
+signal notification_requested(type: String, title: String, message: String, icon: Texture2D)
+signal quest_started_notification(quest_name: String)
+signal quest_completed_notification(quest_name: String)
+signal character_recruited_notification(character_name: String)
+signal resource_gained_notification(resource_type: String, amount: int)
+signal character_injured_notification(character_name: String, injury_type: String)
+signal character_leveled_up(character: Character, stat_gains: Dictionary)
+#endregion
+
 @warning_ignore_restore("unused_signal")

@@ -2,6 +2,7 @@ extends Control
 
 @export var new_game : Button
 @export var load_game : Button
+@export var options : Button
 @export var quit_game : Button
 
 func _ready():
@@ -10,6 +11,8 @@ func _ready():
 		new_game = $CenterContainer/VBoxContainer/NewGameButton
 	if not load_game:
 		load_game = $CenterContainer/VBoxContainer/LoadGameButton
+	if not options:
+		options = $CenterContainer/VBoxContainer/OptionsButton
 	if not quit_game:
 		quit_game = $CenterContainer/VBoxContainer/QuitGameButton
 	
@@ -18,6 +21,8 @@ func _ready():
 		new_game.pressed.connect(_on_new_game_pressed)
 	if load_game:
 		load_game.pressed.connect(_on_load_game_pressed)
+	if options:
+		options.pressed.connect(_on_options_pressed)
 	if quit_game:
 		quit_game.pressed.connect(_on_quit_game_pressed)
 
@@ -58,6 +63,10 @@ func _load_existing_game():
 		print("Game loaded!")
 	else:
 		print("Warning: GuildManager not available")
+
+func _on_options_pressed():
+	# Go to Options menu
+	get_tree().change_scene_to_file("res://scenes/Menus/Options/Options_Menu.tscn")
 
 func _quit_game():
 	get_tree().quit()

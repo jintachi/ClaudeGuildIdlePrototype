@@ -14,6 +14,7 @@ extends Control
 # Main Hall Elements
 @export var resources_display: Label
 @export var active_quests_panel: VBoxContainer
+@export var completed_quests_panel: VBoxContainer
 @export var promotion_panel: VBoxContainer
 
 # Navigation Buttons
@@ -22,14 +23,11 @@ extends Control
 @export var recruitment_button: Button
 @export var town_map_button: Button
 
-# Tab Navigation
-@export var back_to_hall_roster: Button
-@export var back_to_hall_quests: Button
-@export var back_to_hall_recruitment: Button
-@export var back_to_hall_town: Button
 
 # Roster Tab Elements
 @export var roster_list: VBoxContainer
+@export var adventurer_inspection_panel: Control
+@export var roster_inspection_panel: Control
 
 # Quests Tab Elements
 @export var available_quests_list: VBoxContainer
@@ -37,8 +35,7 @@ extends Control
 @export var party_list: VBoxContainer
 @export var start_quest_button: Button
 @export var quest_info_label: Label
-@export var quest_requirements_panel: HBoxContainer
-@export var current_party_stats_panel: HBoxContainer
+@export var stats_comparison_table: Control
 @export var assigned_members_panel: VBoxContainer
 
 # Recruitment Tab Elements
@@ -51,9 +48,17 @@ extends Control
 @export var selected_recruit_info_panel: VBoxContainer
 
 # Save/Load Buttons
+@export var scale_05_button: Button
+@export var scale_075_button: Button
+@export var scale_1_button: Button
+@export var scale_15_button: Button
+@export var scale_2_button: Button
+@export var scale_3_button: Button
 @export var save_button: Button
 @export var load_button: Button
 @export var new_game_button: Button
+
+
 
 # Current state
 var current_selected_quest: Quest = null
@@ -61,11 +66,230 @@ var current_party: Array[Character] = []
 var current_selected_recruit: Character = null
 var selected_recruit_panel: Control = null
 
+# Viewport scaling (using direct scaling approach)
+var current_scale_factor: float = 1.0
+
 func _ready():
+	# Setup viewport scaling first
+	setup_viewport_scaling()
+	
 	setup_ui_connections()
 	setup_signal_connections()
+	
+	# Initialize scale button states
+	update_scale_button_states(get_tree().root.content_scale_factor)
+	
+	# Setup navigation contexts after UI is ready
+	call_deferred("setup_navigation_contexts")
+	
 	show_main_hall()
 	update_ui()
+#endregion
+
+#region Viewport Scaling Setup
+func setup_viewport_scaling():
+	"""Setup responsive viewport scaling for the Guild Hall"""
+	# HYBRID APPROACH: Use ResponsiveLayout system + responsive containers
+	# This combines the best of both automatic conversion and proper layout
+	
+	# Connect to viewport and resolution changes
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	
+	if SignalBus:
+		SignalBus.resolution_confirmed.connect(_on_resolution_confirmed)
+		SignalBus.ui_scaling_changed.connect(_on_ui_scaling_changed)
+	
+	# Set up the Guild Hall to fill viewport properly
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Apply ResponsiveLayout system to convert remaining absolute elements
+	call_deferred("apply_responsive_layout_system")
+	
+	print("Guild Hall: Responsive layout system setup completed")
+
+func _on_viewport_size_changed():
+	"""Handle viewport size changes"""
+	# No scaling needed - using responsive layout now
+	pass
+
+func _on_resolution_confirmed(_resolution: Vector2i):
+	"""Handle confirmed resolution changes"""
+	# Responsive layout automatically handles resolution changes
+	pass
+
+func _on_ui_scaling_changed(_scale_factor: float, _ui_scale_factor: float):
+	"""Handle UI scaling changes"""
+	# Update theme scaling if needed
+	if UIScalingManager:
+		UIScalingManager.apply_scaling_to_current_scene()
+
+func apply_responsive_layout_system():
+	"""Apply the ResponsiveLayout system to convert absolute positioned elements"""
+	print("Guild Hall: Applying ResponsiveLayout system...")
+	
+	# Load ResponsiveLayout class
+	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	
+	# Convert the entire scene to responsive layout
+	responsive_layout_script.convert_scene_to_responsive(self, responsive_layout_script.ConversionMode.SMART_GRID)
+	
+	# Optimize container structure for better responsive behavior
+	responsive_layout_script.optimize_container_structure(self)
+	
+	# Apply any specific fixes for known problematic elements
+	apply_specific_layout_fixes()
+	
+	print("Guild Hall: ResponsiveLayout system applied successfully")
+
+func apply_specific_layout_fixes():
+	"""Apply specific layout fixes for known issues"""
+	# Fix ResourcesLabel if it's still absolutely positioned
+	var resources_label = get_node_or_null("MainHall/MainHall_VBox/TopBar/ResourcesPanel/ResourcesLabel")
+	if resources_label and resources_label.layout_mode == 0:
+		# Convert to proper container child
+		resources_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		resources_label.layout_mode = 1  # Anchors and offsets
+		# Add some margin
+		resources_label.offset_left = 10
+		resources_label.offset_top = 5
+		resources_label.offset_right = -10
+		resources_label.offset_bottom = -5
+		print("Fixed ResourcesLabel positioning")
+	
+	# Fix any SaveLoadPanel buttons if they're absolutely positioned
+	fix_save_load_panel()
+	
+	# Fix quest tab layouts
+	fix_quest_tab_layouts()
+
+func fix_save_load_panel():
+	"""Fix save/load panel layout"""
+	var save_load_panel = get_node_or_null("MainHall/SaveLoadPanel")
+	if save_load_panel:
+		# Convert to HBoxContainer if not already
+		if not save_load_panel is HBoxContainer:
+			print("SaveLoadPanel is not an HBoxContainer, converting layout...")
+			# Convert child buttons to use container layout
+			for child in save_load_panel.get_children():
+				if child is Control:
+					child.layout_mode = 2  # Container
+					child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+func fix_quest_tab_layouts():
+	"""Fix quest tab responsive layouts"""
+	var quest_container = get_node_or_null("QuestsTab")
+	if quest_container:
+		# Ensure scroll containers have proper minimum sizes
+		var scroll_containers = quest_container.find_children("*", "ScrollContainer", true, false)
+		for container in scroll_containers:
+			if container.custom_minimum_size == Vector2.ZERO:
+				# Set responsive minimum size
+				container.custom_minimum_size = Vector2(300, 200)
+				container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+# Keep old functions for compatibility but mark as deprecated
+func apply_viewport_aware_scaling():
+	"""DEPRECATED: Using ResponsiveLayout system instead"""
+	print("Warning: apply_viewport_aware_scaling is deprecated, using ResponsiveLayout system")
+
+func apply_direct_scaling():
+	"""DEPRECATED: Using ResponsiveLayout system instead"""
+	print("Warning: apply_direct_scaling is deprecated, using ResponsiveLayout system")
+
+func convert_to_responsive_layout():
+	"""Convert hardcoded UI positions to responsive layout"""
+	# This function will be called to convert the existing hardcoded
+	# layout to a more responsive one
+	
+	call_deferred("apply_responsive_transforms")
+
+func apply_responsive_transforms():
+	"""Apply responsive transformations to UI elements"""
+	# Get viewport size for calculations
+	var viewport_size = get_viewport().get_visible_rect().size
+	
+	# Apply responsive adjustments to main containers
+	adjust_main_hall_layout(viewport_size)
+	adjust_quest_tab_layout(viewport_size)
+	adjust_recruitment_tab_layout(viewport_size)
+	
+	# Force UI update
+	update_ui()
+
+func adjust_main_hall_layout(viewport_size: Vector2):
+	"""Adjust main hall layout for responsiveness"""
+	if not main_hall_container:
+		return
+	
+	# Find child elements that need responsive adjustment
+	for child in main_hall_container.get_children():
+		adjust_control_layout(child, viewport_size)
+
+func adjust_quest_tab_layout(viewport_size: Vector2):
+	"""Adjust quest tab layout for responsiveness"""
+	if not quests_container:
+		return
+		
+	# Quest tab already uses VBoxContainer/HBoxContainer which is more responsive
+	# Just ensure scroll containers have proper minimum sizes
+	var scroll_containers = find_children("*", "ScrollContainer", true, false)
+	for container in scroll_containers:
+		if container.get_parent() == quests_container:
+			# Ensure minimum size based on viewport
+			var min_width = viewport_size.x * 0.3  # 30% of viewport width
+			var min_height = viewport_size.y * 0.4  # 40% of viewport height
+			container.custom_minimum_size = Vector2(min_width, min_height)
+
+func adjust_recruitment_tab_layout(viewport_size: Vector2):
+	"""Adjust recruitment tab layout for responsiveness"""
+	if not recruitment_container:
+		return
+		
+	# Similar to quest tab, ensure proper minimum sizes
+	var scroll_containers = find_children("*", "ScrollContainer", true, false)
+	for container in scroll_containers:
+		if container.get_parent() == recruitment_container:
+			var min_width = viewport_size.x * 0.25
+			var min_height = viewport_size.y * 0.35
+			container.custom_minimum_size = Vector2(min_width, min_height)
+
+func adjust_control_layout(control: Control, viewport_size: Vector2):
+	"""Adjust individual control layout"""
+	if not control:
+		return
+	
+	# Convert absolute positioning to relative where possible
+	if control.position != Vector2.ZERO and control.layout_mode == 0:
+		# Try to convert to anchored positioning
+		var relative_x = control.position.x / 1920.0  # Original design width
+		var relative_y = control.position.y / 1080.0  # Original design height
+		
+		# Set anchors based on relative position
+		if relative_x < 0.33:  # Left third
+			control.anchor_left = 0.0
+			control.anchor_right = 0.0
+		elif relative_x > 0.67:  # Right third
+			control.anchor_left = 1.0
+			control.anchor_right = 1.0
+		else:  # Center third
+			control.anchor_left = 0.5
+			control.anchor_right = 0.5
+		
+		if relative_y < 0.33:  # Top third
+			control.anchor_top = 0.0
+			control.anchor_bottom = 0.0
+		elif relative_y > 0.67:  # Bottom third
+			control.anchor_top = 1.0
+			control.anchor_bottom = 1.0
+		else:  # Middle third
+			control.anchor_top = 0.5
+			control.anchor_bottom = 0.5
+	
+	# Recursively adjust children
+	for child in control.get_children():
+		if child is Control:
+			adjust_control_layout(child, viewport_size)
 #endregion
 
 #region UI Utilities
@@ -76,11 +300,6 @@ func setup_ui_connections():
 	recruitment_button.pressed.connect(show_recruitment_tab)
 	town_map_button.pressed.connect(show_town_map)
 	
-	back_to_hall_roster.pressed.connect(show_main_hall)
-	back_to_hall_quests.pressed.connect(show_main_hall)
-	back_to_hall_recruitment.pressed.connect(show_main_hall)
-	back_to_hall_town.pressed.connect(show_main_hall)
-	
 	# Quests
 	start_quest_button.pressed.connect(_on_start_quest_pressed)
 	
@@ -88,10 +307,20 @@ func setup_ui_connections():
 	refresh_recruits_button.pressed.connect(_on_refresh_recruits_pressed)
 	recruit_button.pressed.connect(_on_recruit_selected_character)
 	
+	# UI Scaling
+	scale_05_button.pressed.connect(_on_scale_05_pressed)
+	scale_075_button.pressed.connect(_on_scale_075_pressed)
+	scale_1_button.pressed.connect(_on_scale_1_pressed)
+	scale_15_button.pressed.connect(_on_scale_15_pressed)
+	scale_2_button.pressed.connect(_on_scale_2_pressed)
+	scale_3_button.pressed.connect(_on_scale_3_pressed)
+	
 	# Save/Load
 	save_button.pressed.connect(_on_save_pressed)
 	load_button.pressed.connect(_on_load_pressed)
 	new_game_button.pressed.connect(_on_new_game_pressed)
+	
+
 
 func setup_signal_connections():
 	# Connect to SignalBus signals
@@ -105,9 +334,33 @@ func setup_signal_connections():
 	GuildManager.quest_started.connect(_on_guild_manager_quest_started)
 	GuildManager.quest_completed.connect(_on_guild_manager_quest_completed)
 	GuildManager.emergency_quest_available.connect(_on_guild_manager_emergency_quest)
+	
+	# Connect to SignalBus signals
+	SignalBus.character_injured.connect(_on_character_injured)
+
+
 
 func _process(_delta):
 	update_active_quests_display()
+
+func setup_navigation_contexts():
+	"""Setup navigation context for each tab"""
+	# Set current tab context for each Navigation instance
+	var roster_nav = get_node_or_null("RosterTab/RosterVbox/TopBar/Navigation")
+	if roster_nav and roster_nav.has_method("set_current_tab"):
+		roster_nav.set_current_tab("roster")
+	
+	var quests_nav = get_node_or_null("QuestsTab/VBoxContainer/TopBar/Navigation")
+	if quests_nav and quests_nav.has_method("set_current_tab"):
+		quests_nav.set_current_tab("quests")
+	
+	var recruitment_nav = get_node_or_null("RecruitmentTab/VBoxContainer/TopBar/Navigation")
+	if recruitment_nav and recruitment_nav.has_method("set_current_tab"):
+		recruitment_nav.set_current_tab("recruitment")
+	
+	var townmap_nav = get_node_or_null("TownMap/TownMapVbox/TopBar/Navigation")
+	if townmap_nav and townmap_nav.has_method("set_current_tab"):
+		townmap_nav.set_current_tab("town_map")
 #endregion
 
 #region Navigation
@@ -120,12 +373,21 @@ func show_roster_tab():
 	hide_all_tabs()
 	roster_container.visible = true
 	update_roster_display()
+	
+	# Show placeholder if no characters in roster
+	if GuildManager.roster.is_empty():
+		if roster_inspection_panel:
+			roster_inspection_panel.visible = false
 
 func show_quests_tab():
 	hide_all_tabs()
 	quests_container.visible = true
-	party_selection_panel.visible = true
 	update_quests_display()
+	
+	# Always refresh party selection display when switching to quests tab
+	# This ensures newly recruited characters are shown
+	if current_selected_quest:
+		update_party_selection_display()
 
 func show_recruitment_tab():
 	hide_all_tabs()
@@ -160,6 +422,7 @@ func update_resources_display():
 func update_main_hall_display():
 	update_resources_display()
 	update_active_quests_display()
+	update_completed_quests_display()
 	update_promotion_display()
 
 func update_active_quests_display():
@@ -211,6 +474,14 @@ func create_active_quest_panel(quest: Quest) -> Control:
 	party_label.text = party_text
 	vbox.add_child(party_label)
 	
+	# Add completion button if quest is completed
+	if quest.active_quest_status == Quest.QuestStatus.COMPLETED:
+		var complete_button = Button.new()
+		complete_button.text = "Quest Complete: Accept Results"
+		complete_button.add_theme_color_override("font_color", Color.GREEN)
+		complete_button.pressed.connect(_on_accept_quest_results.bind(quest))
+		vbox.add_child(complete_button)
+	
 	return panel
 #endregion
 
@@ -224,6 +495,73 @@ func update_promotion_display():
 	for character in characters_needing_promotion:
 		var promo_panel = create_promotion_panel(character)
 		promotion_panel.add_child(promo_panel)
+
+func update_completed_quests_display():
+	"""Update the completed quests display in main hall"""
+	# Clear existing completed quest panels
+	var scroll_container = completed_quests_panel.get_child(1)  # Get the ScrollContainer
+	if scroll_container and scroll_container.get_child_count() > 0:
+		var completed_container = scroll_container.get_child(0)  # Get the VBoxContainer
+		if completed_container:
+			for child in completed_container.get_children():
+				child.queue_free()
+			
+			# Display all completed quests
+			for quest in GuildManager.completed_quests:
+				var quest_panel = create_completed_quest_panel(quest)
+				completed_container.add_child(quest_panel)
+
+func create_completed_quest_panel(quest: Quest) -> Control:
+	"""Create a panel displaying completed quest information"""
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(300, 200)
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 5)
+	panel.add_child(vbox)
+	
+	# Quest name
+	var quest_name_label = Label.new()
+	quest_name_label.text = "Quest Completed: " + quest.quest_name
+	quest_name_label.add_theme_font_size_override("font_size", 14)
+	quest_name_label.add_theme_color_override("font_color", Color.GREEN)
+	vbox.add_child(quest_name_label)
+	
+	# Quest members
+	var party_names = []
+	for character in quest.assigned_party:
+		party_names.append(character.character_name)
+	
+	var members_label = Label.new()
+	members_label.text = "Quest Members: " + ", ".join(party_names)
+	members_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(members_label)
+	
+	# Check for injuries at completion time
+	var injured_members = []
+	var completion_injuries = quest.get_completion_injuries()
+	for character in quest.assigned_party:
+		var injury_type = completion_injuries.get(character.character_name, Character.InjuryType.NONE)
+		if injury_type != Character.InjuryType.NONE:
+			var injury_name = get_injury_name(injury_type)
+			injured_members.append("%s: %s" % [character.character_name, injury_name])
+	
+	if not injured_members.is_empty():
+		var injuries_label = Label.new()
+		injuries_label.text = "Injuries Sustained: " + ", ".join(injured_members)
+		injuries_label.add_theme_color_override("font_color", Color.ORANGE)
+		injuries_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(injuries_label)
+	
+	# Rewards
+	var rewards_label = Label.new()
+	rewards_label.text = "Quest Completion Reward Earned: " + quest.get_rewards_text()
+	rewards_label.add_theme_color_override("font_color", Color.YELLOW)
+	rewards_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(rewards_label)
+	
+	return panel
 
 func create_promotion_panel(character: Character) -> Control:
 	var panel = Panel.new()
@@ -290,17 +628,48 @@ func create_promotion_quest_for_character(character: Character) -> Quest:
 #region Roster Counter
 #TODO : Update the Roster Display Properly to display members actively on quests.  Once a quest is complete, make the character available again.  Also display current Injuries on the characters.  Update panel sizes as wellsq
 func update_roster_display():
+	print("Updating roster display...")
+	print("GuildManager.roster size: ", GuildManager.roster.size())
+	
 	# Clear existing displays
 	for child in roster_list.get_children():
 		child.queue_free()
 	
+	var first = true
 	for character in GuildManager.roster:
+		print("Creating panel for character: ", character.character_name)
 		var char_panel = create_character_panel(character)
 		roster_list.add_child(char_panel)
+		adventurer_inspection_panel.inspect_character(character)
+		first = false
+		
+	
 
 func create_character_panel(character: Character) -> Control:
-	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(400, 120)
+	# Create a clickable button instead of a panel
+	var panel_button = Button.new()
+	panel_button.custom_minimum_size = Vector2(400, 120)
+	panel_button.flat = true  # Remove default button styling
+	
+	# Store character reference for later identification
+	panel_button.set_meta("character", character)
+	
+	# Connect the click handler
+	panel_button.pressed.connect(func(): select_adventurer(character))
+	
+	# Create a panel inside the button for styling
+	var inner_panel = Panel.new()
+	inner_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let button handle clicks
+	
+	# Safety check: make sure the panel doesn't already have a parent
+	if inner_panel.get_parent():
+		print("Warning: inner_panel already has a parent!")
+		inner_panel.get_parent().remove_child(inner_panel)
+	
+	panel_button.add_child(inner_panel)
+	inner_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	var panel = inner_panel
 	
 	var vbox = VBoxContainer.new()
 	panel.add_child(vbox)
@@ -361,7 +730,7 @@ func create_character_panel(character: Character) -> Control:
 	
 	vbox.add_child(status_label)
 	
-	return panel
+	return panel_button
 
 func get_injury_name(injury_type: Character.InjuryType) -> String:
 	match injury_type:
@@ -371,6 +740,32 @@ func get_injury_name(injury_type: Character.InjuryType) -> String:
 		Character.InjuryType.EXHAUSTION: return "Exhausted"
 		Character.InjuryType.POISON: return "Poisoned"
 		_: return "Unknown"
+
+func select_adventurer(character: Character):
+	"""Select an adventurer and show their inspection panel"""
+	# Update visual states of all character panels
+	update_character_panel_states(character)
+	
+	if roster_inspection_panel and roster_inspection_panel.has_method("inspect_character"):
+		roster_inspection_panel.visible = true
+		roster_inspection_panel.inspect_character(character)
+
+func update_character_panel_states(selected_character: Character):
+	"""Update visual states of all character panels"""
+	# Find all character panels and update their states
+	for child in roster_list.get_children():
+		if child.has_meta("character"):
+			var character = child.get_meta("character")
+			var inner_panel = child.get_child(0)  # The Panel inside the Button
+			
+			if inner_panel is Panel:
+				# Use theme-based selection method
+				if character == selected_character:
+					# Selected state: use the "selected" theme variation
+					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("selected", "CharacterPanel"))
+				else:
+					# Unselected state: use the default "panel" theme variation
+					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("panel", "CharacterPanel"))
 #endregion
 
 #region Quest Counter
@@ -382,28 +777,44 @@ func update_quests_display():
 	for quest in GuildManager.available_quests:
 		var quest_panel = create_quest_panel(quest)
 		available_quests_list.add_child(quest_panel)
+	
+	# Wait a frame for the panels to be added to the scene tree
+	await get_tree().process_frame
+	
+	# Auto-select first quest or validate current selection
+	auto_select_first_quest()
+	
+	# Restore visual states if a quest is currently selected
+	if current_selected_quest:
+		update_quest_panel_states(current_selected_quest)
 
 func create_quest_panel(quest: Quest) -> Control:
-	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(450, 210)
+	# Create a clickable button instead of a panel
+	var panel_button = Button.new()
+	panel_button.custom_minimum_size = Vector2(450, 210)
+	panel_button.flat = true  # Remove default button styling
 	
-	# Set anchors to full rect
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-	# Or if in a container, set size flags
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-
+	# Set anchors and size flags
+	panel_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	# Connect the click handler
+	panel_button.pressed.connect(func(): select_quest(quest))
+	
+	# Store quest reference for later identification
+	panel_button.set_meta("quest", quest)
+	
+	# Create a panel inside the button for styling
+	var inner_panel = Panel.new()
+	inner_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Let button handle clicks
+	panel_button.add_child(inner_panel)
+	inner_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
 	var vbox = VBoxContainer.new()
-	panel.add_child(vbox)
+	inner_panel.add_child(vbox)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 3)
-	
-	# Select button
-	var select_button = Button.new()
-	select_button.text = "Select Quest"
-	select_button.pressed.connect(func(): select_quest(quest))
-	vbox.add_child(select_button)
 	
 	# Quest title
 	var title_label = Label.new()
@@ -435,12 +846,79 @@ func create_quest_panel(quest: Quest) -> Control:
 	duration_label.text = "Duration: %02d:%02d" % [minutes, seconds]
 	vbox.add_child(duration_label)
 	
-	return panel
+	return panel_button
 
 func select_quest(quest: Quest):
+	# If the same quest is clicked, do nothing (can't deselect, only switch to another)
+	if current_selected_quest == quest:
+		return
+	
+	# Update visual states
+	update_quest_panel_states(quest)
+	
+	# Set the new selected quest
 	current_selected_quest = quest
 	current_party.clear()
 	update_party_selection_display()
+
+func update_quest_panel_states(selected_quest: Quest):
+	"""Update visual states of all quest panels"""
+	# Find all quest panels and update their states
+	for child in available_quests_list.get_children():
+		if child.has_meta("quest"):
+			var quest = child.get_meta("quest")
+			var inner_panel = child.get_child(0)  # The Panel inside the Button
+			
+			if inner_panel is Panel:
+				# Use theme-based selection method
+				if quest == selected_quest:
+					# Selected state: use the "selected" theme variation
+					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("selected", "QuestPanel"))
+				else:
+					# Unselected state: use the default "panel" theme variation
+					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("panel", "QuestPanel"))
+
+
+
+func auto_select_first_quest():
+	"""Auto-select the first available quest if none is currently selected"""
+	if not current_selected_quest and not GuildManager.available_quests.is_empty():
+		var first_quest = GuildManager.available_quests[0]
+		select_quest(first_quest)
+	elif current_selected_quest:
+		# Ensure the currently selected quest is still in the available list
+		var quest_still_available = false
+		for quest in GuildManager.available_quests:
+			if quest == current_selected_quest:
+				quest_still_available = true
+				break
+		
+		# If current quest is no longer available, select first available quest
+		if not quest_still_available and not GuildManager.available_quests.is_empty():
+			var first_quest = GuildManager.available_quests[0]
+			select_quest(first_quest)
+		elif not quest_still_available:
+			# No quests available, clear selection
+			current_selected_quest = null
+
+func reset_quest_tab_to_default():
+	"""Reset the quest tab to its default state with no quest selected"""
+	# Clear current selections
+	current_selected_quest = null
+	current_party.clear()
+		
+	# Clear quest info display
+	quest_info_label.text = "Select a quest to view details"
+	
+	# Reset stats comparison table to show "Select a quest first"
+	if stats_comparison_table and stats_comparison_table.has_method("clear_data"):
+		stats_comparison_table.clear_data()
+	
+	# Clear party lists
+	for child in party_list.get_children():
+		child.queue_free()
+	for child in assigned_members_panel.get_children():
+		child.queue_free()
 
 func update_party_selection_display():
 	if not current_selected_quest:
@@ -456,19 +934,14 @@ func update_party_selection_right_panel(available_chars: Array):
 	# Clear existing displays
 	for child in party_list.get_children():
 		child.queue_free()
-	for child in quest_requirements_panel.get_children():
-		child.queue_free()
-	for child in current_party_stats_panel.get_children():
-		child.queue_free()
 	for child in assigned_members_panel.get_children():
 		child.queue_free()
 	
 	# Update quest info
 	quest_info_label.text = current_selected_quest.description
 	
-	# Display quest requirements and current party stats comparison
-	update_quest_requirements_display()
-	update_current_party_stats_display()
+	# Update stats comparison table
+	update_stats_comparison_table()
 	
 	# Display available characters
 	update_available_characters_display(available_chars)
@@ -479,136 +952,139 @@ func update_party_selection_right_panel(available_chars: Array):
 	# Update start button state
 	update_start_quest_button_state()
 
-func update_quest_requirements_display():
-	# Add title
-	var title = Label.new()
-	title.text = "Quest Requirements:"
-	title.add_theme_font_size_override("font_size", 12)
-	title.modulate = Color.YELLOW
-	quest_requirements_panel.add_child(title)
-	
-	var sep = VSeparator.new()
-	quest_requirements_panel.add_child(sep)
-	
-	# Add stat requirements
-	var requirements = []
-	if current_selected_quest.min_total_health > 0:
-		requirements.append("HP: %d+" % current_selected_quest.min_total_health)
-	if current_selected_quest.min_total_defense > 0:
-		requirements.append("DEF: %d+" % current_selected_quest.min_total_defense)
-	if current_selected_quest.min_total_attack_power > 0:
-		requirements.append("ATK: %d+" % current_selected_quest.min_total_attack_power)
-	if current_selected_quest.min_total_spell_power > 0:
-		requirements.append("SPL: %d+" % current_selected_quest.min_total_spell_power)
-	
-	for req in requirements:
-		var label = Label.new()
-		label.text = req
-		label.add_theme_font_size_override("font_size", 10)
-		quest_requirements_panel.add_child(label)
-		
-		var separator = VSeparator.new()
-		quest_requirements_panel.add_child(separator)
-	
-	# Add class requirements
-	var class_requirements = []
-	if current_selected_quest.required_tank:
-		class_requirements.append({"text": "Tank", "color": Color.ORANGE})
-	if current_selected_quest.required_healer:
-		class_requirements.append({"text": "Healer", "color": Color.GREEN})
-	if current_selected_quest.required_support:
-		class_requirements.append({"text": "Support", "color": Color.BLUE})
-	if current_selected_quest.required_attacker:
-		class_requirements.append({"text": "Attacker", "color": Color.RED})
-	
-	for class_req in class_requirements:
-		var label = Label.new()
-		label.text = class_req.text
-		label.modulate = class_req.color
-		label.add_theme_font_size_override("font_size", 10)
-		quest_requirements_panel.add_child(label)
-
-func update_current_party_stats_display():
-	# Add title
-	var title = Label.new()
-	title.text = "Current Party:"
-	title.add_theme_font_size_override("font_size", 12)
-	title.modulate = Color.CYAN
-	current_party_stats_panel.add_child(title)
-	
-	var sep = VSeparator.new()
-	current_party_stats_panel.add_child(sep)
-	
-	if current_party.is_empty():
-		var empty_label = Label.new()
-		empty_label.text = "No members assigned"
-		empty_label.modulate = Color.GRAY
-		empty_label.add_theme_font_size_override("font_size", 10)
-		current_party_stats_panel.add_child(empty_label)
+func update_stats_comparison_table():
+	"""Update the stats comparison table with quest requirements and current party stats"""
+	if not stats_comparison_table or not current_selected_quest:
 		return
 	
+	# Get quest requirements
+	var quest_requirements = get_quest_stat_requirements()
+	
 	# Get current party stats
-	var party_stats = current_selected_quest.calculate_party_stats(current_party)
+	var party_stats = get_current_party_total_stats()
 	
-	# Show stat totals with color coding
-	var stats = [
-		{"name": "HP", "current": party_stats.health, "required": current_selected_quest.min_total_health},
-		{"name": "DEF", "current": party_stats.defense, "required": current_selected_quest.min_total_defense},
-		{"name": "ATK", "current": party_stats.attack_power, "required": current_selected_quest.min_total_attack_power},
-		{"name": "SPL", "current": party_stats.spell_power, "required": current_selected_quest.min_total_spell_power}
-	]
+	# Update the table
+	if stats_comparison_table.has_method("update_quest_requirements"):
+		stats_comparison_table.update_quest_requirements(quest_requirements)
+	if stats_comparison_table.has_method("update_party_stats"):
+		stats_comparison_table.update_party_stats(party_stats)
+
+func get_quest_stat_requirements() -> Dictionary:
+	"""Extract stat requirements from the current quest"""
+	if not current_selected_quest:
+		return {}
 	
-	for stat in stats:
-		if stat.required > 0:  # Only show stats that are required
-			var label = Label.new()
-			label.text = "%s: %d" % [stat.name, stat.current]
-			label.add_theme_font_size_override("font_size", 10)
-			
-			# Color code: Green if sufficient, Red if insufficient
-			if stat.current >= stat.required:
-				label.modulate = Color.GREEN
-			else:
-				label.modulate = Color.RED
-			
-			current_party_stats_panel.add_child(label)
-			
-			var separator = VSeparator.new()
-			current_party_stats_panel.add_child(separator)
+	var requirements = {}
 	
-	# Show class coverage with color coding
+	# Core stats
+	if current_selected_quest.min_total_health > 0:
+		requirements["health"] = current_selected_quest.min_total_health
+	if current_selected_quest.min_total_defense > 0:
+		requirements["defense"] = current_selected_quest.min_total_defense
+	if current_selected_quest.min_total_attack_power > 0:
+		requirements["attack_power"] = current_selected_quest.min_total_attack_power
+	if current_selected_quest.min_total_spell_power > 0:
+		requirements["spell_power"] = current_selected_quest.min_total_spell_power
+	
+	# Class requirements (use 1 for true, 0 for false)
+	if current_selected_quest.required_tank:
+		requirements["required_tank"] = 1
+	if current_selected_quest.required_healer:
+		requirements["required_healer"] = 1
+	if current_selected_quest.required_support:
+		requirements["required_support"] = 1
+	if current_selected_quest.required_attacker:
+		requirements["required_attacker"] = 1
+	
+	# Sub-stats from quest type
+	if current_selected_quest.min_substat_requirement > 0:
+		match current_selected_quest.quest_type:
+			Quest.QuestType.GATHERING:
+				requirements["gathering"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.HUNTING_TRAPPING:
+				requirements["hunting_trapping"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.DIPLOMACY:
+				requirements["diplomacy"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.CARAVAN_GUARDING:
+				requirements["caravan_guarding"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.ESCORTING:
+				requirements["escorting"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.STEALTH:
+				requirements["stealth"] = current_selected_quest.min_substat_requirement
+			Quest.QuestType.ODD_JOBS:
+				requirements["odd_jobs"] = current_selected_quest.min_substat_requirement
+	
+	return requirements
+
+func get_current_party_total_stats() -> Dictionary:
+	"""Calculate total stats for the current party"""
+	var total_stats = {}
+	
+	# Initialize all stats to 0
+	var stat_keys = ["health", "defense", "mana", "spell_power", "attack_power", "movement_speed", "luck",
+					 "gathering", "hunting_trapping", "diplomacy", "caravan_guarding", "escorting", "stealth", "odd_jobs"]
+	
+	for stat in stat_keys:
+		total_stats[stat] = 0
+	
+	# Initialize class coverage to 0 (no classes available)
+	total_stats["required_tank"] = 0
+	total_stats["required_healer"] = 0
+	total_stats["required_support"] = 0
+	total_stats["required_attacker"] = 0
+	
+	if current_party.is_empty():
+		return total_stats
+	
+	# Initialize class coverage
 	var has_tank = false
 	var has_healer = false
 	var has_support = false
 	var has_attacker = false
 	
+	# Sum stats from all party members
 	for character in current_party:
-		match character.character_class:
-			Character.CharacterClass.TANK: has_tank = true
-			Character.CharacterClass.HEALER: has_healer = true
-			Character.CharacterClass.SUPPORT: has_support = true
-			Character.CharacterClass.ATTACKER: has_attacker = true
-	
-	var class_checks = [
-		{"required": current_selected_quest.required_tank, "has": has_tank, "name": "Tank", "color": Color.ORANGE},
-		{"required": current_selected_quest.required_healer, "has": has_healer, "name": "Healer", "color": Color.GREEN},
-		{"required": current_selected_quest.required_support, "has": has_support, "name": "Support", "color": Color.BLUE},
-		{"required": current_selected_quest.required_attacker, "has": has_attacker, "name": "Attacker", "color": Color.RED}
-	]
-	
-	for class_check in class_checks:
-		if class_check.required:
-			var label = Label.new()
-			label.text = class_check.name
-			label.add_theme_font_size_override("font_size", 10)
+		if character:
+			var char_stats = character.get_effective_stats()
 			
-			# Color: Bright if we have it, Red if missing
-			if class_check.has:
-				label.modulate = class_check.color
-			else:
-				label.modulate = Color.RED
-				label.text += " MISSING"
+			# Add core stats
+			total_stats["health"] += char_stats.get("health", 0)
+			total_stats["defense"] += char_stats.get("defense", 0)
+			total_stats["mana"] += char_stats.get("mana", 0)
+			total_stats["spell_power"] += char_stats.get("spell_power", 0)
+			total_stats["attack_power"] += char_stats.get("attack_power", 0)
+			total_stats["movement_speed"] += char_stats.get("movement_speed", 0)
+			total_stats["luck"] += char_stats.get("luck", 0)
 			
-			current_party_stats_panel.add_child(label)
+			# Add sub-stats directly from character
+			total_stats["gathering"] += character.gathering
+			total_stats["hunting_trapping"] += character.hunting_trapping
+			total_stats["diplomacy"] += character.diplomacy
+			total_stats["caravan_guarding"] += character.caravan_guarding
+			total_stats["escorting"] += character.escorting
+			total_stats["stealth"] += character.stealth
+			total_stats["odd_jobs"] += character.odd_jobs
+			
+			# Check class coverage
+			match character.character_class:
+				Character.CharacterClass.TANK:
+					has_tank = true
+				Character.CharacterClass.HEALER:
+					has_healer = true
+				Character.CharacterClass.SUPPORT:
+					has_support = true
+				Character.CharacterClass.ATTACKER:
+					has_attacker = true
+	
+	# Add class coverage (1 if we have the class, 0 if not)
+	total_stats["required_tank"] = 1 if has_tank else 0
+	total_stats["required_healer"] = 1 if has_healer else 0
+	total_stats["required_support"] = 1 if has_support else 0
+	total_stats["required_attacker"] = 1 if has_attacker else 0
+	
+	return total_stats
+
+
 
 func update_available_characters_display(available_chars: Array):
 	for character in available_chars:
@@ -913,18 +1389,23 @@ func _get_resources() -> Dictionary :
 
 #region Town Map
 func update_town_map_display():
-	# Clear existing map
-	for child in town_map_container.get_children():
-		if child != back_to_hall_town:
+	# Clear existing map content (but preserve the TownMapVbox structure)
+	var town_map_content = town_map_container.get_node_or_null("TownMapVbox/TownMapContent")
+	if town_map_content:
+		for child in town_map_content.get_children():
 			child.queue_free()
 	
 	# Create a simple 5x5 grid for town facilities
 	var grid = GridContainer.new()
 	grid.columns = 5
-	grid.position = Vector2(50, 50)
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
-	town_map_container.add_child(grid)
+	
+	if town_map_content:
+		town_map_content.add_child(grid)
+	else:
+		# Fallback to old behavior if structure not found
+		town_map_container.add_child(grid)
 	
 	var facilities = [
 		{"name": "Guild Hall", "unlocked": true, "action": show_main_hall},
@@ -964,15 +1445,30 @@ func _on_character_recruited(character: Character):
 
 func _on_quest_started(quest: Quest):
 	print("SignalBus: Quest started: ", quest.quest_name)
-	current_selected_quest = null
-	current_party.clear()
-	party_selection_panel.visible = false
+	
+	# Trigger notification
+	SignalBus.quest_started_notification.emit(quest.quest_name)
+	
+	# Reset quest tab to default state
+	reset_quest_tab_to_default()
+	
+	# Refresh available quests list
+	update_quests_display()
 	update_ui()
 
 func _on_quest_completed(quest: Quest):
 	print("SignalBus: Quest completed: ", quest.quest_name)
-	_show_quest_completion_popup(quest)
+	
+	# Trigger notification instead of immediate popup
+	SignalBus.quest_completed_notification.emit(quest.quest_name)
+	
+	# Mark characters as no longer on quest but don't show results yet
+	for character in quest.assigned_party:
+		character.is_on_quest = false
+	
+	# Update UI to show completion button and completed quests display
 	update_ui()
+	update_completed_quests_display()
 
 func _on_emergency_quest_available(requirements: Dictionary):
 	_show_emergency_quest_popup(requirements)
@@ -989,6 +1485,11 @@ func _on_guild_manager_quest_completed(quest: Quest):
 
 func _on_guild_manager_emergency_quest(requirements: Dictionary):
 	SignalBus.emergency_quest_available.emit(requirements)
+
+func _on_character_injured(character: Character):
+	# Emit injury notification with character name and injury type
+	var injury_name = get_injury_name(character.injury_type)
+	SignalBus.character_injured_notification.emit(character.character_name, injury_name)
 
 # Button signal handlers
 func _on_start_quest_pressed():
@@ -1029,6 +1530,99 @@ func _on_load_pressed():
 
 func _on_new_game_pressed():
 	_show_new_game_confirmation()
+
+# UI Scaling functions
+func _on_scale_05_pressed():
+	"""Set UI scale to 0.5"""
+	get_tree().root.content_scale_factor = 0.5
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 0.5")
+	update_scale_button_states(0.5)
+
+func _on_scale_075_pressed():
+	"""Set UI scale to 0.75"""
+	get_tree().root.content_scale_factor = 0.75
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 0.75")
+	update_scale_button_states(0.75)
+
+func _on_scale_1_pressed():
+	"""Set UI scale to 1.0"""
+	get_tree().root.content_scale_factor = 1.0
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 1.0")
+	update_scale_button_states(1.0)
+
+func _on_scale_15_pressed():
+	"""Set UI scale to 1.5"""
+	get_tree().root.content_scale_factor = 1.5
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 1.5")
+	update_scale_button_states(1.5)
+
+func _on_scale_2_pressed():
+	"""Set UI scale to 2.0"""
+	get_tree().root.content_scale_factor = 2.0
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 2.0")
+	update_scale_button_states(2.0)
+
+func _on_scale_3_pressed():
+	"""Set UI scale to 3.0"""
+	get_tree().root.content_scale_factor = 3.0
+	
+	# Update UIScalingManager if available
+	if UIScalingManager:
+		UIScalingManager.set_scaling_mode(UIScalingManager.ScalingMode.PROPORTIONAL)
+	
+	print("UI Scale set to: 3.0")
+	update_scale_button_states(3.0)
+
+func update_scale_button_states(current_scale: float):
+	"""Update button states to show which scale is currently active"""
+	# Reset all buttons to normal state
+	scale_05_button.flat = false
+	scale_075_button.flat = false
+	scale_1_button.flat = false
+	scale_15_button.flat = false
+	scale_2_button.flat = false
+	scale_3_button.flat = false
+	
+	# Set the current scale button to flat (pressed appearance)
+	if abs(current_scale - 0.5) < 0.01:
+		scale_05_button.flat = true
+	elif abs(current_scale - 0.75) < 0.01:
+		scale_075_button.flat = true
+	elif abs(current_scale - 1.0) < 0.01:
+		scale_1_button.flat = true
+	elif abs(current_scale - 1.5) < 0.01:
+		scale_15_button.flat = true
+	elif abs(current_scale - 2.0) < 0.01:
+		scale_2_button.flat = true
+	elif abs(current_scale - 3.0) < 0.01:
+		scale_3_button.flat = true
+
+
 
 # Popup functions
 func _show_error_popup(message: String):
@@ -1072,6 +1666,20 @@ func _show_emergency_quest_popup(requirements: Dictionary):
 	popup.dialog_text = "EMERGENCY QUEST AVAILABLE!\n\n" + requirements.name + "\n\n" + requirements.description + "\n\nReward: " + requirements.unlock_description
 	popup.title = "Emergency Quest"
 	popup.popup_centered()
+
+func _on_accept_quest_results(quest: Quest):
+	"""Handle when player clicks 'Accept Results' for a completed quest"""
+	# Show the quest completion popup
+	_show_quest_completion_popup(quest)
+	
+	# Remove quest from active quests
+	GuildManager.remove_completed_quest(quest)
+	
+	# Update the active quests display
+	update_active_quests_display()
+	
+	# Update the completed quests display
+	update_completed_quests_display()
 
 func _show_new_game_confirmation():
 	var confirm = ConfirmationDialog.new()
