@@ -1,0 +1,337 @@
+[gd_scene load_steps=2 format=3 uid="uid://nd6jwxmofr8v"]
+
+[ext_resource type="Script" uid="uid://bvn8x7y2q3m4p" path="res://ui/components/adventurer_inspection_panel.gd" id="1_inspection"]
+
+[node name="AdventurerInspectionPanel" type="Control" node_paths=PackedStringArray("character_name_label", "tab_container", "class_info_label", "level_info_label", "health_stat_label", "defense_stat_label", "mana_stat_label", "spell_power_stat_label", "attack_power_stat_label", "movement_speed_stat_label", "luck_stat_label", "gathering_stat_label", "hunting_stat_label", "diplomacy_stat_label", "caravan_stat_label", "escort_stat_label", "stealth_stat_label", "odd_jobs_stat_label", "quests_completed_label", "quests_failed_label", "success_rate_label", "total_gold_label", "total_experience_label", "total_influence_label", "total_injuries_label", "promotions_attempted_label", "promotions_succeeded_label", "promotions_failed_label", "equipment_vbox", "equipment_label", "equipment_descrip")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_inspection")
+character_name_label = NodePath("MainContainer/CharacterName")
+tab_container = NodePath("MainContainer/TabContainer")
+class_info_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox/ClassInfo")
+level_info_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox/LevelInfo")
+health_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/HealthStat")
+defense_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/DefenseStat")
+mana_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/ManaStat")
+spell_power_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/SpellPowerStat")
+attack_power_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/AttackPowerStat")
+movement_speed_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/MovementSpeedStat")
+luck_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/LuckStat")
+gathering_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/GatheringStat")
+hunting_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/HuntingStat")
+diplomacy_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/DiplomacyStat")
+caravan_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/CaravanStat")
+escort_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/EscortStat")
+stealth_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/StealthStat")
+odd_jobs_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox/OddJobsStat")
+quests_completed_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox/QuestsCompleted")
+quests_failed_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox/QuestsFailed")
+success_rate_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox/SuccessRate")
+total_gold_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox/TotalGold")
+total_experience_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox/TotalExperience")
+total_influence_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox/TotalInfluence")
+total_injuries_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/InjuryHistoryVBox/TotalInjuries")
+promotions_attempted_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox/PromotionsAttempted")
+promotions_succeeded_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox/PromotionsSucceeded")
+promotions_failed_label = NodePath("MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox/PromotionsFailed")
+equipment_vbox = NodePath("MainContainer/TabContainer/Equipment/ScrollContainer/EquipmentVBox")
+equipment_label = NodePath("MainContainer/TabContainer/Equipment/ScrollContainer/EquipmentVBox/EquipmentPlaceholder")
+equipment_descrip = NodePath("MainContainer/TabContainer/Equipment/ScrollContainer/EquipmentVBox/EquipmentDescription")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.15, 0.15, 0.2, 0.95)
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="CharacterName" type="Label" parent="MainContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Character Name"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Statistics" type="ScrollContainer" parent="MainContainer/TabContainer"]
+clip_contents = false
+layout_mode = 2
+size_flags_vertical = 3
+metadata/_tab_index = 0
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/TabContainer/Statistics"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="StatsVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Statistics/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ClassInfo" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+text = "Class Information:"
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="BasicInfoVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="LevelInfo" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Level: 1 | Experience: 0/10"
+
+[node name="ClassInfo" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Class: Tank | Quality: ★ | Rank: F"
+
+[node name="HSeparator2" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="CoreStats" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+text = "Core Statistics:"
+
+[node name="HSeparator3" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="CoreStatsVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="HealthStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Health: 120"
+
+[node name="DefenseStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Defense: 20"
+
+[node name="ManaStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Mana: 30"
+
+[node name="SpellPowerStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Spell Power: 5"
+
+[node name="AttackPowerStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Attack Power: 10"
+
+[node name="MovementSpeedStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Movement Speed: 8"
+
+[node name="LuckStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox"]
+layout_mode = 2
+text = "Luck: 8"
+
+[node name="HSeparator4" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="SubStats" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+text = "Sub-Stat Levels:"
+
+[node name="HSeparator5" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="SubStatsVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="GatheringStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Gathering: 0"
+
+[node name="HuntingStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Hunting & Trapping: 0"
+
+[node name="DiplomacyStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Diplomacy: 0"
+
+[node name="CaravanStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Caravan Guarding: 0"
+
+[node name="EscortStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Escorting: 0"
+
+[node name="StealthStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Stealth: 0"
+
+[node name="OddJobsStat" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/SubStatsVBox"]
+layout_mode = 2
+text = "Odd Jobs: 0"
+
+[node name="HSeparator6" type="HSeparator" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
+layout_mode = 2
+
+[node name="History" type="ScrollContainer" parent="MainContainer/TabContainer"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+metadata/_tab_index = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/TabContainer/History"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="HistoryVBox" type="VBoxContainer" parent="MainContainer/TabContainer/History/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="QuestHistory" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+text = "Quest History:"
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="QuestHistoryVBox" type="VBoxContainer" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="QuestsCompleted" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox"]
+layout_mode = 2
+text = "Quests Completed: 0"
+
+[node name="QuestsFailed" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox"]
+layout_mode = 2
+text = "Quests Failed: 0"
+
+[node name="SuccessRate" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/QuestHistoryVBox"]
+layout_mode = 2
+text = "Success Rate: 0%"
+
+[node name="HSeparator2" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="RewardsHistory" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+text = "Rewards History:"
+
+[node name="HSeparator3" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="RewardsHistoryVBox" type="VBoxContainer" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TotalGold" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox"]
+layout_mode = 2
+text = "Total Gold Earned: 0"
+
+[node name="TotalExperience" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox"]
+layout_mode = 2
+text = "Total Experience Earned: 0"
+
+[node name="TotalInfluence" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/RewardsHistoryVBox"]
+layout_mode = 2
+text = "Total Influence Earned: 0"
+
+[node name="HSeparator4" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="InjuryHistory" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+text = "Injury History:"
+
+[node name="HSeparator5" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="InjuryHistoryVBox" type="VBoxContainer" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TotalInjuries" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/InjuryHistoryVBox"]
+layout_mode = 2
+text = "Total Injuries Sustained: 0"
+
+[node name="HSeparator6" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="PromotionHistory" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+text = "Promotion History:"
+
+[node name="HSeparator7" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="PromotionHistoryVBox" type="VBoxContainer" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PromotionsAttempted" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox"]
+layout_mode = 2
+text = "Promotions Attempted: 0"
+
+[node name="PromotionsSucceeded" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox"]
+layout_mode = 2
+text = "Promotions Succeeded: 0"
+
+[node name="PromotionsFailed" type="Label" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox/PromotionHistoryVBox"]
+layout_mode = 2
+text = "Promotions Failed: 0"
+
+[node name="HSeparator8" type="HSeparator" parent="MainContainer/TabContainer/History/ScrollContainer/HistoryVBox"]
+layout_mode = 2
+
+[node name="Equipment" type="ScrollContainer" parent="MainContainer/TabContainer"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+metadata/_tab_index = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/TabContainer/Equipment"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="EquipmentVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Equipment/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EquipmentPlaceholder" type="Label" parent="MainContainer/TabContainer/Equipment/ScrollContainer/EquipmentVBox"]
+layout_mode = 2
+text = "Equipment System"
+horizontal_alignment = 1
+
+[node name="EquipmentDescription" type="Label" parent="MainContainer/TabContainer/Equipment/ScrollContainer/EquipmentVBox"]
+layout_mode = 2
+text = "Coming soon with Blacksmiths Guild, Merchants Guild, and Armory tabs!"
+horizontal_alignment = 1

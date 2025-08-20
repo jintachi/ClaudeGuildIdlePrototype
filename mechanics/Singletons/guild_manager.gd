@@ -17,6 +17,7 @@ signal transformation_unlocked(transformation_name: String)
 @export var food: int = 20
 
 # Guild State
+var cur_scene : StringName # holder for the scene name
 @export var roster: Array[Character] = []
 @export var max_roster_size: int = 5
 @export var available_recruits: Array[Character] = []
@@ -47,6 +48,7 @@ signal transformation_unlocked(transformation_name: String)
 func _ready():
 	#load_game()
 	initialize_guild()
+	
 	
 	# Initialize quest completion tracking
 	for rank in Quest.QuestRank.values():
@@ -238,6 +240,10 @@ func complete_quest(quest: Quest):
 	
 	# Generate replacement quest
 	generate_replacement_quest(quest.quest_rank)
+
+func remove_completed_quest(quest: Quest):
+	"""Remove a completed quest from the completed_quests list after rewards have been collected"""
+	completed_quests.erase(quest)
 
 func generate_replacement_quest(completed_rank: Quest.QuestRank):
 	# Generate a new quest of similar or slightly higher rank

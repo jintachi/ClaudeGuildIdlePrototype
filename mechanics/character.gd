@@ -1,6 +1,7 @@
 class_name Character
 extends Resource
 
+#region Enums
 enum CharacterClass {
 	TANK,
 	HEALER, 
@@ -26,16 +27,18 @@ enum InjuryType {
 	EXHAUSTION,
 	POISON
 }
+#endregion
 
-# Base Stats
+#region Base Stats
 @export var character_name: String
 @export var character_class: CharacterClass
 @export var quality: Quality
 @export var rank: Rank = Rank.F
 @export var level: int = 1
 @export var experience: int = 0
+#endregion
 
-# Core Stats
+#region Core Stats
 @export var health: int = 100
 @export var defense: int = 10
 @export var mana: int = 50
@@ -43,8 +46,9 @@ enum InjuryType {
 @export var attack_power: int = 15
 @export var movement_speed: int = 10
 @export var luck: int = 5
+#endregion
 
-# Sub-stats (Mission Specific Skills)
+#region Sub-stats (Mission Specific Skills)
 @export var gathering: int = 0
 @export var hunting_trapping: int = 0
 @export var diplomacy: int = 0
@@ -52,20 +56,39 @@ enum InjuryType {
 @export var escorting: int = 0
 @export var stealth: int = 0
 @export var odd_jobs: int = 0
+#endregion
 
-# Status
+#region Status
 @export var is_on_quest: bool = false
 @export var injury_type: InjuryType = InjuryType.NONE
 @export var injury_duration: float = 0.0
 @export var injury_start_time: float = 0.0
+#endregion
 
-# Personal gold earned from quests
+#region Personal Resources
 @export var personal_gold: int = 0
+#endregion
 
-# Promotion requirements tracking
+#region Promotion Tracking
 @export var promotion_quest_available: bool = false
 @export var promotion_quest_completed: bool = false
+#endregion
 
+#region Character History
+@export var quests_completed: int = 0
+@export var quests_failed: int = 0
+@export var total_injuries_sustained: int = 0
+@export var total_gold_earned: int = 0
+@export var total_experience_earned: int = 0
+@export var total_influence_earned: int = 0
+@export var promotions_attempted: int = 0
+@export var promotions_succeeded: int = 0
+@export var promotions_failed: int = 0
+@export var quest_history: Array[Dictionary] = []  # Store detailed quest history
+@export var injury_history: Array[Dictionary] = []  # Store injury history
+#endregion
+
+#region Initialization
 func _init(name: String = "", char_class: CharacterClass = CharacterClass.ATTACKER, char_quality: Quality = Quality.ONE_STAR):
 	character_name = name if name != "" else generate_random_name()
 	character_class = char_class
@@ -126,23 +149,126 @@ func generate_random_substats():
 		var value = randi_range(1, 5)
 		set(substat, value)
 
+#endregion
+
+#region Leveling and Progression
 func level_up():
 	level += 1
 	experience = 0
 	
-	var quality_bonus = 1.0 + (quality - 1) * 0.1
-	var class_modifiers = get_class_level_modifiers()
+	# Get class-based stat gain probabilities and amounts
+	var stat_gains = calculate_level_up_stat_gains()
 	
-	# Apply stat increases with randomness
-	health += randi_range(int(3 * class_modifiers.health * quality_bonus), int(8 * class_modifiers.health * quality_bonus))
-	defense += randi_range(int(1 * class_modifiers.defense * quality_bonus), int(3 * class_modifiers.defense * quality_bonus))
-	mana += randi_range(int(2 * class_modifiers.mana * quality_bonus), int(6 * class_modifiers.mana * quality_bonus))
-	spell_power += randi_range(int(1 * class_modifiers.spell_power * quality_bonus), int(4 * class_modifiers.spell_power * quality_bonus))
-	attack_power += randi_range(int(1 * class_modifiers.attack_power * quality_bonus), int(4 * class_modifiers.attack_power * quality_bonus))
-	movement_speed += randi_range(int(0 * class_modifiers.movement_speed * quality_bonus), int(2 * class_modifiers.movement_speed * quality_bonus))
-	luck += randi_range(int(0 * class_modifiers.luck * quality_bonus), int(2 * class_modifiers.luck * quality_bonus))
+	# Apply the stat gains
+	health += stat_gains.health
+	defense += stat_gains.defense
+	mana += stat_gains.mana
+	spell_power += stat_gains.spell_power
+	attack_power += stat_gains.attack_power
+	movement_speed += stat_gains.movement_speed
+	luck += stat_gains.luck
+	
+	# Emit signal for level up notification
+	if SignalBus:
+		SignalBus.character_leveled_up.emit(self, stat_gains)
 	
 	check_promotion_eligibility()
+
+func calculate_level_up_stat_gains() -> Dictionary:
+	"""Calculate stat gains for level up with class-based probabilities"""
+	var gains = {
+		"health": 0,
+		"defense": 0,
+		"mana": 0,
+		"spell_power": 0,
+		"attack_power": 0,
+		"movement_speed": 0,
+		"luck": 0
+	}
+	
+	var quality_bonus = 1.0 + (quality - 1) * 0.1
+	
+	# Get class-specific stat gain configuration
+	var class_config = get_class_stat_gain_config()
+	
+	# Roll for each stat
+	for stat_name in gains.keys():
+		var stat_config = class_config[stat_name]
+		var gain = roll_stat_gain(stat_config, quality_bonus)
+		gains[stat_name] = gain
+	
+	return gains
+
+func roll_stat_gain(stat_config: Dictionary, quality_bonus: float) -> int:
+	"""Roll for a single stat gain based on configuration"""
+	var base_chance = stat_config.chance
+	var base_amount = stat_config.amount
+	
+	# Apply quality bonus to chance (higher quality = better chances)
+	var adjusted_chance = min(1.0, base_chance * quality_bonus)
+	
+	# Roll for gain
+	if randf() < adjusted_chance:
+		# Roll for amount (0 to base_amount)
+		var gain_amount = randi_range(0, base_amount)
+		# Apply quality bonus to amount
+		return int(gain_amount * quality_bonus)
+	
+	return 0
+
+func get_class_stat_gain_config() -> Dictionary:
+	"""Get class-specific stat gain probabilities and amounts"""
+	match character_class:
+		CharacterClass.TANK:
+			return {
+				"health": {"chance": 0.8, "amount": 15},      # 80% chance for 0-15 HP
+				"defense": {"chance": 0.7, "amount": 10},     # 70% chance for 0-10 DEF
+				"mana": {"chance": 0.3, "amount": 5},         # 30% chance for 0-5 MANA
+				"spell_power": {"chance": 0.2, "amount": 3},  # 20% chance for 0-3 SPL
+				"attack_power": {"chance": 0.4, "amount": 8}, # 40% chance for 0-8 ATK
+				"movement_speed": {"chance": 0.3, "amount": 5}, # 30% chance for 0-5 SPD
+				"luck": {"chance": 0.4, "amount": 6}          # 40% chance for 0-6 LCK
+			}
+		CharacterClass.HEALER:
+			return {
+				"health": {"chance": 0.4, "amount": 8},       # 40% chance for 0-8 HP
+				"defense": {"chance": 0.3, "amount": 6},      # 30% chance for 0-6 DEF
+				"mana": {"chance": 0.8, "amount": 12},        # 80% chance for 0-12 MANA
+				"spell_power": {"chance": 0.7, "amount": 10}, # 70% chance for 0-10 SPL
+				"attack_power": {"chance": 0.2, "amount": 4}, # 20% chance for 0-4 ATK
+				"movement_speed": {"chance": 0.4, "amount": 6}, # 40% chance for 0-6 SPD
+				"luck": {"chance": 0.5, "amount": 7}          # 50% chance for 0-7 LCK
+			}
+		CharacterClass.SUPPORT:
+			return {
+				"health": {"chance": 0.5, "amount": 10},      # 50% chance for 0-10 HP
+				"defense": {"chance": 0.4, "amount": 8},      # 40% chance for 0-8 DEF
+				"mana": {"chance": 0.6, "amount": 10},        # 60% chance for 0-10 MANA
+				"spell_power": {"chance": 0.6, "amount": 9},  # 60% chance for 0-9 SPL
+				"attack_power": {"chance": 0.3, "amount": 6}, # 30% chance for 0-6 ATK
+				"movement_speed": {"chance": 0.6, "amount": 8}, # 60% chance for 0-8 SPD
+				"luck": {"chance": 0.7, "amount": 9}          # 70% chance for 0-9 LCK
+			}
+		CharacterClass.ATTACKER:
+			return {
+				"health": {"chance": 0.4, "amount": 10},      # 40% chance for 0-10 HP
+				"defense": {"chance": 0.2, "amount": 5},      # 20% chance for 0-5 DEF
+				"mana": {"chance": 0.3, "amount": 6},         # 30% chance for 0-6 MANA
+				"spell_power": {"chance": 0.2, "amount": 5},  # 20% chance for 0-5 SPL
+				"attack_power": {"chance": 0.8, "amount": 12}, # 80% chance for 0-12 ATK
+				"movement_speed": {"chance": 0.6, "amount": 8}, # 60% chance for 0-8 SPD
+				"luck": {"chance": 0.4, "amount": 6}          # 40% chance for 0-6 LCK
+			}
+		_:
+			return {
+				"health": {"chance": 0.5, "amount": 8},
+				"defense": {"chance": 0.5, "amount": 6},
+				"mana": {"chance": 0.5, "amount": 8},
+				"spell_power": {"chance": 0.5, "amount": 6},
+				"attack_power": {"chance": 0.5, "amount": 8},
+				"movement_speed": {"chance": 0.5, "amount": 6},
+				"luck": {"chance": 0.5, "amount": 6}
+			}
 
 func get_class_level_modifiers() -> Dictionary:
 	match character_class:
@@ -165,15 +291,68 @@ func improve_substat_from_quest(quest_type: String, success_rate: float):
 
 func add_experience(amount: int):
 	experience += amount
+	total_experience_earned += amount  # Track total experience earned
+	
 	var exp_needed = get_experience_needed_for_next_level()
 	while experience >= exp_needed:
 		experience -= exp_needed
 		level_up()
 		exp_needed = get_experience_needed_for_next_level()
 
-func get_experience_needed_for_next_level() -> int:
-	return level * 100 + (level - 1) * 50  # Scaling experience requirements
+func record_quest_completion(quest_name: String, success: bool, rewards: Dictionary):
+	"""Record quest completion in character history"""
+	var quest_record = {
+		"quest_name": quest_name,
+		"success": success,
+		"rewards": rewards,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	
+	quest_history.append(quest_record)
+	
+	if success:
+		quests_completed += 1
+		# Track rewards
+		if rewards.has("gold"):
+			total_gold_earned += rewards.gold
+		if rewards.has("influence"):
+			total_influence_earned += rewards.influence
+	else:
+		quests_failed += 1
 
+func record_injury(injury_type: InjuryType, duration: float):
+	"""Record injury in character history"""
+	total_injuries_sustained += 1
+	
+	var injury_record = {
+		"injury_type": injury_type,
+		"duration": duration,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+	
+	injury_history.append(injury_record)
+
+func record_promotion_attempt(success: bool):
+	"""Record promotion attempt in character history"""
+	promotions_attempted += 1
+	if success:
+		promotions_succeeded += 1
+	else:
+		promotions_failed += 1
+
+func get_experience_needed_for_next_level() -> int:
+	# Much more accessible experience requirements for exciting early progression
+	match level:
+		1: return 10   # Level 1 -> 2: Only 10 XP needed
+		2: return 25   # Level 2 -> 3: 25 XP needed
+		3: return 50   # Level 3 -> 4: 50 XP needed
+		4: return 100  # Level 4 -> 5: 100 XP needed
+		5: return 200  # Level 5 -> 6: 200 XP needed
+		_: return level * 100 + (level - 1) * 50  # Original scaling for higher levels
+
+#endregion
+
+#region Promotion System
 func check_promotion_eligibility():
 	if level >= get_level_requirement_for_next_rank() and not promotion_quest_available:
 		promotion_quest_available = true
@@ -207,6 +386,9 @@ func unlock_class_ability():
 		# Add more class abilities later
 
 
+#endregion
+
+#region Injury System
 func get_injury_duration() -> float :
 	var cur_time =  Time.get_unix_time_from_system()
 	var elapsed_time = cur_time - injury_start_time
@@ -218,6 +400,9 @@ func apply_injury(injury: InjuryType, duration: float):
 	injury_duration = duration
 	injury_start_time = Time.get_unix_time_from_system()
 	is_on_quest = false  # Remove from any active quest
+	
+	# Record injury in history
+	record_injury(injury, duration)
 
 func heal_injury():
 	injury_type = InjuryType.NONE
@@ -237,6 +422,9 @@ func is_injured() -> bool:
 	
 	return true
 
+#endregion
+
+#region Utility Functions
 func get_effective_stats() -> Dictionary:
 	var stats = {
 		"health": health,
@@ -306,3 +494,4 @@ func get_rank_name() -> String:
 		Rank.SS: return "SS"
 		Rank.SSS: return "SSS"
 		_: return "?"
+#endregion
