@@ -76,45 +76,69 @@ func set_current_tab(tab_name: String):
 	update_button_visibility()
 
 func update_button_visibility():
-	"""Update button visibility based on current tab"""
-	# Show all buttons by default
+	"""Update button appearance based on current tab - all buttons visible, selected button flattened"""
+	# Reset all buttons to normal state
 	if main_hall_button:
 		main_hall_button.visible = true
+		main_hall_button.flat = false
 	if roster_button:
 		roster_button.visible = true
+		roster_button.flat = false
 	if quests_button:
 		quests_button.visible = true
+		quests_button.flat = false
 	if recruitment_button:
 		recruitment_button.visible = true
+		recruitment_button.flat = false
 	if town_map_button:
 		town_map_button.visible = true
+		town_map_button.flat = false
 	
-	# Hide the button for the current tab
+	# Set the current tab button to flattened (pressed appearance)
 	match current_tab:
 		"main_hall", "mainhall":
 			if main_hall_button:
-				main_hall_button.visible = false
+				main_hall_button.flat = true
 		"roster":
 			if roster_button:
-				roster_button.visible = false
+				roster_button.flat = true
 		"quests", "quest":
 			if quests_button:
-				quests_button.visible = false
+				quests_button.flat = true
 		"recruitment", "recruit":
 			if recruitment_button:
-				recruitment_button.visible = false
+				recruitment_button.flat = true
 		"town_map", "townmap":
 			if town_map_button:
-				town_map_button.visible = false
+				town_map_button.flat = true
 
 # Utility functions for external control
 func show_all_buttons():
-	"""Show all navigation buttons"""
+	"""Show all navigation buttons in normal state"""
 	current_tab = ""
 	update_button_visibility()
 
+func set_button_flat(button_name: String, is_flat: bool = true):
+	"""Set a specific button to flattened state"""
+	match button_name.to_lower():
+		"main_hall", "mainhall":
+			if main_hall_button:
+				main_hall_button.flat = is_flat
+		"roster":
+			if roster_button:
+				roster_button.flat = is_flat
+		"quests":
+			if quests_button:
+				quests_button.flat = is_flat
+		"recruitment":
+			if recruitment_button:
+				recruitment_button.flat = is_flat
+		"town_map", "townmap":
+			if town_map_button:
+				town_map_button.flat = is_flat
+
 func hide_button(button_name: String):
-	"""Hide a specific button by name"""
+	"""Hide a specific button by name (legacy function - use set_button_flat instead)"""
 	match button_name.to_lower():
 		"main_hall", "mainhall":
 			if main_hall_button:

@@ -36,15 +36,12 @@ func _on_quit_game_pressed():
 	confirm_dialog.popup_centered()
 
 func _on_new_game_pressed():
-	# Initialize a new game with starter resources
-	_initialize_new_game()
-	# Load the Guild Hall scene
-	get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")
+	# Show save slot selection for new game
+	_show_save_slot_selection("new")
 
 func _on_load_game_pressed():
-	# Load existing game data and go to Guild Hall
-	_load_existing_game()
-	get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")
+	# Show save slot selection for loading
+	_show_save_slot_selection("load")
 
 func _initialize_new_game():
 	# Initialize the GuildManager with new game settings
@@ -53,6 +50,58 @@ func _initialize_new_game():
 		GuildManager.clear_save_file()  # Clear any existing save data
 		GuildManager.initialize_guild()  # Initialize new game
 		print("New game initialized!")
+	else:
+		print("Warning: GuildManager not available")
+
+func _show_save_slot_selection(action: String):
+	"""Show the save slot selection screen"""
+	var save_slot_scene = preload("res://scenes/Menus/MainMenu/SaveSlotSelection.tscn")
+	var save_slot_instance = save_slot_scene.instantiate()
+	
+	# Store the intended action and connect to slot selection signal
+	save_slot_instance.intended_action = action
+	save_slot_instance.slot_selected.connect(_on_slot_selected)
+	
+	# Add to scene tree
+	add_child(save_slot_instance)
+	
+	# Hide main menu buttons
+	$VBoxContainer.visible = false
+
+func _on_slot_selected(slot: int, action: String):
+	"""Handle slot selection from save slot screen"""
+	if action == "load":
+		_load_game_from_slot(slot)
+	elif action == "new":
+		_initialize_new_game_in_slot(slot)
+	
+	# Remove save slot selection screen
+	for child in get_children():
+		if child.has_method("refresh_slot_info"):  # Save slot selection screen
+			child.queue_free()
+	
+	# Show main menu buttons again
+	$VBoxContainer.visible = true
+
+func _load_game_from_slot(slot: int):
+	"""Load game from a specific slot"""
+	if GuildManager:
+		GuildManager.load_game_from_slot(slot)
+		print("Game loaded from slot ", slot)
+		# Load the Guild Hall scene
+		get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")
+	else:
+		print("Warning: GuildManager not available")
+
+func _initialize_new_game_in_slot(slot: int):
+	"""Initialize a new game in a specific slot"""
+	if GuildManager:
+		GuildManager.current_save_slot = slot
+		GuildManager.clear_save_file()  # Clear the selected slot
+		GuildManager.initialize_guild()  # Initialize new game
+		print("New game initialized in slot ", slot)
+		# Load the Guild Hall scene
+		get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")
 	else:
 		print("Warning: GuildManager not available")
 

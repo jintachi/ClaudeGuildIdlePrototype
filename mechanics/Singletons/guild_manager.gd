@@ -27,6 +27,7 @@ var cur_scene : StringName # holder for the scene name
 # Quest Management
 @export var available_quests: Array[Quest] = []
 @export var active_quests: Array[Quest] = []
+@export var awaiting_completion_quests: Array[Quest] = []
 @export var completed_quests: Array[Quest] = []
 @export var emergency_quests: Array[Quest] = []
 
@@ -39,6 +40,7 @@ var cur_scene : StringName # holder for the scene name
 @export var last_save_time: float = 0.0
 @export var auto_save_interval: float = 600.0  # 10 minutes
 @export var save_file_path: String = "res://Save_Data/guild_save.json"
+@export var current_save_slot: int = 0  # 0, 1, or 2 for the three save slots
 
 # Recruitment Settings
 @export var recruitment_quality_modifier: float = 1.0
@@ -209,8 +211,27 @@ func update_quest_timers(delta: float):
 		complete_quest(quest)
 
 func complete_quest(quest: Quest):
+	# Move quest from active to awaiting completion (not completed yet)
 	active_quests.erase(quest)
+	awaiting_completion_quests.append(quest)
+	
+	# Emit signal for awaiting completion
+	quest_completed.emit(quest)
+	
+	# Save game when quest moves to awaiting completion
+	save_game()
+	
+	# Generate replacement quest
+	generate_replacement_quest(quest.quest_rank)
+
+func accept_quest_results(quest: Quest):
+	"""Accept quest results and finalize the quest"""
+	# Remove from awaiting completion
+	awaiting_completion_quests.erase(quest)
 	completed_quests.append(quest)
+	
+	# Accept the quest results (this will apply rewards, injuries, and emit notifications)
+	quest.accept_quest_results()
 	
 	# Add guild rewards (20% of gold goes to guild)
 	var guild_gold = int(quest.gold_reward * 0.2)
@@ -230,16 +251,11 @@ func complete_quest(quest: Quest):
 	total_quests_completed += 1
 	quests_completed_by_rank[quest.quest_rank] = quests_completed_by_rank.get(quest.quest_rank, 0) + 1
 	
-	#quest.active_quest_status = quest.QuestStatus.COMPLETED
+	# Emit finalization signal for notifications
+	SignalBus.quest_finalized.emit(quest)
 	
-	## TODO: Track down why this doesn't get emit.
-	quest_completed.emit(quest)
-	
-	for adven in quest.assigned_party :
-		adven.is_on_quest = false
-	
-	# Generate replacement quest
-	generate_replacement_quest(quest.quest_rank)
+	# Save game after accepting results
+	save_game()
 
 func remove_completed_quest(quest: Quest):
 	"""Remove a completed quest from the completed_quests list after rewards have been collected"""
@@ -286,7 +302,26 @@ func force_recruit_refresh() -> Dictionary:
 	return {"success": true, "message": "Recruits refreshed"}
 
 func get_available_characters() -> Array[Character]:
-	return roster.filter(func(c): return c.can_go_on_quest())
+	# Return all characters, sorted with available ones first, then on quest, then injured
+	var sorted_roster = roster.duplicate()
+	sorted_roster.sort_custom(func(a, b): 
+		# Available characters first (can go on quest)
+		var a_available = a.can_go_on_quest()
+		var b_available = b.can_go_on_quest()
+		if a_available != b_available:
+			return a_available > b_available
+		
+		# Among unavailable characters, on-quest characters come before injured ones
+		if not a_available and not b_available:
+			var a_on_quest = a.character_status == Character.CharacterStatus.ON_QUEST
+			var b_on_quest = b.character_status == Character.CharacterStatus.ON_QUEST
+			if a_on_quest != b_on_quest:
+				return a_on_quest > b_on_quest
+		
+		# If same status, sort by name for consistency
+		return a.character_name < b.character_name
+	)
+	return sorted_roster
 
 func get_characters_needing_promotion() -> Array[Character]:
 	return roster.filter(func(c): return c.promotion_quest_available)
@@ -364,6 +399,7 @@ func save_game():
 		"available_recruits": serialize_characters(available_recruits),
 		"available_quests": serialize_quests(available_quests),
 		"active_quests": serialize_quests(active_quests),
+		"awaiting_completion_quests": serialize_quests(awaiting_completion_quests),
 		"completed_quests": serialize_quests(completed_quests),
 		"emergency_quests": serialize_quests(emergency_quests),
 		"total_quests_completed": total_quests_completed,
@@ -373,18 +409,36 @@ func save_game():
 		"timestamp": Time.get_unix_time_from_system()
 	}
 	
+	# Load existing save file to preserve other slots
+	var all_saves = load_all_save_slots()
+	all_saves["slot_" + str(current_save_slot)] = save_data
+	
 	var file = FileAccess.open(save_file_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(save_data))
+		file.store_string(JSON.stringify(all_saves))
 		file.close()
 
-func load_game():
+func save_game_to_slot(slot: int):
+	"""Save game to a specific slot"""
+	var original_slot = current_save_slot
+	current_save_slot = slot
+	save_game()
+	current_save_slot = original_slot
+
+func load_all_save_slots() -> Dictionary:
+	"""Load all save slots from the save file"""
+	var all_saves = {
+		"slot_0": null,
+		"slot_1": null,
+		"slot_2": null
+	}
+	
 	if not FileAccess.file_exists(save_file_path):
-		return
+		return all_saves
 	
 	var file = FileAccess.open(save_file_path, FileAccess.READ)
 	if not file:
-		return
+		return all_saves
 	
 	var json_string = file.get_as_text()
 	file.close()
@@ -392,9 +446,71 @@ func load_game():
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
 	if parse_result != OK:
-		return
+		return all_saves
 	
 	var save_data = json.data
+	
+	# Check if this is an old format save file (migrate to new format)
+	if not save_data.has("slot_0") and save_data.has("influence"):
+		# This is an old format save, migrate it to slot 0
+		all_saves["slot_0"] = save_data
+		# Save the migrated format
+		var file_write = FileAccess.open(save_file_path, FileAccess.WRITE)
+		if file_write:
+			file_write.store_string(JSON.stringify(all_saves))
+			file_write.close()
+		return all_saves
+	
+	# Load each slot if it exists
+	for i in range(3):
+		var slot_key = "slot_" + str(i)
+		if save_data.has(slot_key) and save_data[slot_key] != null:
+			all_saves[slot_key] = save_data[slot_key]
+	
+	return all_saves
+
+func get_save_slot_info(slot: int) -> Dictionary:
+	"""Get information about a save slot (exists, timestamp, etc.)"""
+	var all_saves = load_all_save_slots()
+	var slot_key = "slot_" + str(slot)
+	
+	if not all_saves.has(slot_key) or all_saves[slot_key] == null:
+		return {"exists": false, "timestamp": 0, "influence": 0, "gold": 0, "roster_size": 0}
+	
+	var save_data = all_saves[slot_key]
+	return {
+		"exists": true,
+		"timestamp": save_data.get("timestamp", 0),
+		"influence": save_data.get("influence", 0),
+		"gold": save_data.get("gold", 0),
+		"roster_size": save_data.get("roster", []).size() if save_data.has("roster") else 0
+	}
+
+func delete_save_slot(slot: int):
+	"""Delete a specific save slot"""
+	var all_saves = load_all_save_slots()
+	var slot_key = "slot_" + str(slot)
+	all_saves[slot_key] = null
+	
+	var file = FileAccess.open(save_file_path, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(all_saves))
+		file.close()
+
+func load_game():
+	"""Load game from the current save slot"""
+	load_game_from_slot(current_save_slot)
+
+func load_game_from_slot(slot: int):
+	"""Load game from a specific save slot"""
+	var all_saves = load_all_save_slots()
+	var slot_key = "slot_" + str(slot)
+	
+	if not all_saves.has(slot_key) or all_saves[slot_key] == null:
+		print("No save data found in slot ", slot)
+		return
+	
+	var save_data = all_saves[slot_key]
 	
 	# Load resources
 	influence = save_data.get("influence", 100)
@@ -410,12 +526,16 @@ func load_game():
 	available_recruits = deserialize_characters(save_data.get("available_recruits", []))
 	available_quests = deserialize_quests(save_data.get("available_quests", []))
 	active_quests = deserialize_quests(save_data.get("active_quests", []))
+	awaiting_completion_quests = deserialize_quests(save_data.get("awaiting_completion_quests", []))
 	completed_quests = deserialize_quests(save_data.get("completed_quests", []))
 	emergency_quests = deserialize_quests(save_data.get("emergency_quests", []))
 	total_quests_completed = save_data.get("total_quests_completed", 0)
 	quests_completed_by_rank = save_data.get("quests_completed_by_rank", {})
 	transformations_unlocked = save_data.get("transformations_unlocked", ["none"])
 	recruitment_quality_modifier = save_data.get("recruitment_quality_modifier", 1.0)
+	
+	# Set current save slot
+	current_save_slot = slot
 	
 	# Handle offline progress for time-based systems
 	handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
@@ -489,7 +609,7 @@ func character_to_dict(character: Character) -> Dictionary:
 		"escorting": character.escorting,
 		"stealth": character.stealth,
 		"odd_jobs": character.odd_jobs,
-		"is_on_quest": character.is_on_quest,
+		"character_status": character.character_status,
 		"injury_type": character.injury_type,
 		"injury_duration": character.injury_duration,
 		"injury_start_time": character.injury_start_time,
@@ -520,7 +640,7 @@ func dict_to_character(data: Dictionary) -> Character:
 	character.escorting = data.get("escorting", 0)
 	character.stealth = data.get("stealth", 0)
 	character.odd_jobs = data.get("odd_jobs", 0)
-	character.is_on_quest = data.get("is_on_quest", false)
+	character.character_status = data.get("character_status", Character.CharacterStatus.AVAILABLE)
 	character.injury_type = data.get("injury_type", Character.InjuryType.NONE)
 	character.injury_duration = data.get("injury_duration", 0.0)
 	character.injury_start_time = data.get("injury_start_time", 0.0)
@@ -560,6 +680,7 @@ func quest_to_dict(quest: Quest) -> Dictionary:
 		"assigned_party": serialize_characters(quest.assigned_party),
 		"active_quest_status" : quest.active_quest_status,
 		"success_rate": quest.success_rate,
+		"final_success_rate": quest.final_success_rate,
 		#"individual_checks": quest.individual_checks
 	}
 
@@ -594,12 +715,13 @@ func dict_to_quest(data: Dictionary) -> Quest:
 	quest.assigned_party = deserialize_characters(data.get("assigned_party", []))
 	quest.active_quest_status = data.get("active_quest_status", Quest.QuestStatus.NOTSTARTED)
 	quest.success_rate = data.get("success_rate", 0.0)
+	quest.final_success_rate = data.get("final_success_rate", 0.0)
 	#quest.individual_checks = data.get("individual_checks", [])
 	return quest
 
 func clear_save_file():
-	if FileAccess.file_exists(save_file_path):
-		DirAccess.remove_absolute(save_file_path)
+	"""Clear the current save slot to start fresh"""
+	delete_save_slot(current_save_slot)
 	
 	# Reset all variables to initial state
 	influence = 100
@@ -613,6 +735,7 @@ func clear_save_file():
 	available_recruits.clear()
 	available_quests.clear()
 	active_quests.clear()
+	awaiting_completion_quests.clear()
 	completed_quests.clear()
 	emergency_quests.clear()
 	total_quests_completed = 0
@@ -637,4 +760,269 @@ func get_guild_status_summary() -> Dictionary:
 			"armor": armor_pieces,
 			"weapons": weapons
 		}
-	} 
+	}
+
+func make_characters_available():
+	"""Make all characters with 'waiting to progress' or 'waiting for results' status available again"""
+	for character in roster:
+		if character.character_status == Character.CharacterStatus.WAITING_TO_PROGRESS or character.character_status == Character.CharacterStatus.WAITING_FOR_RESULTS:
+			character.set_status(Character.CharacterStatus.AVAILABLE) 
+
+#region UI Business Logic
+# These methods handle UI-related business logic that was previously in guild_hall.gd
+
+func get_quest_display_data(quest: Quest) -> Dictionary:
+	"""Get formatted data for quest display panels"""
+	return {
+		"name": quest.quest_name,
+		"progress_percentage": quest.get_progress_percentage(),
+		"time_remaining": quest.get_time_remaining(),
+		"party_info": quest.get_party_display_info(),
+		"status": quest.active_quest_status,
+		"completion_time": quest.get_completion_time_string(),
+		"rewards": {
+			"experience": quest.experience_reward,
+			"gold": quest.gold_reward,
+			"influence": quest.influence_reward
+		}
+	}
+
+func get_character_display_data(character: Character) -> Dictionary:
+	"""Get formatted data for character display panels"""
+	return {
+		"name": character.name,
+		"class": character.character_class,
+		"rank": character.rank,
+		"level": character.level,
+		"experience": character.experience,
+		"experience_to_next": character.get_experience_to_next_level(),
+		"status": character.character_status,
+		"stats": {
+			"health": character.health,
+			"defense": character.defense,
+			"attack_power": character.attack_power,
+			"spell_power": character.spell_power,
+			"gathering": character.gathering,
+			"stealth": character.stealth,
+			"diplomacy": character.diplomacy
+		},
+		"quality": character.quality,
+		"is_injured": character.is_injured(),
+		"is_available": character.character_status == Character.CharacterStatus.AVAILABLE
+	}
+
+func get_recruit_display_data(character: Character) -> Dictionary:
+	"""Get formatted data for recruit display panels"""
+	var base_data = get_character_display_data(character)
+	base_data["recruitment_cost"] = character.get_recruitment_cost()
+	base_data["projected_resources"] = calculate_cost(character.get_recruitment_cost())
+	return base_data
+
+func calculate_cost(recruit_cost:Dictionary) -> Dictionary:
+	"""Calculate projected resources after recruitment cost"""
+	var current_resources = {
+		"influence": influence,
+		"gold": gold,
+		"food": food,
+		"building_materials": building_materials,
+		"armor": armor_pieces,
+		"weapons": weapons
+	}
+	
+	var temp_dict = current_resources.duplicate()
+	
+	# Subtract recruitment costs from current resources
+	temp_dict["influence"] -= recruit_cost.get("influence", 0)
+	temp_dict["gold"] -= recruit_cost.get("gold", 0)
+	temp_dict["food"] -= recruit_cost.get("food", 0)
+	temp_dict["armor"] -= recruit_cost.get("armor", 0)
+	temp_dict["weapons"] -= recruit_cost.get("weapons", 0)
+	
+	return temp_dict
+
+func get_available_rooms() -> Array[Dictionary]:
+	"""Get list of available rooms based on guild state"""
+	var rooms = []
+	
+	# Always available
+	rooms.append({
+		"name": "Main Hall",
+		"description": "The central hub of your guild",
+		"is_unlocked": true,
+		"unlock_requirement": ""
+	})
+	
+	rooms.append({
+		"name": "Roster",
+		"description": "Manage your guild members",
+		"is_unlocked": true,
+		"unlock_requirement": ""
+	})
+	
+	rooms.append({
+		"name": "Quests",
+		"description": "Accept and manage quests",
+		"is_unlocked": true,
+		"unlock_requirement": ""
+	})
+	
+	rooms.append({
+		"name": "Recruitment",
+		"description": "Recruit new guild members",
+		"is_unlocked": true,
+		"unlock_requirement": ""
+	})
+	
+	# Unlockable rooms based on transformations
+	if transformations_unlocked.get("Training Ground's", false):
+		rooms.append({
+			"name": "Training Grounds",
+			"description": "Train and improve your characters",
+			"is_unlocked": true,
+			"unlock_requirement": "Complete 10 quests"
+		})
+	
+	if transformations_unlocked.get("Library", false):
+		rooms.append({
+			"name": "Library",
+			"description": "Research and skill development",
+			"is_unlocked": true,
+			"unlock_requirement": "Reach 50 influence"
+		})
+	
+	if transformations_unlocked.get("Workshop", false):
+		rooms.append({
+			"name": "Workshop",
+			"description": "Craft and enhance equipment",
+			"is_unlocked": true,
+			"unlock_requirement": "Reach 100 influence"
+		})
+	
+	if transformations_unlocked.get("Armory", false):
+		rooms.append({
+			"name": "Armory",
+			"description": "Manage equipment and gear",
+			"is_unlocked": true,
+			"unlock_requirement": "Reach 25 influence"
+		})
+	
+	if transformations_unlocked.get("Healer's Guild", false):
+		rooms.append({
+			"name": "Healer's Guild",
+			"description": "Heal injured characters",
+			"is_unlocked": true,
+			"unlock_requirement": "Have 3 injured characters"
+		})
+	
+	return rooms
+
+func get_ui_notification_data() -> Dictionary:
+	"""Get data for UI notifications and alerts"""
+	return {
+		"quests_awaiting_completion": awaiting_completion_quests.size(),
+		"characters_needing_promotion": get_characters_needing_promotion().size(),
+		"injured_characters": get_injured_characters().size(),
+		"available_recruits": available_recruits.size(),
+		"low_resources": get_low_resources_warnings()
+	}
+
+func get_low_resources_warnings() -> Array[String]:
+	"""Get warnings for low resources"""
+	var warnings = []
+	
+	if gold < 10:
+		warnings.append("Low gold: %d" % gold)
+	if food < 5:
+		warnings.append("Low food: %d" % food)
+	if influence < 5:
+		warnings.append("Low influence: %d" % influence)
+	
+	return warnings
+
+func get_injured_characters() -> Array[Character]:
+	"""Get list of injured characters"""
+	var injured = []
+	for character in roster:
+		if character.is_injured():
+			injured.append(character)
+	return injured
+
+func get_character_status_summary() -> Dictionary:
+	"""Get summary of character statuses"""
+	var summary = {
+		"total": roster.size(),
+		"available": 0,
+		"on_quest": 0,
+		"injured": 0,
+		"waiting": 0
+	}
+	
+	for character in roster:
+		match character.character_status:
+			Character.CharacterStatus.AVAILABLE:
+				summary.available += 1
+			Character.CharacterStatus.ON_QUEST:
+				summary.on_quest += 1
+			Character.CharacterStatus.WAITING_TO_PROGRESS, Character.CharacterStatus.WAITING_FOR_RESULTS:
+				summary.waiting += 1
+		
+		if character.is_injured():
+			summary.injured += 1
+	
+	return summary
+
+func validate_quest_party(quest: Quest, party: Array[Character]) -> Dictionary:
+	"""Validate if a party can take a quest"""
+	var validation = {
+		"is_valid": true,
+		"errors": [],
+		"warnings": [],
+		"success_rate": 0.0
+	}
+	
+	# Check party size
+	if party.size() < quest.min_party_size:
+		validation.is_valid = false
+		validation.errors.append("Party too small (need %d, have %d)" % [quest.min_party_size, party.size()])
+	
+	if party.size() > quest.max_party_size:
+		validation.is_valid = false
+		validation.errors.append("Party too large (max %d, have %d)" % [quest.max_party_size, party.size()])
+	
+	# Check requirements
+	if quest.required_tank and not has_class_in_party(party, Character.CharacterClass.TANK):
+		validation.is_valid = false
+		validation.errors.append("Quest requires a Tank")
+	
+	if quest.required_healer and not has_class_in_party(party, Character.CharacterClass.HEALER):
+		validation.is_valid = false
+		validation.errors.append("Quest requires a Healer")
+	
+	if quest.required_support and not has_class_in_party(party, Character.CharacterClass.SUPPORT):
+		validation.is_valid = false
+		validation.errors.append("Quest requires a Support")
+	
+	if quest.required_attacker and not has_class_in_party(party, Character.CharacterClass.ATTACKER):
+		validation.is_valid = false
+		validation.errors.append("Quest requires an Attacker")
+	
+	# Calculate success rate if valid
+	if validation.is_valid:
+		validation.success_rate = quest.calculate_success_rate()
+		
+		# Add warnings for low success rate
+		if validation.success_rate < 0.3:
+			validation.warnings.append("Very low success rate: %.1f%%" % (validation.success_rate * 100))
+		elif validation.success_rate < 0.6:
+			validation.warnings.append("Low success rate: %.1f%%" % (validation.success_rate * 100))
+	
+	return validation
+
+func has_class_in_party(party: Array[Character], character_class: Character.CharacterClass) -> bool:
+	"""Check if party has a character of the specified class"""
+	for character in party:
+		if character.character_class == character_class:
+			return true
+	return false
+
+#endregion 
