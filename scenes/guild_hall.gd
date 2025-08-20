@@ -14,10 +14,13 @@ extends Control
 # Main Hall Elements
 @export var resources_display: Label
 @export var active_quests_panel: VBoxContainer
+@export var awaiting_completion_panel: VBoxContainer
+@export var accept_all_button: Button
 @export var completed_quests_panel: VBoxContainer
 @export var promotion_panel: VBoxContainer
 
-# Navigation Buttons
+# Navigation Buttons (now handled by Navigation components)
+# Legacy exports kept for compatibility but not used
 @export var roster_button: Button
 @export var quests_button: Button
 @export var recruitment_button: Button
@@ -31,15 +34,12 @@ extends Control
 
 # Quests Tab Elements
 @export var available_quests_list: VBoxContainer
-@export var party_selection_panel: Control
-@export var party_list: VBoxContainer
 @export var start_quest_button: Button
 @export var quest_info_label: Label
 @export var stats_comparison_table: Control
-@export var assigned_members_panel: VBoxContainer
+@export var guild_roster_grid : GridContainer
 
 # Recruitment Tab Elements
-@export var available_recruits_list: VBoxContainer
 @export var refresh_recruits_button: Button
 @export var recruit_button: Button
 @export var current_resources_panel: VBoxContainer
@@ -84,6 +84,9 @@ func _ready():
 	
 	show_main_hall()
 	update_ui()
+	
+	# Set initial navigation context to main hall
+	call_deferred("update_all_navigation_contexts", "main_hall")
 #endregion
 
 #region Viewport Scaling Setup
@@ -294,11 +297,7 @@ func adjust_control_layout(control: Control, viewport_size: Vector2):
 
 #region UI Utilities
 func setup_ui_connections():
-	# Navigation
-	roster_button.pressed.connect(show_roster_tab)
-	quests_button.pressed.connect(show_quests_tab)
-	recruitment_button.pressed.connect(show_recruitment_tab)
-	town_map_button.pressed.connect(show_town_map)
+	# Navigation is now handled by Navigation components automatically
 	
 	# Quests
 	start_quest_button.pressed.connect(_on_start_quest_pressed)
@@ -320,6 +319,11 @@ func setup_ui_connections():
 	load_button.pressed.connect(_on_load_pressed)
 	new_game_button.pressed.connect(_on_new_game_pressed)
 	
+	# Accept All Completed Quests
+	var accept_all_button = get_node_or_null("MainHall/MainHallVbox/MainHallContent/AwaitingCompletionPanel/AcceptAllButton")
+	if accept_all_button:
+		accept_all_button.pressed.connect(_on_accept_all_quest_results)
+	
 
 
 func setup_signal_connections():
@@ -327,6 +331,7 @@ func setup_signal_connections():
 	SignalBus.character_recruited.connect(_on_character_recruited)
 	SignalBus.quest_started.connect(_on_quest_started)
 	SignalBus.quest_completed.connect(_on_quest_completed)
+	SignalBus.quest_finalized.connect(_on_quest_finalized)
 	SignalBus.emergency_quest_available.connect(_on_emergency_quest_available)
 	
 	# Connect to GuildManager signals
@@ -341,11 +346,18 @@ func setup_signal_connections():
 
 
 func _process(_delta):
-	update_active_quests_display()
+	# Only update quest displays if we're in the main hall and there are active quests
+	if main_hall_container.visible and not GuildManager.active_quests.is_empty():
+		# Update time remaining for active quests without redrawing panels
+		update_active_quest_timers()
 
 func setup_navigation_contexts():
 	"""Setup navigation context for each tab"""
 	# Set current tab context for each Navigation instance
+	var main_hall_nav = get_node_or_null("MainHall/MainHallVbox/TopBar/Navigation")
+	if main_hall_nav and main_hall_nav.has_method("set_current_tab"):
+		main_hall_nav.set_current_tab("main_hall")
+	
 	var roster_nav = get_node_or_null("RosterTab/RosterVbox/TopBar/Navigation")
 	if roster_nav and roster_nav.has_method("set_current_tab"):
 		roster_nav.set_current_tab("roster")
@@ -361,6 +373,37 @@ func setup_navigation_contexts():
 	var townmap_nav = get_node_or_null("TownMap/TownMapVbox/TopBar/Navigation")
 	if townmap_nav and townmap_nav.has_method("set_current_tab"):
 		townmap_nav.set_current_tab("town_map")
+
+func update_all_navigation_contexts(current_tab: String):
+	"""Update all navigation instances to reflect the current tab"""
+	# Find all Navigation instances in the scene
+	var navigation_instances = []
+	
+	# Check each tab for Navigation instances
+	var main_hall_nav = get_node_or_null("MainHall/MainHallVbox/TopBar/Navigation")
+	if main_hall_nav:
+		navigation_instances.append(main_hall_nav)
+	
+	var roster_nav = get_node_or_null("RosterTab/RosterVbox/TopBar/Navigation")
+	if roster_nav:
+		navigation_instances.append(roster_nav)
+	
+	var quests_nav = get_node_or_null("QuestsTab/VBoxContainer/TopBar/Navigation")
+	if quests_nav:
+		navigation_instances.append(quests_nav)
+	
+	var recruitment_nav = get_node_or_null("RecruitmentTab/VBoxContainer/TopBar/Navigation")
+	if recruitment_nav:
+		navigation_instances.append(recruitment_nav)
+	
+	var townmap_nav = get_node_or_null("TownMap/TownMapVbox/TopBar/Navigation")
+	if townmap_nav:
+		navigation_instances.append(townmap_nav)
+	
+	# Update each navigation instance
+	for nav in navigation_instances:
+		if nav.has_method("set_current_tab"):
+			nav.set_current_tab(current_tab)
 #endregion
 
 #region Navigation
@@ -368,11 +411,13 @@ func show_main_hall():
 	hide_all_tabs()
 	main_hall_container.visible = true
 	update_main_hall_display()
+	update_all_navigation_contexts("main_hall")
 
 func show_roster_tab():
 	hide_all_tabs()
 	roster_container.visible = true
 	update_roster_display()
+	update_all_navigation_contexts("roster")
 	
 	# Show placeholder if no characters in roster
 	if GuildManager.roster.is_empty():
@@ -383,6 +428,7 @@ func show_quests_tab():
 	hide_all_tabs()
 	quests_container.visible = true
 	update_quests_display()
+	update_all_navigation_contexts("quests")
 	
 	# Always refresh party selection display when switching to quests tab
 	# This ensures newly recruited characters are shown
@@ -393,11 +439,13 @@ func show_recruitment_tab():
 	hide_all_tabs()
 	recruitment_container.visible = true
 	update_recruitment_display()
+	update_all_navigation_contexts("recruitment")
 
 func show_town_map():
 	hide_all_tabs()
 	town_map_container.visible = true
 	update_town_map_display()
+	update_all_navigation_contexts("town_map")
 
 func hide_all_tabs():
 	main_hall_container.visible = false
@@ -409,6 +457,21 @@ func hide_all_tabs():
 func update_ui():
 	update_resources_display()
 	update_main_hall_display()
+	update_character_status_modulations()
+
+func update_character_status_modulations():
+	"""Update character status modulations for all character panels in the guild roster grid"""
+	# Only update if we're in the quests tab and the grid exists
+	if not guild_roster_grid or not quests_container.visible:
+		return
+	
+	for child in guild_roster_grid.get_children():
+		if child.has_meta("character"):
+			var character = child.get_meta("character")
+			# Find the portrait (should be the second child after the button)
+			var portrait = child.get_child(1) if child.get_child_count() > 1 else null
+			if portrait and portrait is TextureRect:
+				apply_character_status_modulation(character, portrait)
 #endregion
 
 #region Main Hall
@@ -422,20 +485,95 @@ func update_resources_display():
 func update_main_hall_display():
 	update_resources_display()
 	update_active_quests_display()
+	update_awaiting_completion_display()
 	update_completed_quests_display()
 	update_promotion_display()
 
 func update_active_quests_display():
-	# Clear existing displays
-	for child in active_quests_panel.get_children():
-		child.queue_free()
+	"""Update the active quests display - only shows truly active quests"""
+	# Safety check - ensure the panel exists
+	if not active_quests_panel:
+		print("Warning: active_quests_panel is null")
+		return
 	
-	for quest in GuildManager.active_quests:
-		var quest_panel = create_active_quest_panel(quest)
-		active_quests_panel.add_child(quest_panel)
+	# Clear existing displays
+	var scroll_container = active_quests_panel.get_child(1)  # Get the ScrollContainer
+	if not scroll_container:
+		print("Warning: ScrollContainer not found in active_quests_panel")
+		return
+	
+	if scroll_container.get_child_count() > 0:
+		var active_container = scroll_container.get_child(0)  # Get the VBoxContainer
+		if active_container:
+			for child in active_container.get_children():
+				child.queue_free()
+			
+			# Show only active quests (not awaiting completion)
+			for quest in GuildManager.active_quests:
+				var quest_panel = create_active_quest_panel(quest)
+				active_container.add_child(quest_panel)
+		else:
+			print("Warning: VBoxContainer not found in ScrollContainer")
+	else:
+		print("Warning: ScrollContainer has no children")
+
+func update_awaiting_completion_display():
+	"""Update the awaiting completion quests display"""
+	# Safety check - ensure the panel exists
+	if not awaiting_completion_panel:
+		print("Warning: awaiting_completion_panel is null")
+		return
+	
+	# Clear existing displays
+	var scroll_container = awaiting_completion_panel.get_child(1)  # Get the ScrollContainer (second child after AcceptAllButton)
+	if not scroll_container:
+		print("Warning: ScrollContainer not found in awaiting_completion_panel")
+		return
+	
+	if scroll_container.get_child_count() > 0:
+		var awaiting_container = scroll_container.get_child(0)  # Get the VBoxContainer
+		if awaiting_container:
+			for child in awaiting_container.get_children():
+				child.queue_free()
+			
+			# Show quests awaiting completion
+			for quest in GuildManager.awaiting_completion_quests:
+				var quest_panel = create_awaiting_completion_panel(quest)
+				awaiting_container.add_child(quest_panel)
+		else:
+			print("Warning: VBoxContainer not found in ScrollContainer")
+	else:
+		print("Warning: ScrollContainer has no children")
+
+func update_active_quest_timers():
+	"""Update time remaining labels for active quests without redrawing panels"""
+	# Safety check - ensure the panel exists
+	if not active_quests_panel:
+		return
+	
+	var scroll_container = active_quests_panel.get_child(1)  # Get the ScrollContainer
+	if not scroll_container or scroll_container.get_child_count() == 0:
+		return
+	
+	var active_container = scroll_container.get_child(0)  # Get the VBoxContainer
+	if not active_container:
+		return
+	
+	for i in range(active_container.get_child_count()):
+		var panel = active_container.get_child(i)
+		if panel and panel.get_child_count() > 0:
+			var vbox = panel.get_child(0)
+			if vbox and vbox.get_child_count() > 2:  # Should have title, progress bar, time label
+				var time_label = vbox.get_child(2)  # Time remaining label
+				if time_label is Label and i < GuildManager.active_quests.size():
+					var quest = GuildManager.active_quests[i]
+					var time_remaining = quest.get_time_remaining()
+					var minutes = int(time_remaining / 60)
+					var seconds = int(time_remaining) % 60
+					time_label.text = "Time remaining: %02d:%02d" % [minutes, seconds]
 
 func create_active_quest_panel(quest: Quest) -> Control:
-	
+	"""Create a panel for active quests (not awaiting completion)"""
 	var panel = Panel.new()
 	panel.custom_minimum_size = Vector2(300, 150)	
 	
@@ -443,7 +581,6 @@ func create_active_quest_panel(quest: Quest) -> Control:
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vbox.add_theme_constant_override("separation", 5)
 	panel.add_child(vbox)
-	
 	
 	# Quest title
 	var title = Label.new()
@@ -474,33 +611,93 @@ func create_active_quest_panel(quest: Quest) -> Control:
 	party_label.text = party_text
 	vbox.add_child(party_label)
 	
-	# Add completion button if quest is completed
-	if quest.active_quest_status == Quest.QuestStatus.COMPLETED:
-		var complete_button = Button.new()
-		complete_button.text = "Quest Complete: Accept Results"
-		complete_button.add_theme_color_override("font_color", Color.GREEN)
-		complete_button.pressed.connect(_on_accept_quest_results.bind(quest))
-		vbox.add_child(complete_button)
+	return panel
+
+func create_awaiting_completion_panel(quest: Quest) -> Control:
+	"""Create a panel for quests awaiting completion"""
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(300, 150)	
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 5)
+	panel.add_child(vbox)
+	
+	# Quest title
+	var title = Label.new()
+	title.text = quest.quest_name
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color.GREEN)
+	vbox.add_child(title)
+	
+	# Status label
+	var status_label = Label.new()
+	status_label.text = "Quest Complete - Awaiting Results"
+	status_label.add_theme_color_override("font_color", Color.GREEN)
+	vbox.add_child(status_label)
+	
+	# Party status
+	var party_info = quest.get_party_display_info()
+	var party_label = Label.new()
+	var party_text = "Party: "
+	for member in party_info:
+		party_text += "%s(%s)%s " % [member.name, member.class, member.status]
+	party_label.text = party_text
+	vbox.add_child(party_label)
+	
+	# Accept results button
+	var complete_button = Button.new()
+	complete_button.text = "Accept Results"
+	complete_button.add_theme_color_override("font_color", Color.GREEN)
+	complete_button.pressed.connect(_on_accept_quest_results.bind(quest))
+	vbox.add_child(complete_button)
 	
 	return panel
 #endregion
 
 #region Guild Master's Room
 func update_promotion_display():
-	# Clear existing displays
-	for child in promotion_panel.get_children():
-		child.queue_free()
+	# Safety check - ensure the panel exists
+	if not promotion_panel:
+		print("Warning: promotion_panel is null")
+		return
 	
-	var characters_needing_promotion = GuildManager.get_characters_needing_promotion()
-	for character in characters_needing_promotion:
-		var promo_panel = create_promotion_panel(character)
-		promotion_panel.add_child(promo_panel)
+	# Clear existing displays
+	var scroll_container = promotion_panel.get_child(1)  # Get the ScrollContainer
+	if not scroll_container:
+		print("Warning: ScrollContainer not found in promotion_panel")
+		return
+	
+	if scroll_container.get_child_count() > 0:
+		var promotion_container = scroll_container.get_child(0)  # Get the VBoxContainer
+		if promotion_container:
+			for child in promotion_container.get_children():
+				child.queue_free()
+			
+			# Add promotion panels
+			var characters_needing_promotion = GuildManager.get_characters_needing_promotion()
+			for character in characters_needing_promotion:
+				var promo_panel = create_promotion_panel(character)
+				promotion_container.add_child(promo_panel)
+		else:
+			print("Warning: VBoxContainer not found in ScrollContainer")
+	else:
+		print("Warning: ScrollContainer has no children")
 
 func update_completed_quests_display():
 	"""Update the completed quests display in main hall"""
+	# Safety check - ensure the panel exists
+	if not completed_quests_panel:
+		print("Warning: completed_quests_panel is null")
+		return
+	
 	# Clear existing completed quest panels
 	var scroll_container = completed_quests_panel.get_child(1)  # Get the ScrollContainer
-	if scroll_container and scroll_container.get_child_count() > 0:
+	if not scroll_container:
+		print("Warning: ScrollContainer not found in completed_quests_panel")
+		return
+	
+	if scroll_container.get_child_count() > 0:
 		var completed_container = scroll_container.get_child(0)  # Get the VBoxContainer
 		if completed_container:
 			for child in completed_container.get_children():
@@ -510,6 +707,10 @@ func update_completed_quests_display():
 			for quest in GuildManager.completed_quests:
 				var quest_panel = create_completed_quest_panel(quest)
 				completed_container.add_child(quest_panel)
+		else:
+			print("Warning: VBoxContainer not found in ScrollContainer")
+	else:
+		print("Warning: ScrollContainer has no children")
 
 func create_completed_quest_panel(quest: Quest) -> Control:
 	"""Create a panel displaying completed quest information"""
@@ -679,12 +880,19 @@ func create_character_panel(character: Character) -> Control:
 	# Name and class
 	var name_label = Label.new()
 	var stars = "★".repeat(character.quality)
-	name_label.text = "%s (%s) %s - Level %d [%s Rank]" % [
+	name_label.text = "%s (%s) %s [%s Rank]" % [
 		character.character_name, character.get_class_name(), stars,
-		character.level, character.get_rank_name()
+		character.get_rank_name()
 	]
 	name_label.add_theme_font_size_override("font_size", 12)
 	vbox.add_child(name_label)
+	
+	# Experience bar
+	var experience_bar_scene = preload("res://ui/components/ExperienceBar.tscn")
+	var experience_bar = experience_bar_scene.instantiate()
+	experience_bar.set_compact_mode(true)  # Use compact mode for character panels
+	experience_bar.update_experience(character)
+	vbox.add_child(experience_bar)
 	
 	# Stats
 	var stats_label = Label.new()
@@ -718,15 +926,21 @@ func create_character_panel(character: Character) -> Control:
 		var display_inj = str(injury_minutes, ": ", injury_seconds)
 		status_label.text = "INJURED - %s, %s" % [get_injury_name(character.injury_type), display_inj]
 		status_label.modulate = Color.RED
-	elif character.is_on_quest:
-		status_label.text = "ON QUEST"
-		status_label.modulate = Color.YELLOW
 	elif character.promotion_quest_available:
 		status_label.text = "READY FOR PROMOTION"
 		status_label.modulate = Color.GREEN
 	else:
-		status_label.text = "AVAILABLE"
-		status_label.modulate = Color.WHITE
+		# Use the new status system
+		status_label.text = character.get_status_name().to_upper()
+		match character.character_status:
+			Character.CharacterStatus.AVAILABLE:
+				status_label.modulate = Color.WHITE
+			Character.CharacterStatus.ON_QUEST:
+				status_label.modulate = Color.YELLOW
+			Character.CharacterStatus.WAITING_FOR_RESULTS:
+				status_label.modulate = Color.CYAN
+			Character.CharacterStatus.WAITING_TO_PROGRESS:
+				status_label.modulate = Color.ORANGE
 	
 	vbox.add_child(status_label)
 	
@@ -766,6 +980,36 @@ func update_character_panel_states(selected_character: Character):
 				else:
 					# Unselected state: use the default "panel" theme variation
 					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("panel", "CharacterPanel"))
+				
+				# Update experience bar if it exists
+				update_character_panel_experience(child, character)
+
+func update_character_panel_experience(panel_button: Control, character: Character):
+	"""Update the experience bar in a character panel"""
+	if not panel_button or not character:
+		return
+	
+	# Find the experience bar in the panel
+	var inner_panel = panel_button.get_child(0)
+	if not inner_panel or not inner_panel is Panel:
+		return
+	
+	var vbox = inner_panel.get_child(0)
+	if not vbox or not vbox is VBoxContainer:
+		return
+	
+	# Look for the experience bar (it should be the second child after the name label)
+	if vbox.get_child_count() >= 2:
+		var experience_bar = vbox.get_child(1)  # Experience bar is second child
+		if experience_bar and experience_bar.has_method("update_experience"):
+			experience_bar.update_experience(character)
+
+func refresh_all_character_panels():
+	"""Refresh all character panels to update experience bars and other data"""
+	for child in roster_list.get_children():
+		if child.has_meta("character"):
+			var character = child.get_meta("character")
+			update_character_panel_experience(child, character)
 #endregion
 
 #region Quest Counter
@@ -846,6 +1090,14 @@ func create_quest_panel(quest: Quest) -> Control:
 	duration_label.text = "Duration: %02d:%02d" % [minutes, seconds]
 	vbox.add_child(duration_label)
 	
+	# Success chance (placeholder - will be updated when party is selected)
+	var success_label = Label.new()
+	success_label.text = "Success Chance: --"
+	success_label.add_theme_color_override("font_color", Color.YELLOW)
+	success_label.set_meta("success_label", true)  # Mark for easy updating
+	success_label.visible = false  # Hidden by default, only shown on selected quest
+	vbox.add_child(success_label)
+	
 	return panel_button
 
 func select_quest(quest: Quest):
@@ -870,13 +1122,27 @@ func update_quest_panel_states(selected_quest: Quest):
 			var inner_panel = child.get_child(0)  # The Panel inside the Button
 			
 			if inner_panel is Panel:
+				var vbox = inner_panel.get_child(0)  # The VBoxContainer
+				
 				# Use theme-based selection method
 				if quest == selected_quest:
 					# Selected state: use the "selected" theme variation
 					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("selected", "QuestPanel"))
+					
+					# Show success chance label for selected quest
+					for vbox_child in vbox.get_children():
+						if vbox_child.has_meta("success_label"):
+							vbox_child.visible = true
+							break
 				else:
 					# Unselected state: use the default "panel" theme variation
 					inner_panel.add_theme_stylebox_override("panel", get_theme_stylebox("panel", "QuestPanel"))
+					
+					# Hide success chance label for unselected quests
+					for vbox_child in vbox.get_children():
+						if vbox_child.has_meta("success_label"):
+							vbox_child.visible = false
+							break
 
 
 
@@ -914,10 +1180,8 @@ func reset_quest_tab_to_default():
 	if stats_comparison_table and stats_comparison_table.has_method("clear_data"):
 		stats_comparison_table.clear_data()
 	
-	# Clear party lists
-	for child in party_list.get_children():
-		child.queue_free()
-	for child in assigned_members_panel.get_children():
+	# Clear party list
+	for child in guild_roster_grid.get_children():
 		child.queue_free()
 
 func update_party_selection_display():
@@ -927,30 +1191,15 @@ func update_party_selection_display():
 	# Make single call to get available characters
 	var available_chars = GuildManager.get_available_characters()
 	
-	# Update party selection panel with optimized data flow
-	update_party_selection_right_panel(available_chars)
-
-func update_party_selection_right_panel(available_chars: Array):
-	# Clear existing displays
-	for child in party_list.get_children():
-		child.queue_free()
-	for child in assigned_members_panel.get_children():
-		child.queue_free()
-	
-	# Update quest info
-	quest_info_label.text = current_selected_quest.description
-	
-	# Update stats comparison table
-	update_stats_comparison_table()
-	
-	# Display available characters
+	# Update the grid display and stats comparison
 	update_available_characters_display(available_chars)
-	
-	# Display current party in dedicated panel
-	update_assigned_members_display()
-	
-	# Update start button state
+	update_stats_comparison_table()
 	update_start_quest_button_state()
+	
+	# Update success chance display for all quest panels
+	update_quest_success_chances()
+
+# Removed update_party_selection_right_panel - functionality moved to update_party_selection_display
 
 func update_stats_comparison_table():
 	"""Update the stats comparison table with quest requirements and current party stats"""
@@ -968,6 +1217,44 @@ func update_stats_comparison_table():
 		stats_comparison_table.update_quest_requirements(quest_requirements)
 	if stats_comparison_table.has_method("update_party_stats"):
 		stats_comparison_table.update_party_stats(party_stats)
+
+func update_quest_success_chances():
+	"""Update the success chance display only for the selected quest based on current party"""
+	if not current_selected_quest:
+		return
+		
+	# Find the selected quest panel and update its success chance label
+	for child in available_quests_list.get_children():
+		if child.has_meta("quest") and child.get_meta("quest") == current_selected_quest:
+			var inner_panel = child.get_child(0)  # The Panel inside the Button
+			
+			if inner_panel is Panel:
+				var vbox = inner_panel.get_child(0)  # The VBoxContainer
+				
+				# Find the success label
+				for vbox_child in vbox.get_children():
+					if vbox_child.has_meta("success_label"):
+						# Make sure the label is visible for the selected quest
+						vbox_child.visible = true
+						
+						var success_chance = current_selected_quest.get_suggested_success_chance(current_party)
+						var success_percentage = int(success_chance * 100)
+						
+						# Color code the success chance
+						var color = Color.WHITE
+						if success_percentage >= 80:
+							color = Color.GREEN
+						elif success_percentage >= 60:
+							color = Color.YELLOW
+						elif success_percentage >= 40:
+							color = Color.ORANGE
+						else:
+							color = Color.RED
+						
+						vbox_child.text = "Success Chance: %d%%" % success_percentage
+						vbox_child.add_theme_color_override("font_color", color)
+						break
+			break  # Found the selected quest, no need to continue searching
 
 func get_quest_stat_requirements() -> Dictionary:
 	"""Extract stat requirements from the current quest"""
@@ -1087,52 +1374,17 @@ func get_current_party_total_stats() -> Dictionary:
 
 
 func update_available_characters_display(available_chars: Array):
+	# Clear existing panels
+	for child in guild_roster_grid.get_children():
+		child.queue_free()
+	
+	# Create new panels for each available character
 	for character in available_chars:
 		var char_panel = create_party_selection_panel(character)
-		party_list.add_child(char_panel)
+		guild_roster_grid.add_child(char_panel)
 
-func update_assigned_members_display():
-	if current_party.is_empty():
-		var empty_label = Label.new()
-		empty_label.text = "No members assigned yet"
-		empty_label.modulate = Color.GRAY
-		assigned_members_panel.add_child(empty_label)
-	else:
-		# Show current party stats summary
-		var stats_summary = current_selected_quest.calculate_party_stats(current_party)
-		var stats_label = Label.new()
-		stats_label.text = "Party Total: HP:%d DEF:%d ATK:%d SPL:%d" % [
-			stats_summary.health, stats_summary.defense, 
-			stats_summary.attack_power, stats_summary.spell_power
-		]
-		stats_label.add_theme_font_size_override("font_size", 10)
-		
-		# Color code based on requirements
-		var assignment_check = current_selected_quest.can_assign_party(current_party)
-		stats_label.modulate = Color.GREEN if assignment_check.can_assign else Color.RED
-		assigned_members_panel.add_child(stats_label)
-		
-		# Show individual party members
-		for character in current_party:
-			var party_member_panel = create_party_member_panel(character)
-			assigned_members_panel.add_child(party_member_panel)
-
-# Keep this for backwards compatibility with existing party list
-func update_current_party_display():
-	var party_label = Label.new()
-	party_label.text = "\n--- CURRENT PARTY ---"
-	party_label.add_theme_font_size_override("font_size", 12)
-	party_list.add_child(party_label)
-	
-	if current_party.is_empty():
-		var empty_label = Label.new()
-		empty_label.text = "No characters selected"
-		empty_label.modulate = Color.GRAY
-		party_list.add_child(empty_label)
-	else:
-		for character in current_party:
-			var party_member_panel = create_party_member_panel(character)
-			party_list.add_child(party_member_panel)
+# Removed update_assigned_members_display() - no longer needed with grid layout
+# Removed update_current_party_display() - no longer needed with grid layout
 
 func update_start_quest_button_state():
 	var assignment_check = current_selected_quest.can_assign_party(current_party)
@@ -1140,61 +1392,221 @@ func update_start_quest_button_state():
 	start_quest_button.text = "Start Quest" if assignment_check.can_assign else "Cannot Start: " + str(assignment_check.reasons[0] if not assignment_check.reasons.is_empty() else "Unknown")
 
 func create_party_selection_panel(character: Character) -> Control:
-	var hbox = HBoxContainer.new()
+	# Create a panel for the character in the grid - icon only design
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(64, 64)
 	
-	var info_label = Label.new()
-	info_label.text = "%s (%s) Lvl %d" % [character.character_name, character.get_class_name(), character.level]
-	info_label.custom_minimum_size.x = 200
-	hbox.add_child(info_label)
+	# Make panel clickable for selection
+	var button = Button.new()
+	button.flat = true
+	button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.pressed.connect(func(): toggle_character_selection(character, panel))
 	
-	var add_button = Button.new()
-	add_button.text = "Add to Party"
-	add_button.disabled = character in current_party or current_party.size() >= 4
-	add_button.pressed.connect(func(): add_to_party(character))
-	hbox.add_child(add_button)
+	# Disable button if character is not available
+	if not character.can_go_on_quest():
+		button.disabled = true
 	
-	return hbox
+	# Add tooltip with character info
+	var tooltip_text = "%s\n%s Lvl %d (%d/%d XP)\nStatus: %s" % [
+		character.character_name,
+		character.get_class_name(),
+		character.level,
+		character.experience,
+		character.get_experience_needed_for_next_level(),
+		get_character_status_text(character)
+	]
+	button.tooltip_text = tooltip_text
+	
+	panel.add_child(button)
+	
+	# Character portrait (icon)
+	var portrait = TextureRect.new()
+	portrait.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Load the character's assigned portrait texture
+	var texture = character.get_portrait_texture()
+	if texture:
+		portrait.texture = texture
+	
+	# Keep portrait normal color - we'll use borders for status
+	portrait.modulate = Color.WHITE
+	
+	panel.add_child(portrait)
+	
+	# Apply status border based on character status
+	apply_character_status_border(character, panel)
+	
+	# Apply selection border if character is in current party
+	if character in current_party:
+		apply_selection_border(panel, true)
+	
+	# Store character reference for later use
+	panel.set_meta("character", character)
+	
+	return panel
 
-func create_party_member_panel(character: Character) -> Control:
-	var hbox = HBoxContainer.new()
+func apply_character_status_border(character: Character, panel: Panel):
+	"""Apply colored border based on character status"""
+	var border_color = Color.TRANSPARENT
 	
-	hbox.size_flags_horizontal = Control.SIZE_EXPAND
+	if character.is_injured():
+		border_color = Color.ORANGE  # Injured - orange border
+	elif character.promotion_quest_available:
+		border_color = Color.GREEN  # Ready for promotion - green border
+	else:
+		# Use new status system
+		match character.character_status:
+			Character.CharacterStatus.ON_QUEST:
+				border_color = Color.YELLOW  # On quest - yellow border
+			Character.CharacterStatus.WAITING_FOR_RESULTS:
+				border_color = Color.CYAN  # Waiting for results - cyan border
+			Character.CharacterStatus.WAITING_TO_PROGRESS:
+				border_color = Color.ORANGE  # Waiting to progress - orange border
+			Character.CharacterStatus.AVAILABLE:
+				border_color = Color.TRANSPARENT  # Available - no border
 	
-	var info_label = Label.new()
-	info_label.text = "%s (%s) Lvl %d" % [character.character_name, character.get_class_name(), character.level]
-	info_label.custom_minimum_size.x = 200
-	hbox.add_child(info_label)
+	if border_color != Color.TRANSPARENT:
+		# Create a colored border panel
+		var status_border = Panel.new()
+		status_border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		status_border.modulate = border_color
+		status_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# Add border as background
+		panel.add_child(status_border)
+		panel.move_child(status_border, 0)
+		
+		# Store reference to status border for later removal
+		panel.set_meta("status_border", status_border)
+
+func apply_character_status_modulation(character: Character, portrait: TextureRect):
+	"""Apply color modulation based on character status (kept for compatibility)"""
+	if character.is_injured():
+		portrait.modulate = Color.RED  # Injured - red tint
+	elif character.promotion_quest_available:
+		portrait.modulate = Color.GREEN  # Ready for promotion - green tint
+	else:
+		# Use new status system
+		match character.character_status:
+			Character.CharacterStatus.ON_QUEST:
+				portrait.modulate = Color.YELLOW  # On quest - yellow tint
+			Character.CharacterStatus.WAITING_FOR_RESULTS:
+				portrait.modulate = Color.CYAN  # Waiting for results - cyan tint
+			Character.CharacterStatus.WAITING_TO_PROGRESS:
+				portrait.modulate = Color.ORANGE  # Waiting to progress - orange tint
+			Character.CharacterStatus.AVAILABLE:
+				portrait.modulate = Color.WHITE  # Available - normal color
+
+func get_character_status_text(character: Character) -> String:
+	"""Get text description of character status"""
+	if character.is_injured():
+		var injury_name = get_injury_name(character.injury_type)
+		return "INJURED: %s" % injury_name
+	elif character.promotion_quest_available:
+		return "READY FOR PROMOTION"
+	else:
+		# Use new status system
+		return character.get_status_name().to_upper()
+
+func apply_selection_border(panel: Panel, is_selected: bool):
+	"""Apply colored border to indicate selection state"""
+	if is_selected:
+		# Add a colored border by creating a colored background panel
+		var border_panel = Panel.new()
+		border_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		border_panel.modulate = Color.CYAN  # Cyan border for selected characters
+		border_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# Add border after status border but before other elements
+		panel.add_child(border_panel)
+		# Move to position 1 (after status border at position 0, if it exists)
+		if panel.has_meta("status_border"):
+			panel.move_child(border_panel, 1)
+		else:
+			panel.move_child(border_panel, 0)
+		
+		# Store reference to border for later removal
+		panel.set_meta("selection_border", border_panel)
+	else:
+		# Remove selection border if it exists
+		if panel.has_meta("selection_border"):
+			var border = panel.get_meta("selection_border")
+			if border and is_instance_valid(border):
+				border.queue_free()
+			panel.remove_meta("selection_border")
+
+func toggle_character_selection(character: Character, panel: Panel):
+	"""Toggle character selection in party"""
 	
-	var remove_button = Button.new()
-	remove_button.text = "Remove"
-	remove_button.pressed.connect(func(): remove_from_party(character))
-	hbox.add_child(remove_button)
+	# Only allow selection of available characters
+	if not character.can_go_on_quest():
+		return
 	
-	return hbox
+	if character in current_party:
+		# Remove from party
+		remove_from_party(character)
+	else:
+		# Add to party if space available
+		if current_party.size() < 4:
+			add_to_party(character)
+
+# Removed create_party_member_panel() - no longer needed with grid layout
 
 func add_to_party(character: Character):
 	if character not in current_party and current_party.size() < 4:
 		current_party.append(character)
-		# Use optimized update - get data once and pass it through
-		var available_chars = GuildManager.get_available_characters()
-		update_party_selection_right_panel(available_chars)
+		# Update the specific character panel's selection border
+		for child in guild_roster_grid.get_children():
+			if child.has_meta("character") and child.get_meta("character") == character:
+				apply_selection_border(child, true)
+				break
+		# Update stats and button state
+		update_stats_comparison_table()
+		update_start_quest_button_state()
+		update_quest_success_chances()
 
 func remove_from_party(character: Character):
 	current_party.erase(character)
-	# Use optimized update - get data once and pass it through
+	# Update the specific character panel's selection border
+	for child in guild_roster_grid.get_children():
+		if child.has_meta("character") and child.get_meta("character") == character:
+			apply_selection_border(child, false)
+			break
+	# Update stats and button state
+	update_stats_comparison_table()
+	update_start_quest_button_state()
+	update_quest_success_chances()
+
+func refresh_party_selection_grid():
+	"""Refresh the party selection grid to update selection states and status borders"""
 	var available_chars = GuildManager.get_available_characters()
-	update_party_selection_right_panel(available_chars)
+	update_available_characters_display(available_chars)
+	update_stats_comparison_table()
+	update_start_quest_button_state()
+	
+	# Update selection borders for all character panels
+	for child in guild_roster_grid.get_children():
+		if child.has_meta("character"):
+			var character = child.get_meta("character")
+			var is_selected = character in current_party
+			apply_selection_border(child, is_selected)
+			
+			# Update status borders
+			apply_character_status_border(character, child)
 #endregion
 
 #region Recruitment Counter
 func update_recruitment_display():
 	# Clear existing displays
-	for child in available_recruits_list.get_children():
+	for child in guild_roster_grid.get_children():
 		child.queue_free()
 	
 	for recruit in GuildManager.available_recruits:
 		var recruit_panel = create_recruit_panel(recruit)
-		available_recruits_list.add_child(recruit_panel)
+		guild_roster_grid.add_child(recruit_panel)
 	
 	# Initialize UI state
 	current_selected_recruit = null
@@ -1230,6 +1642,15 @@ func create_recruit_panel(recruit: Character) -> Control:
 	stats_label.text = "HP:%d DEF:%d ATK:%d SPL:%d" % [recruit.health, recruit.defense, recruit.attack_power, recruit.spell_power]
 	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(stats_label)
+	
+	# Experience bar for recruits (if they have experience)
+	if recruit.experience > 0 or recruit.level > 1:
+		var experience_bar_scene = preload("res://ui/components/ExperienceBar.tscn")
+		var experience_bar = experience_bar_scene.instantiate()
+		experience_bar.set_compact_mode(true)
+		experience_bar.update_experience(recruit)
+		experience_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vbox.add_child(experience_bar)
 	
 	# Cost display
 	var cost = recruit.get_recruitment_cost()
@@ -1462,11 +1883,14 @@ func _on_quest_completed(quest: Quest):
 	# Trigger notification instead of immediate popup
 	SignalBus.quest_completed_notification.emit(quest.quest_name)
 	
-	# Mark characters as no longer on quest but don't show results yet
-	for character in quest.assigned_party:
-		character.is_on_quest = false
-	
 	# Update UI to show completion button and completed quests display
+	update_ui()
+	update_completed_quests_display()
+
+func _on_quest_finalized(quest: Quest):
+	print("SignalBus: Quest finalized: ", quest.quest_name)
+	
+	# Update UI after quest results are accepted
 	update_ui()
 	update_completed_quests_display()
 
@@ -1516,6 +1940,12 @@ func _on_refresh_recruits_pressed():
 		update_recruitment_display()
 	else:
 		_show_error_popup(result.message)
+
+func _on_make_available_pressed():
+	"""Make all characters with 'waiting to progress' status available again"""
+	GuildManager.make_characters_available()
+	update_ui()
+	print("Characters made available!")
 
 func _on_save_pressed():
 	GuildManager.save_game()
@@ -1646,7 +2076,7 @@ func _show_quest_completion_popup(quest: Quest):
 			success_count += 1
 	
 	for _char in quest.assigned_party:
-		_char.is_on_quest = false
+		_char.set_status(Character.CharacterStatus.AVAILABLE)
 	
 	var success_rate = float(success_count) / party_info.size()
 	var result_text = "QUEST COMPLETED!\n\n"
@@ -1668,18 +2098,32 @@ func _show_emergency_quest_popup(requirements: Dictionary):
 	popup.popup_centered()
 
 func _on_accept_quest_results(quest: Quest):
-	"""Handle when player clicks 'Accept Results' for a completed quest"""
-	# Show the quest completion popup
-	_show_quest_completion_popup(quest)
+	"""Handle when player clicks 'Accept Results' for a quest awaiting completion"""
+	# Accept quest results through guild manager (this will apply rewards, injuries, and emit notifications)
+	GuildManager.accept_quest_results(quest)
 	
-	# Remove quest from active quests
-	GuildManager.remove_completed_quest(quest)
-	
-	# Update the active quests display
+	# Update the displays
 	update_active_quests_display()
-	
-	# Update the completed quests display
+	update_awaiting_completion_display()
 	update_completed_quests_display()
+	
+	# Refresh character panels to update experience bars
+	refresh_all_character_panels()
+
+func _on_accept_all_quest_results():
+	"""Handle when player clicks 'Accept All Completed Quests' button"""
+	# Accept all quests awaiting completion
+	var quests_to_accept = GuildManager.awaiting_completion_quests.duplicate()
+	for quest in quests_to_accept:
+		GuildManager.accept_quest_results(quest)
+	
+	# Update all displays
+	update_active_quests_display()
+	update_awaiting_completion_display()
+	update_completed_quests_display()
+	
+	# Refresh character panels to update experience bars
+	refresh_all_character_panels()
 
 func _show_new_game_confirmation():
 	var confirm = ConfirmationDialog.new()

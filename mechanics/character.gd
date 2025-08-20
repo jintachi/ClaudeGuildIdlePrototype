@@ -27,6 +27,13 @@ enum InjuryType {
 	EXHAUSTION,
 	POISON
 }
+
+enum CharacterStatus {
+	AVAILABLE,
+	ON_QUEST,
+	WAITING_FOR_RESULTS,
+	WAITING_TO_PROGRESS
+}
 #endregion
 
 #region Base Stats
@@ -59,7 +66,7 @@ enum InjuryType {
 #endregion
 
 #region Status
-@export var is_on_quest: bool = false
+@export var character_status: CharacterStatus = CharacterStatus.AVAILABLE
 @export var injury_type: InjuryType = InjuryType.NONE
 @export var injury_duration: float = 0.0
 @export var injury_start_time: float = 0.0
@@ -67,6 +74,10 @@ enum InjuryType {
 
 #region Personal Resources
 @export var personal_gold: int = 0
+#endregion
+
+#region Portrait
+@export var portrait_path: String = ""
 #endregion
 
 #region Promotion Tracking
@@ -95,6 +106,7 @@ func _init(name: String = "", char_class: CharacterClass = CharacterClass.ATTACK
 	quality = char_quality
 	generate_base_stats()
 	generate_random_substats()
+	assign_random_portrait()
 
 func generate_random_name() -> String:
 	var first_names = ["Aeliana", "Borin", "Caelen", "Dara", "Elowen", "Finn", "Gilda", "Hamon", "Iris", "Joren", "Kira", "Lael", "Mira", "Nolan", "Orin", "Piper", "Quinn", "Raven", "Sera", "Thane", "Uma", "Vex", "Wren", "Xara", "Yara", "Zephyr"]
@@ -148,6 +160,74 @@ func generate_random_substats():
 		var substat = available_substats[i]
 		var value = randi_range(1, 5)
 		set(substat, value)
+
+func assign_random_portrait():
+	"""Assign a random portrait from the available character art, themed to character class"""
+	var all_portraits = [
+		"res://assets/character_art_temp/h_warrior_male.png",
+		"res://assets/character_art_temp/h_warrior_female.png",
+		"res://assets/character_art_temp/h_scout_male.png",
+		"res://assets/character_art_temp/h_rogue_male.png",
+		"res://assets/character_art_temp/h_rogue_female.png",
+		"res://assets/character_art_temp/h_mage_male.png",
+		"res://assets/character_art_temp/h_mage_female.png",
+		"res://assets/character_art_temp/h_barbarian_male.png",
+		"res://assets/character_art_temp/elf_sentinel_male.png",
+		"res://assets/character_art_temp/elf_sentinel_female.png",
+		"res://assets/character_art_temp/Dwarven_healer_female.png",
+		"res://assets/character_art_temp/Dwarf_warrior_male.png",
+		"res://assets/character_art_temp/Dwarf_warrior_female.png",
+		"res://assets/character_art_temp/drow_warrior_male.png",
+		"res://assets/character_art_temp/drow_warrior_female.png"
+	]
+	
+	# Class-specific portrait preferences
+	var class_portraits = {
+		CharacterClass.TANK: [
+			"res://assets/character_art_temp/h_warrior_male.png",
+			"res://assets/character_art_temp/h_warrior_female.png",
+			"res://assets/character_art_temp/Dwarf_warrior_male.png",
+			"res://assets/character_art_temp/Dwarf_warrior_female.png",
+			"res://assets/character_art_temp/drow_warrior_male.png",
+			"res://assets/character_art_temp/drow_warrior_female.png"
+		],
+		CharacterClass.HEALER: [
+			"res://assets/character_art_temp/h_mage_male.png",
+			"res://assets/character_art_temp/h_mage_female.png",
+			"res://assets/character_art_temp/Dwarven_healer_female.png",
+			"res://assets/character_art_temp/elf_sentinel_male.png",
+			"res://assets/character_art_temp/elf_sentinel_female.png"
+		],
+		CharacterClass.SUPPORT: [
+			"res://assets/character_art_temp/h_mage_male.png",
+			"res://assets/character_art_temp/h_mage_female.png",
+			"res://assets/character_art_temp/h_scout_male.png",
+			"res://assets/character_art_temp/elf_sentinel_male.png",
+			"res://assets/character_art_temp/elf_sentinel_female.png"
+		],
+		CharacterClass.ATTACKER: [
+			"res://assets/character_art_temp/h_warrior_male.png",
+			"res://assets/character_art_temp/h_warrior_female.png",
+			"res://assets/character_art_temp/h_barbarian_male.png",
+			"res://assets/character_art_temp/h_rogue_male.png",
+			"res://assets/character_art_temp/h_rogue_female.png",
+			"res://assets/character_art_temp/drow_warrior_male.png",
+			"res://assets/character_art_temp/drow_warrior_female.png"
+		]
+	}
+	
+	# Try to use class-specific portraits first, fall back to all portraits
+	var available_portraits = class_portraits.get(character_class, all_portraits)
+	portrait_path = available_portraits[randi() % available_portraits.size()]
+
+func get_portrait_texture() -> Texture2D:
+	"""Get the portrait texture for this character"""
+	if portrait_path.is_empty():
+		# If no portrait is assigned, assign one now (for existing characters)
+		assign_random_portrait()
+	
+	var texture = load(portrait_path)
+	return texture
 
 #endregion
 
@@ -399,7 +479,7 @@ func apply_injury(injury: InjuryType, duration: float):
 	injury_type = injury
 	injury_duration = duration
 	injury_start_time = Time.get_unix_time_from_system()
-	is_on_quest = false  # Remove from any active quest
+	character_status = CharacterStatus.AVAILABLE  # Remove from any active quest
 	
 	# Record injury in history
 	record_injury(injury, duration)
@@ -472,7 +552,7 @@ func get_upkeep_cost() -> int:
 	return 1 + (rank / 3)  # Food cost increases with rank
 
 func can_go_on_quest() -> bool:
-	return not is_on_quest and not is_injured()
+	return character_status == CharacterStatus.AVAILABLE and not is_injured()
 
 func get_class_name() -> String:
 	match character_class:
@@ -494,4 +574,21 @@ func get_rank_name() -> String:
 		Rank.SS: return "SS"
 		Rank.SSS: return "SSS"
 		_: return "?"
+
+func get_status_name() -> String:
+	match character_status:
+		CharacterStatus.AVAILABLE: return "Available"
+		CharacterStatus.ON_QUEST: return "On Quest"
+		CharacterStatus.WAITING_FOR_RESULTS: return "Waiting for Results"
+		CharacterStatus.WAITING_TO_PROGRESS: return "Waiting to Progress"
+		_: return "Unknown"
+
+func is_on_quest() -> bool:
+	return character_status == CharacterStatus.ON_QUEST
+
+func is_waiting_to_progress() -> bool:
+	return character_status == CharacterStatus.WAITING_TO_PROGRESS
+
+func set_status(new_status: CharacterStatus):
+	character_status = new_status
 #endregion

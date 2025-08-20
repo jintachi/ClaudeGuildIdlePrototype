@@ -27,6 +27,7 @@ signal character_healed(character: Character)
 #region Quest Management Signals
 signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
+signal quest_finalized(quest: Quest)
 signal quest_failed(quest: Quest)
 signal emergency_quest_available(requirements: Dictionary)
 signal party_assembled(party: Array[Character])

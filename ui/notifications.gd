@@ -26,6 +26,7 @@ func _ready():
 	# Connect to SignalBus signals
 	SignalBus.quest_started_notification.connect(_on_quest_started_notification)
 	SignalBus.quest_completed_notification.connect(_on_quest_completed_notification)
+	SignalBus.quest_finalized.connect(_on_quest_finalized)
 	SignalBus.character_recruited_notification.connect(_on_character_recruited_notification)
 	SignalBus.resource_gained_notification.connect(_on_resource_gained_notification)
 	SignalBus.character_injured_notification.connect(_on_character_injured_notification)
@@ -188,6 +189,9 @@ func _on_quest_started_notification(quest_name: String):
 
 func _on_quest_completed_notification(quest_name: String):
 	show_quest_completed(quest_name)
+
+func _on_quest_finalized(quest: Quest):
+	show_quest_completed(quest.quest_name)
 
 func _on_character_recruited_notification(character_name: String):
 	show_character_recruited(character_name)

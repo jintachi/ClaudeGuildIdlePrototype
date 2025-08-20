@@ -11,7 +11,7 @@ var current_character: Character = null
 
 # Statistics Tab - Basic Information
 @export var class_info_label: Label
-@export var level_info_label: Label
+@export var experience_bar: Control
 
 # Statistics Tab - Core Stats
 @export var health_stat_label: Label
@@ -100,12 +100,9 @@ func update_basic_info():
 		current_character.get_rank_name()
 	]
 	
-	var exp_needed = current_character.get_experience_needed_for_next_level()
-	level_info_label.text = "Level: %d | Experience: %d/%d" % [
-		current_character.level,
-		current_character.experience,
-		exp_needed
-	]
+	# Update experience bar
+	if experience_bar and experience_bar.has_method("update_experience"):
+		experience_bar.update_experience(current_character)
 
 func update_statistics():
 	"""Update all statistics displays"""

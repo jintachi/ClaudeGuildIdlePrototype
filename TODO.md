@@ -37,8 +37,14 @@
   - [x] Implement enhanced experience calculation with multiple factors
   - [x] Add experience multipliers for different quest types (combat vs. gathering vs. social)
   - [x] Create level-up notification system with stat increase display
-  - [ ] Implement experience display in character panels (current XP / XP needed for next level)
-  - [ ] Add experience bar visualization in character panels
+  - [x] Implement experience display in character panels (current XP / XP needed for next level)
+  - [x] Add experience bar visualization in character panels
+    - [x] Created reusable ExperienceBar component with color-coded progress
+    - [x] Integrated into Adventurer Inspection Panel with full experience display
+    - [x] Added to character panels in guild hall with compact mode
+    - [x] Enhanced party selection tooltips with experience information
+    - [x] Added to recruit panels for experienced characters
+    - [x] Implemented automatic refresh after quest completion
 
 - [x] **Leveling Mechanics**
   - [x] Implement class-based stat gain system with probabilities
@@ -46,9 +52,9 @@
   - [x] Create character variance through randomized stat gains (0-3 per stat)
   - [x] Balance experience requirements for different ranks (F to SSS)
   - [x] Add bonus experience for quests with higher success rates
-  - [ ] Implement experience sharing between party members
-  - [ ] Add experience penalties for failed quests
-  - [ ] Create "rest bonus" system for characters who haven't quested recently
+  - [x] Implement experience sharing between party members
+- [x] Add experience penalties for failed quests
+- [ ] Create "rest bonus" system for characters who haven't quested recently (TODO: Implement after Inn system is added)
 
 ### Skill & Substat Progression
 - [ ] **Substat Development**
@@ -163,6 +169,106 @@
   - [ ] Create guild reputation system affecting quest availability
   - [ ] Implement guild treasury and resource management
   - [ ] Add guild events and challenges for member progression
+
+## Quest Balancing & Debugging
+- [x] **Quest Completion Auto-Save**
+  - [x] Save game immediately when quest completion is triggered
+  - [x] Ensure quest state is preserved in save data
+  - [x] Handle offline progress for active quests
+
+- [x] **Success Chance Display**
+  - [x] Show suggested success chance for quests in UI
+  - [x] Color-code success chances (green/yellow/orange/red)
+  - [x] Update success chance when party selection changes
+  - [x] Display success chance percentage in quest panels
+
+- [x] **Enhanced Success Calculation**
+  - [x] Higher stats over requirements = easier completion
+  - [x] Stat overage bonuses (each point over requirement adds bonus)
+  - [x] Substat matching characters get better chances
+  - [x] Substat overage bonuses (points over requirement add significant bonus)
+  - [x] Individual character success calculation based on their contribution
+
+- [x] **Quest Balancing Improvements**
+  - [x] Implement stat overage bonus system
+  - [x] Enhanced substat relevance bonuses
+  - [x] Individual character success chance calculation
+  - [x] Better quest completion logic with proper success rates
+
+## Character Recruitment System Enhancement
+
+### Recruitment UI & Experience
+- [ ] **Enhanced Recruitment Interface**
+  - [ ] Redesign recruitment panel with character portraits and detailed previews
+  - [ ] Add character backstory generation and display during recruitment
+  - [ ] Implement character personality traits and compatibility indicators
+  - [ ] Create recruitment cost breakdown with resource preview
+  - [ ] Add recruitment success rate indicators based on guild reputation
+  - [ ] Implement recruitment filters (class, quality, cost range, etc.)
+
+- [ ] **Character Customization**
+  - [ ] **Add character renaming functionality** - Allow players to rename characters after recruitment
+  - [ ] Implement character appearance customization (portrait selection from available options)
+  - [ ] Add character biography editing and personal history creation
+  - [ ] Create character personality trait selection and modification
+  - [ ] Implement character background story customization
+  - [ ] Add character voice/accent selection for flavor text
+
+- [ ] **Recruitment Mechanics**
+  - [ ] Implement recruitment quality scaling based on guild level and reputation
+  - [ ] Add recruitment events and special character appearances
+  - [ ] Create recruitment contracts with different terms and benefits
+  - [ ] Implement recruitment competition with other guilds
+  - [ ] Add recruitment bonuses for successful quest completion streaks
+  - [ ] Create recruitment penalties for failed quests or guild reputation loss
+
+### Character Preview & Information
+- [ ] **Detailed Character Preview**
+  - [ ] Add full character stat preview before recruitment
+  - [ ] Implement character potential and growth rate indicators
+  - [ ] Create character compatibility analysis with current roster
+  - [ ] Add character quest history and performance predictions
+  - [ ] Implement character personality compatibility with existing members
+  - [ ] Create character special abilities and unique traits preview
+
+- [ ] **Recruitment Decision Support**
+  - [ ] Add character comparison tools for multiple candidates
+  - [ ] Implement roster gap analysis (what classes/roles are needed)
+  - [ ] Create recruitment cost-benefit analysis
+  - [ ] Add character potential vs. immediate value assessment
+  - [ ] Implement recruitment recommendations based on current guild needs
+
+### Recruitment Progression
+- [ ] **Recruitment Facility Upgrades**
+  - [ ] Add recruitment office upgrades for better candidate quality
+  - [ ] Implement recruitment network expansion for wider candidate pool
+  - [ ] Create recruitment training for guild staff to improve candidate assessment
+  - [ ] Add recruitment advertising and reputation building
+  - [ ] Implement recruitment events and job fairs
+
+- [ ] **Advanced Recruitment Features**
+  - [ ] Add recruitment contracts with different terms (temporary, permanent, apprenticeship)
+  - [ ] Implement character referrals from existing guild members
+  - [ ] Create recruitment quests to test candidate abilities
+  - [ ] Add recruitment interviews and character interaction
+  - [ ] Implement recruitment bonuses for successful character development
+
+## Save System Enhancement
+- [x] **Multi-Slot Save System**
+  - [x] Implement 3 save slots in a single JSON file
+  - [x] Create save slot selection UI with slot information display
+  - [x] Add load, new game, and delete functionality for each slot
+  - [x] Implement save file migration from old single-slot format
+  - [x] Add confirmation dialogs for overwrite and delete operations
+  - [x] Display save slot information (influence, gold, members, save date)
+
+## Quest Management Improvements
+- [x] **Quest Completion UI Redesign**
+  - [x] Separate active quests from awaiting completion quests
+  - [x] Create dedicated "Awaiting Completion" panel
+  - [x] Add "Accept All Completed Quests" button
+  - [x] Fix quest panel redrawing issue that prevented clicking accept results
+  - [x] Optimize quest display updates to only refresh when needed
 
 ## Future Tasks
 - [ ] Add art assets for quest panels
