@@ -11,8 +11,24 @@ config_version=5
 [application]
 
 config/name="ClaudeGuildIdle"
+config/tags=PackedStringArray("idler", "solo")
+run/main_scene="uid://ui7fvswog7yp"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GuildManager="*res://mechanics/Singletons/guild_manager.gd"
+ErrorHandler="*res://mechanics/Singletons/error_handling.gd"
+SignalBus="*res://mechanics/Singletons/signalbus.gd"
+SettingsManager="*res://mechanics/Singletons/settings_manager.gd"
+InputManager="*res://mechanics/Singletons/input_manager.gd"
+UIScalingManager="*res://mechanics/Singletons/ui_scaling_manager.gd"
+NotificationManager="*res://ui/Notifications.tscn"
+
+[display]
+
+window/size/viewport_width=1600
 
 [editor_plugins]
 

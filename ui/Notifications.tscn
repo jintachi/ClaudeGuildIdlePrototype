@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://bim27mrkmovoj"]
+
+[ext_resource type="Script" uid="uid://cw1ada1eghcc0" path="res://ui/notifications.gd" id="1"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
+
+[node name="Notifications" type="Control" node_paths=PackedStringArray("notification_container")]
+z_index = 1
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+notification_container = NodePath("NotificationContainer")
+
+[node name="NotificationContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -315.0
+offset_top = -15.0
+offset_right = -15.0
+offset_bottom = -15.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 10
