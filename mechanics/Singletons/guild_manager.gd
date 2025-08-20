@@ -8,6 +8,8 @@ signal quest_completed(quest: Quest)
 signal emergency_quest_available(requirements: Dictionary)
 signal transformation_unlocked(transformation_name: String)
 signal game_data_loaded()
+signal room_changed(from_room: String, to_room: String)
+signal room_unlocked(room_name: String)
 
 # Guild Resources
 @export var influence: int = 100
@@ -48,9 +50,18 @@ var cur_scene : StringName # holder for the scene name
 @export var max_available_recruits: int = 3
 @export var recruit_stay_duration: float = 600.0  # 10 minutes
 
+# Room Management System
+var current_room: String = "Main Hall"
+var previous_room: String = ""
+var room_history: Array[String] = []
+var max_history_size: int = 10
+var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment"]
+var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment"]
+
 func _ready():
 	#load_game()
 	initialize_guild()
+	initialize_room_system()
 	
 	
 	# Initialize quest completion tracking
@@ -1033,4 +1044,80 @@ func has_class_in_party(party: Array[Character], character_class: Character.Char
 			return true
 	return false
 
+#endregion 
+
+#region Room Management System
+func initialize_room_system():
+	"""Initialize the room management system"""
+	room_history.append("Main Hall")
+	print("Room system initialized")
+
+func enter_room(room_name: String) -> bool:
+	"""Enter a specific room"""
+	if not unlocked_rooms.has(room_name):
+		print("Room not unlocked: ", room_name)
+		return false
+	
+	if not available_rooms.has(room_name):
+		print("Room not available: ", room_name)
+		return false
+	
+	# Exit current room
+	if current_room != "":
+		previous_room = current_room
+	
+	# Enter new room
+	current_room = room_name
+	
+	# Update history
+	add_to_room_history(room_name)
+	
+	# Emit room change signal
+	room_changed.emit(previous_room, room_name)
+	print("Entered room: ", room_name)
+	return true
+
+func return_to_main_hall():
+	"""Return to the main hall"""
+	enter_room("Main Hall")
+
+func go_back():
+	"""Go back to the previous room in history"""
+	if room_history.size() > 1:
+		room_history.pop_back()  # Remove current room
+		var previous_room_name = room_history[-1]
+		enter_room(previous_room_name)
+
+func add_to_room_history(room_name: String):
+	"""Add room to navigation history"""
+	room_history.append(room_name)
+	if room_history.size() > max_history_size:
+		room_history.pop_front()
+
+func get_current_room() -> String:
+	"""Get the currently active room"""
+	return current_room
+
+func get_room_history() -> Array[String]:
+	"""Get the room navigation history"""
+	return room_history.duplicate()
+
+func get_unlocked_rooms() -> Array[String]:
+	"""Get list of unlocked rooms"""
+	return unlocked_rooms.duplicate()
+
+func unlock_room(room_name: String):
+	"""Unlock a room"""
+	if not unlocked_rooms.has(room_name):
+		unlocked_rooms.append(room_name)
+		room_unlocked.emit(room_name)
+		print("Room unlocked: ", room_name)
+
+func is_room_unlocked(room_name: String) -> bool:
+	"""Check if a room is unlocked"""
+	return unlocked_rooms.has(room_name)
+
+func can_enter_room(room_name: String) -> bool:
+	"""Check if a room can be entered"""
+	return unlocked_rooms.has(room_name) and available_rooms.has(room_name)
 #endregion 

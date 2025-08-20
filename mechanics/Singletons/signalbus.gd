@@ -73,6 +73,7 @@ signal settings_reset_to_defaults
 #region UI Scaling Signals
 signal ui_scaling_changed(scale_factor: float, ui_scale_factor: float)
 signal scaling_mode_changed(mode: int)
+signal ui_scale_changed
 #endregion
 
 #region Input Management Signals
