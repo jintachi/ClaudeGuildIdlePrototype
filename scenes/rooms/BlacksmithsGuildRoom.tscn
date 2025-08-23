@@ -1,0 +1,99 @@
+[gd_scene load_steps=3 format=3 uid="uid://bc4f6h8j0k2m"]
+
+[ext_resource type="Script" uid="uid://el7p9q1s3t5v" path="res://scenes/rooms/blacksmiths_guild_room.gd" id="1_blacksmiths"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="BlacksmithsGuildRoom" type="Control" node_paths=PackedStringArray("crafting_panel", "repair_panel", "materials_panel", "forge_status")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_blacksmiths")
+crafting_panel = NodePath("RoomContainer/RoomContent/Body/CraftingPanel/CraftingScroll/CraftingVBox")
+repair_panel = NodePath("RoomContainer/RoomContent/Body/RepairPanel/RepairScroll/RepairVBox")
+materials_panel = NodePath("RoomContainer/RoomContent/Body/MaterialsPanel/MaterialsScroll/MaterialsVBox")
+forge_status = NodePath("RoomContainer/RoomHeader/ForgeStatus")
+
+[node name="RoomContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RoomHeader" type="HBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+
+[node name="RoomTitle" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Blacksmith's Guild"
+horizontal_alignment = 1
+
+[node name="ForgeStatus" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+text = "Forge: Ready"
+horizontal_alignment = 2
+
+[node name="RoomContent" type="VBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Body" type="HBoxContainer" parent="RoomContainer/RoomContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CraftingPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CraftingLabel" type="Label" parent="RoomContainer/RoomContent/Body/CraftingPanel"]
+layout_mode = 2
+text = "Craft Equipment"
+horizontal_alignment = 1
+
+[node name="CraftingScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/CraftingPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CraftingVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/CraftingPanel/CraftingScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RepairPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RepairLabel" type="Label" parent="RoomContainer/RoomContent/Body/RepairPanel"]
+layout_mode = 2
+text = "Repair Equipment"
+horizontal_alignment = 1
+
+[node name="RepairScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/RepairPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RepairVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/RepairPanel/RepairScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MaterialsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MaterialsLabel" type="Label" parent="RoomContainer/RoomContent/Body/MaterialsPanel"]
+layout_mode = 2
+text = "Materials & Upgrades"
+horizontal_alignment = 1
+
+[node name="MaterialsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/MaterialsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MaterialsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/MaterialsPanel/MaterialsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3

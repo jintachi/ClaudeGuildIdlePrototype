@@ -15,60 +15,70 @@ extends HBoxContainer
 # Current tab context (set by parent)
 var current_tab: String = ""
 
-# Guild Hall reference (found automatically)
-var guild_hall: Control = null
-
 func _ready():
 	"""Initialize navigation component"""
-	# Find Guild Hall reference
-	find_guild_hall()
-	
 	# Connect navigation buttons
 	setup_navigation_connections()
 	
 	# Apply current tab context
 	update_button_visibility()
 
-func find_guild_hall():
-	"""Find the Guild Hall scene in the tree"""
-	# Look for Guild Hall in the scene tree
-	var current_scene = get_tree().current_scene
-	if current_scene and current_scene.name == "Guild Hall":
-		guild_hall = current_scene
-		return
-	
-	# Alternative: search for a node with Guild Hall functions
-	var root = get_tree().root
-	for child in root.get_children():
-		if child.has_method("show_main_hall"):
-			guild_hall = child
-			return
-	
-	print("Warning: Navigation - Could not find Guild Hall reference")
-
 func setup_navigation_connections():
-	"""Connect navigation buttons to Guild Hall functions"""
-	if not guild_hall:
-		print("Error: Navigation - No Guild Hall reference found")
-		return
+	"""Connect navigation buttons to GuildManager functions"""
+	# Connect each button to its corresponding GuildManager function
+	if main_hall_button:
+		main_hall_button.pressed.connect(_on_main_hall_pressed)
 	
-	# Connect each button to its corresponding function
-	if main_hall_button and guild_hall.has_method("show_main_hall"):
-		main_hall_button.pressed.connect(guild_hall.show_main_hall)
+	if roster_button:
+		roster_button.pressed.connect(_on_roster_pressed)
 	
-	if roster_button and guild_hall.has_method("show_roster_tab"):
-		roster_button.pressed.connect(guild_hall.show_roster_tab)
+	if quests_button:
+		quests_button.pressed.connect(_on_quests_pressed)
 	
-	if quests_button and guild_hall.has_method("show_quests_tab"):
-		quests_button.pressed.connect(guild_hall.show_quests_tab)
+	if recruitment_button:
+		recruitment_button.pressed.connect(_on_recruitment_pressed)
 	
-	if recruitment_button and guild_hall.has_method("show_recruitment_tab"):
-		recruitment_button.pressed.connect(guild_hall.show_recruitment_tab)
+	if town_map_button:
+		town_map_button.pressed.connect(_on_town_map_pressed)
 	
-	if town_map_button and guild_hall.has_method("show_town_map"):
-		town_map_button.pressed.connect(guild_hall.show_town_map)
-	
-	print("Navigation: Connected to Guild Hall functions")
+	print("Navigation: Connected to GuildManager functions")
+
+# Navigation button handlers
+func _on_main_hall_pressed():
+	"""Handle main hall button press"""
+	print("Navigation: Main Hall button pressed")
+	if GuildManager:
+		GuildManager.enter_room("Main Hall")
+		print("Navigation: Called GuildManager.enter_room('Main Hall')")
+
+func _on_roster_pressed():
+	"""Handle roster button press"""
+	print("Navigation: Roster button pressed")
+	if GuildManager:
+		GuildManager.enter_room("Roster")
+		print("Navigation: Called GuildManager.enter_room('Roster')")
+
+func _on_quests_pressed():
+	"""Handle quests button press"""
+	print("Navigation: Quests button pressed")
+	if GuildManager:
+		GuildManager.enter_room("Quests")
+		print("Navigation: Called GuildManager.enter_room('Quests')")
+
+func _on_recruitment_pressed():
+	"""Handle recruitment button press"""
+	print("Navigation: Recruitment button pressed")
+	if GuildManager:
+		GuildManager.enter_room("Recruitment")
+		print("Navigation: Called GuildManager.enter_room('Recruitment')")
+
+func _on_town_map_pressed():
+	"""Handle town map button press"""
+	print("Navigation: Town Map button pressed")
+	# Emit signal to open town map instead of changing rooms
+	if SignalBus:
+		SignalBus.map_key_pressed.emit()
+		print("Navigation: Emitted map_key_pressed signal")
 
 func set_current_tab(tab_name: String):
 	"""Set the current tab context to hide the corresponding button"""

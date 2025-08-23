@@ -1,0 +1,99 @@
+[gd_scene load_steps=3 format=3 uid="uid://bd5g7jak1l3n"]
+
+[ext_resource type="Script" uid="uid://fm8q0r2s4t6w" path="res://scenes/rooms/healers_guild_room.gd" id="1_healers"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="HealersGuildRoom" type="Control" node_paths=PackedStringArray("injured_characters_panel", "healing_services_panel", "training_panel", "temple_status")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_healers")
+injured_characters_panel = NodePath("RoomContainer/RoomContent/Body/InjuredPanel/InjuredScroll/InjuredVBox")
+healing_services_panel = NodePath("RoomContainer/RoomContent/Body/ServicesPanel/ServicesScroll/ServicesVBox")
+training_panel = NodePath("RoomContainer/RoomContent/Body/TrainingPanel/TrainingScroll/TrainingVBox")
+temple_status = NodePath("RoomContainer/RoomHeader/TempleStatus")
+
+[node name="RoomContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RoomHeader" type="HBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+
+[node name="RoomTitle" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Healer's Guild"
+horizontal_alignment = 1
+
+[node name="TempleStatus" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+text = "Temple: Blessed"
+horizontal_alignment = 2
+
+[node name="RoomContent" type="VBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Body" type="HBoxContainer" parent="RoomContainer/RoomContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InjuredPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InjuredLabel" type="Label" parent="RoomContainer/RoomContent/Body/InjuredPanel"]
+layout_mode = 2
+text = "Injured Members"
+horizontal_alignment = 1
+
+[node name="InjuredScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/InjuredPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InjuredVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/InjuredPanel/InjuredScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ServicesPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ServicesLabel" type="Label" parent="RoomContainer/RoomContent/Body/ServicesPanel"]
+layout_mode = 2
+text = "Healing Services"
+horizontal_alignment = 1
+
+[node name="ServicesScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/ServicesPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ServicesVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/ServicesPanel/ServicesScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TrainingPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TrainingLabel" type="Label" parent="RoomContainer/RoomContent/Body/TrainingPanel"]
+layout_mode = 2
+text = "Healing Training"
+horizontal_alignment = 1
+
+[node name="TrainingScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/TrainingPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TrainingVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/TrainingPanel/TrainingScroll"]
+layout_mode = 2
+size_flags_horizontal = 3

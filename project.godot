@@ -25,6 +25,7 @@ SettingsManager="*res://mechanics/Singletons/settings_manager.gd"
 InputManager="*res://mechanics/Singletons/input_manager.gd"
 UIScalingManager="*res://mechanics/Singletons/ui_scaling_manager.gd"
 NotificationManager="*res://ui/Notifications.tscn"
+CustomRoomCreator="*res://scenes/rooms/custom_rooms/CustomRoomCreator.gd"
 
 [display]
 

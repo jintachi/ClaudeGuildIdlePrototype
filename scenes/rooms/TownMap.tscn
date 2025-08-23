@@ -1,0 +1,118 @@
+[gd_scene load_steps=3 format=3 uid="uid://bv807ia8vio2t"]
+
+[ext_resource type="Script" uid="uid://bee8khvhco8e" path="res://scenes/rooms/town_map.gd" id="1_townmap"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="TownMap" type="Control" node_paths=PackedStringArray("main_hall_button", "roster_button", "quests_button", "recruitment_button", "merchants_guild_button", "blacksmiths_guild_button", "healers_guild_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme = ExtResource("2_theme")
+script = ExtResource("1_townmap")
+main_hall_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/MainHallButton")
+roster_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/RosterButton")
+quests_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/QuestsButton")
+recruitment_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/RecruitmentButton")
+merchants_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/MerchantsGuildButton")
+blacksmiths_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/BlacksmithsGuildButton")
+healers_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/HealersGuildButton")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.802684, 0.721586, 0.531548, 0.95)
+
+[node name="MapContainer" type="VBoxContainer" parent="Background"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MapTitle" type="Label" parent="Background/MapContainer"]
+layout_mode = 2
+text = "Town Map"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MapDescription" type="Label" parent="Background/MapContainer"]
+layout_mode = 2
+text = "Click on a location to travel there"
+horizontal_alignment = 1
+
+[node name="AdventurersGuildSection" type="VBoxContainer" parent="Background/MapContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AdventurersGuildLabel" type="Label" parent="Background/MapContainer/AdventurersGuildSection"]
+layout_mode = 2
+text = "Adventurer's Guild"
+horizontal_alignment = 1
+
+[node name="AdventurersGuildButtons" type="GridContainer" parent="Background/MapContainer/AdventurersGuildSection"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+
+[node name="MainHallButton" type="Button" parent="Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons"]
+layout_mode = 2
+tooltip_text = "The central hub of your guild"
+text = "Main Hall"
+
+[node name="RosterButton" type="Button" parent="Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons"]
+layout_mode = 2
+tooltip_text = "Manage your guild members"
+text = "Roster"
+
+[node name="QuestsButton" type="Button" parent="Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons"]
+layout_mode = 2
+tooltip_text = "Accept and manage quests"
+text = "Quest Counter"
+
+[node name="RecruitmentButton" type="Button" parent="Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons"]
+layout_mode = 2
+tooltip_text = "Hire new guild members"
+text = "Recruitment Office"
+
+[node name="ExternalGuildsSection" type="VBoxContainer" parent="Background/MapContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ExternalGuildsLabel" type="Label" parent="Background/MapContainer/ExternalGuildsSection"]
+layout_mode = 2
+text = "Other Guilds & Services"
+horizontal_alignment = 1
+
+[node name="ExternalGuildButtons" type="GridContainer" parent="Background/MapContainer/ExternalGuildsSection"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+
+[node name="MerchantsGuildButton" type="Button" parent="Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons"]
+layout_mode = 2
+tooltip_text = "Buy and sell goods, manage trade contracts"
+text = "Merchant's Guild"
+
+[node name="BlacksmithsGuildButton" type="Button" parent="Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons"]
+layout_mode = 2
+tooltip_text = "Craft and repair weapons and armor"
+text = "Blacksmith's Guild"
+
+[node name="HealersGuildButton" type="Button" parent="Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons"]
+layout_mode = 2
+tooltip_text = "Heal injured guild members and learn restoration magic"
+text = "Healer's Guild"
+
+[node name="CloseButton" type="Button" parent="Background/MapContainer"]
+layout_mode = 2
+text = "Close Map (ESC)"

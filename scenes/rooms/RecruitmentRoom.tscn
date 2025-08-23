@@ -1,0 +1,117 @@
+[gd_scene load_steps=3 format=3 uid="uid://5j6e0qt2wpet"]
+
+[ext_resource type="Script" uid="uid://xrj4yyfv7y2e" path="res://scenes/rooms/recruitment_room.gd" id="1"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
+
+[node name="RecruitmentRoom" type="Control" node_paths=PackedStringArray("guild_roster_grid", "refresh_recruits_button", "recruit_button", "current_resources_panel", "cost_panel", "projected_resources_panel", "selected_recruit_info_panel", "room_container", "back_button", "room_title_label")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+guild_roster_grid = NodePath("VBoxContainer/RoomContainer/MainContent/RecruitsPanel/RecruitsScroll/RecruitsGrid")
+refresh_recruits_button = NodePath("VBoxContainer/RoomContainer/MainContent/RecruitsPanel/RefreshRecruitsButton")
+recruit_button = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/RecruitButton")
+current_resources_panel = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel/CurrentResourcesPanel")
+cost_panel = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel/CostPanel")
+projected_resources_panel = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel/ProjectedResourcesPanel")
+selected_recruit_info_panel = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/SelectedRecruitInfoPanel")
+room_name = "Recruitment Counter"
+room_description = "The Recruitment Counter is the hot spot to pick up new Adventurer Prospects"
+room_container = NodePath("VBoxContainer/RoomContainer")
+back_button = NodePath("VBoxContainer/TopBar/BackButton")
+room_title_label = NodePath("VBoxContainer/TopBar/RoomTitle")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.1
+
+[node name="BackButton" type="Button" parent="VBoxContainer/TopBar"]
+layout_mode = 2
+text = "← Back"
+
+[node name="RoomTitle" type="Label" parent="VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Recruitment Counter"
+horizontal_alignment = 1
+
+[node name="RoomContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MainContent" type="HBoxContainer" parent="VBoxContainer/RoomContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecruitsPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RecruitsLabel" type="Label" parent="VBoxContainer/RoomContainer/MainContent/RecruitsPanel"]
+layout_mode = 2
+text = "Available Recruits"
+horizontal_alignment = 1
+
+[node name="RecruitsScroll" type="ScrollContainer" parent="VBoxContainer/RoomContainer/MainContent/RecruitsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="RecruitsGrid" type="GridContainer" parent="VBoxContainer/RoomContainer/MainContent/RecruitsPanel/RecruitsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+
+[node name="RefreshRecruitsButton" type="Button" parent="VBoxContainer/RoomContainer/MainContent/RecruitsPanel"]
+layout_mode = 2
+text = "Refresh Recruits"
+
+[node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RecruitmentHeader" type="HBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="RecruitmentInfo" type="Label" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/RecruitmentHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Available Recruits: 0"
+horizontal_alignment = 1
+
+[node name="SelectedRecruitInfoPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResourcesPanel" type="HBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="CurrentResourcesPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CostPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ProjectedResourcesPanel" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/ResourcesPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RecruitButton" type="Button" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
+layout_mode = 2
+disabled = true
+text = "Select a Recruit"

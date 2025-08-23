@@ -73,6 +73,9 @@ enum QuestRank {
 
 # Quest completion snapshot - stores injury state at completion time
 @export var completion_injuries: Dictionary = {}  # character_id -> injury_type
+# Quest completion snapshot - stores level up information
+@export var completion_level_ups: Dictionary = {}  # character_id -> level_up_data
+@export var completion_stats: Dictionary = {}  # character_id -> stats_at_completion
 #endregion
 
 signal quest_completed(quest:Quest)
@@ -104,6 +107,7 @@ func generate_quest_from_template(type: QuestType, rank: QuestRank):
 	var rank_multiplier = get_rank_multiplier()
 	var base_duration = get_base_duration_for_type()
 	duration = base_duration * rank_multiplier
+		
 	difficulty_modifier = 1.0 + (rank * 0.15)  # Each rank adds 15% difficulty
 	
 	# Generate requirements based on type and rank
@@ -520,7 +524,7 @@ func complete_quest():
 	for character in assigned_party:
 		# Calculate individual success chance based on character's contribution
 		var individual_success_chance = calculate_individual_success_chance(character)
-		var individual_success = randf() < individual_success_chance
+		var individual_success = randf_range(0,100) < individual_success_chance
 		
 		if individual_success:
 			successful_members += 1
@@ -554,6 +558,8 @@ func complete_quest():
 	
 	# Capture injury state at completion time
 	capture_completion_injuries()
+	# Capture level up state at completion time
+	capture_completion_level_ups()
 	
 	# Emit signal for awaiting completion (not final completion)
 	quest_completed.emit(self)
@@ -644,7 +650,13 @@ func apply_rewards(final_success_rate: float):
 	
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
-		var member_success = individual_checks[i]
+		var member_success
+		if individual_checks.size() < 1 :
+			match final_success_rate :
+				100.0 : member_success = true
+				0 : member_success = false
+		else :
+			member_success = individual_checks[i]
 		
 		# Calculate individual experience with character-specific modifiers
 		var individual_exp = calculate_individual_experience(character, experience_per_member, member_success, final_success_rate)
@@ -790,9 +802,30 @@ func capture_completion_injuries():
 		# Store character ID and injury type at completion
 		completion_injuries[character.character_name] = character.injury_type
 
+func capture_completion_level_ups():
+	"""Capture level up information for all party members at quest completion time"""
+	completion_level_ups.clear()
+	completion_stats.clear()
+	
+	for character in assigned_party:
+		# Store character level and stats at completion (will be compared later)
+		completion_level_ups[character.character_name] = {
+			"level": character.level,
+			"experience": character.experience
+		}
+		completion_stats[character.character_name] = character.get_current_stats()
+
 func get_completion_injuries() -> Dictionary:
 	"""Get the injury state that was captured at quest completion time"""
 	return completion_injuries
+
+func get_completion_level_ups() -> Dictionary:
+	"""Get the level up information that was captured at quest completion time"""
+	return completion_level_ups
+
+func get_completion_stats() -> Dictionary:
+	"""Get the stats that were captured at quest completion time"""
+	return completion_stats
 
 func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 	match injury_type:

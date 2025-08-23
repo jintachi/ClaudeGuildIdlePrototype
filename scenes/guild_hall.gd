@@ -5,12 +5,10 @@ extends Control
 # UI Containers for room display
 @export var room_container: Control
 @export var navigation_panel: Control
+@export var resources_display: Label
 
-# Navigation buttons
-@export var main_hall_button: Button
-@export var roster_button: Button
-@export var quests_button: Button
-@export var recruitment_button: Button
+# Town Map reference
+@export var town_map: Control
 
 # UI Scaling controls (kept for compatibility)
 @export var scale_05_button: Button
@@ -45,7 +43,7 @@ func _ready():
 	update_ui()
 	
 	# Set initial navigation context to main hall
-	call_deferred("update_all_navigation_contexts", "main_hall")
+	call_deferred("update_navigation_context", "main_hall")
 #endregion
 
 #region Viewport Scaling Setup
@@ -80,16 +78,6 @@ func _on_ui_scale_changed(new_scale: float):
 #region UI Setup and Connections
 func setup_ui_connections():
 	"""Setup UI button connections"""
-	# Navigation buttons
-	if main_hall_button:
-		main_hall_button.pressed.connect(_on_main_hall_pressed)
-	if roster_button:
-		roster_button.pressed.connect(_on_roster_pressed)
-	if quests_button:
-		quests_button.pressed.connect(_on_quests_pressed)
-	if recruitment_button:
-		recruitment_button.pressed.connect(_on_recruitment_pressed)
-	
 	# UI Scaling buttons
 	if scale_05_button:
 		scale_05_button.pressed.connect(_on_scale_05_pressed)
@@ -127,6 +115,11 @@ func setup_signal_connections():
 		SignalBus.quest_started.connect(_on_quest_started)
 		SignalBus.character_promoted.connect(_on_character_promoted)
 		SignalBus.ui_scale_changed.connect(_on_ui_scale_changed)
+		SignalBus.map_key_pressed.connect(_on_map_key_pressed)
+	
+	# Connect to custom room manager signals
+	if get_node_or_null("/root/CustomRoomCreator"):
+		get_node("/root/CustomRoomCreator").custom_room_discovered.connect(_on_custom_room_discovered)
 #endregion
 
 #region UI Update Functions
@@ -135,138 +128,86 @@ func update_ui():
 	# Update current room display based on GuildManager's current room
 	update_room_display()
 	
+	# Update resource display
+	update_resource_display()
+	
 	# Update navigation context
-	update_all_navigation_contexts(get_current_room_context())
+	update_navigation_context(get_current_room_context())
+
+func update_resource_display():
+	"""Update the resource display"""
+	if not resources_display or not GuildManager:
+		return
+	
+	var resources = GuildManager.get_guild_status_summary().resources
+	resources_display.text = "Resources: Influence: %d | Gold: %d | Food: %d | Materials: %d | Armor: %d | Weapons: %d" % [
+		resources.influence, resources.gold, resources.food, 
+		resources.building_materials, resources.armor, resources.weapons
+	]
 
 func update_room_display():
 	"""Update the room display based on current room"""
 	var current_room = GuildManager.get_current_room()
 	
+	# Call on_room_exited() on current room before clearing
+	for child in room_container.get_children():
+		if child is BaseRoom and child.has_method("on_room_exited"):
+			child.on_room_exited()
+	
 	# Clear the room container
 	for child in room_container.get_children():
 		child.queue_free()
 	
-	# Create and add the appropriate room content
+	# Check if it's a custom room first
+	var custom_room_creator = get_node_or_null("/root/CustomRoomCreator")
+	if custom_room_creator and custom_room_creator.is_custom_room(current_room):
+		var room_instance = custom_room_creator.create_custom_room(current_room)
+		if room_instance:
+			room_container.add_child(room_instance)
+			if room_instance is BaseRoom:
+				room_instance.enter_room()
+		else:
+			print("Failed to create custom room: ", current_room)
+		return
+	
+	# Load and instantiate the appropriate built-in room scene
+	var room_scene_path = ""
 	match current_room:
 		"Main Hall":
-			create_main_hall_content()
+			room_scene_path = "res://scenes/rooms/MainHallRoom.tscn"
 		"Roster":
-			create_roster_content()
+			room_scene_path = "res://scenes/rooms/RosterRoom.tscn"
 		"Quests":
-			create_quests_content()
+			room_scene_path = "res://scenes/rooms/QuestsRoom.tscn"
 		"Recruitment":
-			create_recruitment_content()
-
-func create_main_hall_content():
-	"""Create main hall content"""
-	var main_hall = VBoxContainer.new()
-	main_hall.name = "MainHallContent"
+			room_scene_path = "res://scenes/rooms/RecruitmentRoom.tscn"
+		"Merchant's Guild":
+			room_scene_path = "res://scenes/rooms/MerchantsGuildRoom.tscn"
+		"Blacksmith's Guild":
+			room_scene_path = "res://scenes/rooms/BlacksmithsGuildRoom.tscn"
+		"Healer's Guild":
+			room_scene_path = "res://scenes/rooms/HealersGuildRoom.tscn"
 	
-	# Add resources display
-	var resources_label = Label.new()
-	resources_label.text = "Influence: %d | Gold: %d | Food: %d | Materials: %d | Armor: %d | Weapons: %d" % [
-		GuildManager.influence, GuildManager.gold, GuildManager.food,
-		GuildManager.building_materials, GuildManager.armor_pieces, GuildManager.weapons
-	]
-	main_hall.add_child(resources_label)
-	
-	# Add quest panels
-	var quest_panel = VBoxContainer.new()
-	quest_panel.name = "QuestPanel"
-	
-	var active_quests_label = Label.new()
-	active_quests_label.text = "Active Quests: %d" % GuildManager.active_quests.size()
-	quest_panel.add_child(active_quests_label)
-	
-	var awaiting_quests_label = Label.new()
-	awaiting_quests_label.text = "Awaiting Completion: %d" % GuildManager.awaiting_completion_quests.size()
-	quest_panel.add_child(awaiting_quests_label)
-	
-	main_hall.add_child(quest_panel)
-	
-	room_container.add_child(main_hall)
-
-func create_roster_content():
-	"""Create roster content"""
-	var roster_content = VBoxContainer.new()
-	roster_content.name = "RosterContent"
-	
-	var roster_label = Label.new()
-	roster_label.text = "Guild Roster (%d/%d)" % [GuildManager.roster.size(), GuildManager.max_roster_size]
-	roster_content.add_child(roster_label)
-	
-	# Add character list
-	for character in GuildManager.roster:
-		var char_label = Label.new()
-		char_label.text = "%s - Level %d %s" % [character.name, character.level, character.character_class]
-		roster_content.add_child(char_label)
-	
-	room_container.add_child(roster_content)
-
-func create_quests_content():
-	"""Create quests content"""
-	var quests_content = VBoxContainer.new()
-	quests_content.name = "QuestsContent"
-	
-	var quests_label = Label.new()
-	quests_label.text = "Available Quests: %d" % GuildManager.available_quests.size()
-	quests_content.add_child(quests_label)
-	
-	# Add quest list
-	for quest in GuildManager.available_quests:
-		var quest_label = Label.new()
-		quest_label.text = "%s (%s Rank)" % [quest.quest_name, quest.quest_rank]
-		quests_content.add_child(quest_label)
-	
-	room_container.add_child(quests_content)
-
-func create_recruitment_content():
-	"""Create recruitment content"""
-	var recruitment_content = VBoxContainer.new()
-	recruitment_content.name = "RecruitmentContent"
-	
-	var recruitment_label = Label.new()
-	recruitment_label.text = "Available Recruits: %d" % GuildManager.available_recruits.size()
-	recruitment_content.add_child(recruitment_label)
-	
-	# Add recruit list
-	for recruit in GuildManager.available_recruits:
-		var recruit_label = Label.new()
-		recruit_label.text = "%s - %s" % [recruit.name, recruit.character_class]
-		recruitment_content.add_child(recruit_label)
-	
-	room_container.add_child(recruitment_content)
+	if room_scene_path and ResourceLoader.exists(room_scene_path):
+		var room_scene = load(room_scene_path)
+		var room_instance = room_scene.instantiate()
+		room_container.add_child(room_instance)
+		
+		# Enter the room
+		if room_instance is BaseRoom:
+			room_instance.enter_room()
+	else:
+		print("Room scene not found: ", room_scene_path)
 
 func get_current_room_context() -> String:
 	"""Get the current room context for navigation"""
 	var current_room = GuildManager.get_current_room()
 	return current_room.to_lower().replace(" ", "_")
 
-func update_all_navigation_contexts(context: String):
-	"""Update all navigation components with the current context"""
-	# Find all Navigation components and update their context
-	var navigation_nodes = get_tree().get_nodes_in_group("navigation")
-	for node in navigation_nodes:
-		if node.has_method("update_navigation_context"):
-			node.update_navigation_context(context)
-#endregion
-
-#region Navigation Handlers
-func _on_main_hall_pressed():
-	"""Handle main hall button press"""
-	GuildManager.enter_room("Main Hall")
-
-func _on_roster_pressed():
-	"""Handle roster button press"""
-	GuildManager.enter_room("Roster")
-
-func _on_quests_pressed():
-	"""Handle quests button press"""
-	GuildManager.enter_room("Quests")
-
-func _on_recruitment_pressed():
-	"""Handle recruitment button press"""
-	GuildManager.enter_room("Recruitment")
+func update_navigation_context(context: String):
+	"""Update the navigation component with the current context"""
+	if navigation_panel and navigation_panel.has_method("set_current_tab"):
+		navigation_panel.set_current_tab(context)
 #endregion
 
 #region Signal Handlers
@@ -274,7 +215,7 @@ func _on_room_changed(from_room: String, to_room: String):
 	"""Handle room changes"""
 	print("Room changed from %s to %s" % [from_room, to_room])
 	update_ui()
-	update_all_navigation_contexts(to_room.to_lower().replace(" ", "_"))
+	update_navigation_context(to_room.to_lower().replace(" ", "_"))
 
 func _on_room_unlocked(room_name: String):
 	"""Handle room unlocking"""
@@ -304,8 +245,18 @@ func _on_emergency_quest_available(quest_data: Dictionary):
 
 func _on_character_recruited(character: Character):
 	"""Handle character recruited event"""
-	print("Character recruited: %s" % character.name)
+	print("Character recruited: %s" % character.character_name)
 	update_ui()
+
+func _on_custom_room_discovered(room_name: String, room_path: String):
+	"""Handle custom room discovery"""
+	print("Custom room discovered: ", room_name, " at ", room_path)
+	# You can add custom room navigation buttons here if needed
+
+func _on_map_key_pressed():
+	"""Handle map key press"""
+	if town_map and town_map.has_method("open_map"):
+		town_map.open_map()
 #endregion
 
 #region Save/Load Functions

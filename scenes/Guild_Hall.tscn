@@ -1,32 +1,33 @@
-[gd_scene load_steps=3 format=3 uid="uid://ctr4p8jbhykl4"]
+[gd_scene load_steps=5 format=3 uid="uid://ctr4p8jbhykl4"]
 
 [ext_resource type="Script" uid="uid://c5wjl256wa053" path="res://scenes/guild_hall.gd" id="1"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_uu6xs"]
+[ext_resource type="PackedScene" uid="uid://bmk3h7t4c8xij" path="res://ui/components/Navigation.tscn" id="3_navigation"]
+[ext_resource type="PackedScene" uid="uid://bv807ia8vio2t" path="res://scenes/rooms/TownMap.tscn" id="4_townmap"]
 
-[node name="Guild Hall" type="Control" node_paths=PackedStringArray("room_container", "navigation_panel", "main_hall_button", "roster_button", "quests_button", "recruitment_button", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
+[node name="Guild Hall" type="Control" node_paths=PackedStringArray("room_container", "navigation_panel", "resources_display", "town_map", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
 theme = ExtResource("2_uu6xs")
 script = ExtResource("1")
 room_container = NodePath("VBoxContainer/RoomContainer")
-navigation_panel = NodePath("VBoxContainer/TopBar/NavigationPanel")
-main_hall_button = NodePath("VBoxContainer/TopBar/NavigationPanel/MainHallButton")
-roster_button = NodePath("VBoxContainer/TopBar/NavigationPanel/RosterButton")
-quests_button = NodePath("VBoxContainer/TopBar/NavigationPanel/QuestsButton")
-recruitment_button = NodePath("VBoxContainer/TopBar/NavigationPanel/RecruitmentButton")
-scale_05_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale05Button")
-scale_075_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale075Button")
-scale_1_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale1Button")
-scale_15_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale15Button")
-scale_2_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale2Button")
-scale_3_button = NodePath("VBoxContainer/BottomBarContainer/UIScalingPanel/Scale3Button")
-save_button = NodePath("VBoxContainer/TopBar/SaveLoadPanel/SaveButton")
-load_button = NodePath("VBoxContainer/TopBar/SaveLoadPanel/LoadButton")
-new_game_button = NodePath("VBoxContainer/TopBar/SaveLoadPanel/NewGameButton")
+navigation_panel = NodePath("VBoxContainer/TopBar/Navigation")
+resources_display = NodePath("VBoxContainer/BottomBar/ResourcesPanel/ResourcesDisplay")
+town_map = NodePath("TownMap")
+scale_05_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale05Button")
+scale_075_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale075Button")
+scale_1_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale1Button")
+scale_15_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale15Button")
+scale_2_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale2Button")
+scale_3_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale3Button")
+save_button = NodePath("VBoxContainer/BottomBar/SaveLoadPanel/SaveButton")
+load_button = NodePath("VBoxContainer/BottomBar/SaveLoadPanel/LoadButton")
+new_game_button = NodePath("VBoxContainer/BottomBar/SaveLoadPanel/NewGameButton")
 
 [node name="Background" type="ColorRect" parent="."]
 z_index = -99
@@ -49,77 +50,74 @@ grow_vertical = 2
 [node name="TopBar" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="VBoxContainer/TopBar"]
+[node name="GameTitle" type="Label" parent="VBoxContainer/TopBar"]
 layout_mode = 2
-text = "GUILD MANAGEMENT SYSTEM"
+text = "GuildSim"
 
-[node name="SaveLoadPanel" type="HBoxContainer" parent="VBoxContainer/TopBar"]
+[node name="Navigation" parent="VBoxContainer/TopBar" instance=ExtResource("3_navigation")]
 layout_mode = 2
-size_flags_horizontal = 10
-
-[node name="SaveButton" type="Button" parent="VBoxContainer/TopBar/SaveLoadPanel"]
-layout_mode = 2
-text = "Save"
-
-[node name="LoadButton" type="Button" parent="VBoxContainer/TopBar/SaveLoadPanel"]
-layout_mode = 2
-text = "Load"
-
-[node name="NewGameButton" type="Button" parent="VBoxContainer/TopBar/SaveLoadPanel"]
-layout_mode = 2
-text = "New Game"
-
-[node name="NavigationPanel" type="HBoxContainer" parent="VBoxContainer/TopBar"]
-layout_mode = 2
-size_flags_horizontal = 10
-
-[node name="MainHallButton" type="Button" parent="VBoxContainer/TopBar/NavigationPanel"]
-layout_mode = 2
-text = "Main Hall"
-
-[node name="RosterButton" type="Button" parent="VBoxContainer/TopBar/NavigationPanel"]
-layout_mode = 2
-text = "Roster"
-
-[node name="QuestsButton" type="Button" parent="VBoxContainer/TopBar/NavigationPanel"]
-layout_mode = 2
-text = "Quests"
-
-[node name="RecruitmentButton" type="Button" parent="VBoxContainer/TopBar/NavigationPanel"]
-layout_mode = 2
-text = "Recruitment"
 
 [node name="RoomContainer" type="Control" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+mouse_filter = 1
 
-[node name="BottomBarContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="BottomBar" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="UIScalingPanel" type="HBoxContainer" parent="VBoxContainer/BottomBarContainer"]
+[node name="ResourcesPanel" type="HBoxContainer" parent="VBoxContainer/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResourcesDisplay" type="Label" parent="VBoxContainer/BottomBar/ResourcesPanel"]
+layout_mode = 2
+text = "Resources: Influence: 0 | Gold: 0 | Food: 0 | Materials: 0 | Armor: 0 | Weapons: 0"
+horizontal_alignment = 1
+
+[node name="UIScalingPanel" type="HBoxContainer" parent="VBoxContainer/BottomBar"]
 layout_mode = 2
 size_flags_horizontal = 10
 
-[node name="Scale05Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale05Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "0.5x"
 
-[node name="Scale075Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale075Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "0.75x"
 
-[node name="Scale1Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale1Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "1x"
 
-[node name="Scale15Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale15Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "1.5x"
 
-[node name="Scale2Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale2Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "2x"
 
-[node name="Scale3Button" type="Button" parent="VBoxContainer/BottomBarContainer/UIScalingPanel"]
+[node name="Scale3Button" type="Button" parent="VBoxContainer/BottomBar/UIScalingPanel"]
 layout_mode = 2
 text = "3x"
+
+[node name="SaveLoadPanel" type="HBoxContainer" parent="VBoxContainer/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 10
+
+[node name="SaveButton" type="Button" parent="VBoxContainer/BottomBar/SaveLoadPanel"]
+layout_mode = 2
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="VBoxContainer/BottomBar/SaveLoadPanel"]
+layout_mode = 2
+text = "Load"
+
+[node name="NewGameButton" type="Button" parent="VBoxContainer/BottomBar/SaveLoadPanel"]
+layout_mode = 2
+text = "New Game"
+
+[node name="TownMap" parent="." instance=ExtResource("4_townmap")]
+z_index = 100
+layout_mode = 1

@@ -30,6 +30,13 @@ func on_room_entered():
 		if roster_inspection_panel:
 			roster_inspection_panel.visible = false
 
+func _process(delta: float):
+	"""Update injury recovery progress bars smoothly"""
+	if not is_inside_tree():
+		return
+	
+	update_injury_recovery_progress(delta)
+
 func update_room_display():
 	"""Update the roster display"""
 	update_roster_display()
@@ -59,6 +66,7 @@ func create_character_panel(character: Character) -> Control:
 	var panel_button = Button.new()
 	panel_button.custom_minimum_size = Vector2(400, 120)
 	panel_button.flat = true  # Remove default button styling
+	panel_button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	
 	# Store character reference for later identification
 	panel_button.set_meta("character", character)
@@ -128,11 +136,7 @@ func create_character_panel(character: Character) -> Control:
 	# Status
 	var status_label = Label.new()
 	if character.is_injured():
-		var injury_duration = character.get_injury_duration()
-		var injury_minutes:int = injury_duration / 60
-		var injury_seconds:float = injury_duration - (injury_minutes * 60)
-		var display_inj = str(injury_minutes, ": ", injury_seconds)
-		status_label.text = "INJURED - %s, %s" % [get_injury_name(character.injury_type), display_inj]
+		status_label.text = "INJURED"
 		status_label.modulate = Color.RED
 	elif character.promotion_quest_available:
 		status_label.text = "READY FOR PROMOTION"
@@ -152,7 +156,57 @@ func create_character_panel(character: Character) -> Control:
 	
 	vbox.add_child(status_label)
 	
+	# Add injury recovery progress bar if character is injured
+	if character.is_injured():
+		var injury_container = create_injury_recovery_bar(character)
+		vbox.add_child(injury_container)
+	
 	return panel_button
+
+func create_injury_recovery_bar(character: Character) -> Control:
+	"""Create an injury recovery progress bar container for a character"""
+	var recovery_container = HBoxContainer.new()
+	recovery_container.name = "InjuryRecoveryContainer"
+	recovery_container.add_theme_constant_override("separation", 10)
+	
+	# Injury type label
+	var injury_type_label = Label.new()
+	injury_type_label.name = "InjuryTypeLabel"
+	var injury_name = get_injury_name(character.injury_type)
+	injury_type_label.text = "Injury Type: %s" % injury_name
+	injury_type_label.add_theme_font_size_override("font_size", 10)
+	injury_type_label.add_theme_color_override("font_color", Color.RED)
+	recovery_container.add_child(injury_type_label)
+	
+	# Recovery time label
+	var time_label = Label.new()
+	time_label.name = "RecoveryTimeLabel"
+	var time_remaining = character.get_injury_duration()
+	var minutes = int(time_remaining / 60)
+	var seconds = int(time_remaining) % 60
+	time_label.text = "Recovery Time: %02d:%02d" % [minutes, seconds]
+	time_label.add_theme_font_size_override("font_size", 10)
+	time_label.add_theme_color_override("font_color", Color.RED)
+	recovery_container.add_child(time_label)
+	
+	# Recovery progress bar
+	var progress_bar = ProgressBar.new()
+	progress_bar.name = "RecoveryProgressBar"
+	progress_bar.max_value = 100
+	var injury_duration = character.injury_duration
+	var progress_percentage = 0.0
+	
+	if injury_duration > 0:
+		progress_percentage = ((injury_duration - time_remaining) / injury_duration) * 100.0
+	
+	progress_bar.value = progress_percentage
+	progress_bar.custom_minimum_size = Vector2(150, 15)
+	recovery_container.add_child(progress_bar)
+	
+	# Set the script for the container
+	recovery_container.set_script(load("res://ui/components/injury_recovery_container.gd"))
+	
+	return recovery_container
 
 func get_injury_name(injury_type: Character.InjuryType) -> String:
 	"""Get the display name for an injury type"""
@@ -174,6 +228,9 @@ func select_adventurer(character: Character):
 	if roster_inspection_panel and roster_inspection_panel.has_method("inspect_character"):
 		roster_inspection_panel.visible = true
 		roster_inspection_panel.inspect_character(character)
+	elif adventurer_inspection_panel and adventurer_inspection_panel.has_method("inspect_character"):
+		adventurer_inspection_panel.visible = true
+		adventurer_inspection_panel.inspect_character(character)
 
 func update_character_panel_states(selected_character: Character):
 	"""Update visual states of all character panels"""
@@ -215,12 +272,46 @@ func update_character_panel_experience(panel_button: Control, character: Charact
 		if experience_bar and experience_bar.has_method("update_experience"):
 			experience_bar.update_experience(character)
 
+func update_injury_recovery_progress(delta: float):
+	"""Update injury recovery progress bars for all injured characters"""
+	for child in roster_list.get_children():
+		if child.has_meta("character"):
+			var character = child.get_meta("character")
+			if character and character.is_injured():
+				# Find the injury recovery container in the panel
+				var inner_panel = child.get_child(0)
+				if not inner_panel or not inner_panel is Panel:
+					continue
+				
+				var vbox = inner_panel.get_child(0)
+				if not vbox or not vbox is VBoxContainer:
+					continue
+				
+				# Look for the injury recovery container (it should be the last child)
+				for i in range(vbox.get_child_count()):
+					var recovery_container = vbox.get_child(i)
+					if recovery_container and recovery_container.has_method("update_injury_recovery"):
+						recovery_container.update_injury_recovery(character)
+						break
+
 func refresh_all_character_panels():
 	"""Refresh all character panels to update experience bars and other data"""
 	for child in roster_list.get_children():
 		if child.has_meta("character"):
 			var character = child.get_meta("character")
 			update_character_panel_experience(child, character)
+			
+			# Also refresh injury recovery progress if character is injured
+			if character and character.is_injured():
+				var inner_panel = child.get_child(0)
+				if inner_panel and inner_panel is Panel:
+					var vbox = inner_panel.get_child(0)
+					if vbox and vbox is VBoxContainer:
+						for i in range(vbox.get_child_count()):
+							var recovery_container = vbox.get_child(i)
+							if recovery_container and recovery_container.has_method("update_injury_recovery"):
+								recovery_container.update_injury_recovery(character)
+								break
 
 func get_character_status_summary() -> Dictionary:
 	"""Get a summary of character statuses for display"""

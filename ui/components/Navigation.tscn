@@ -1,10 +1,9 @@
 [gd_scene load_steps=3 format=3 uid="uid://bmk3h7t4c8xij"]
 
-[ext_resource type="Script" path="res://ui/components/navigation.gd" id="1_3k8v2"]
+[ext_resource type="Script" uid="uid://b6dy61r6pftli" path="res://ui/components/navigation.gd" id="1_3k8v2"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_h4d9k"]
 
 [node name="Navigation" type="HBoxContainer"]
-layout_mode = 2
 size_flags_horizontal = 10
 theme = ExtResource("2_h4d9k")
 script = ExtResource("1_3k8v2")

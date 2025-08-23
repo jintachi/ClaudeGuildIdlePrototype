@@ -253,6 +253,52 @@ func level_up():
 	
 	check_promotion_eligibility()
 
+func get_current_stats() -> Dictionary:
+	"""Get current character stats"""
+	return {
+		"health": health,
+		"defense": defense,
+		"mana": mana,
+		"spell_power": spell_power,
+		"attack_power": attack_power,
+		"movement_speed": movement_speed,
+		"luck": luck
+	}
+
+func get_level_up_stat_changes(previous_level: int) -> Dictionary:
+	"""Get the stat changes that occurred during level up"""
+	var changes = {
+		"health": health - get_base_stats_for_level(previous_level).health,
+		"defense": defense - get_base_stats_for_level(previous_level).defense,
+		"mana": mana - get_base_stats_for_level(previous_level).mana,
+		"spell_power": spell_power - get_base_stats_for_level(previous_level).spell_power,
+		"attack_power": attack_power - get_base_stats_for_level(previous_level).attack_power,
+		"movement_speed": movement_speed - get_base_stats_for_level(previous_level).movement_speed,
+		"luck": luck - get_base_stats_for_level(previous_level).luck
+	}
+	return changes
+
+func get_base_stats_for_level(target_level: int) -> Dictionary:
+	"""Get what the base stats would be at a given level (without level up gains)"""
+	# This is a simplified calculation - in a real system you'd track base stats separately
+	# For now, we'll estimate based on starting stats and level
+	var base_stats = {
+		"health": 100,
+		"defense": 10,
+		"mana": 50,
+		"spell_power": 10,
+		"attack_power": 15,
+		"movement_speed": 10,
+		"luck": 5
+	}
+	
+	# Apply class modifiers for the target level
+	var class_modifiers = get_class_level_modifiers()
+	for stat in base_stats.keys():
+		base_stats[stat] = int(base_stats[stat] * (1.0 + (target_level - 1) * 0.1 * class_modifiers[stat]))
+	
+	return base_stats
+
 func calculate_level_up_stat_gains() -> Dictionary:
 	"""Calculate stat gains for level up with class-based probabilities"""
 	var gains = {
@@ -592,4 +638,16 @@ func set_status(new_status: CharacterStatus):
 	character_status = new_status
 	# Emit signal to notify UI of status change
 	SignalBus.character_status_changed.emit(self)
+	
+func get_class_icon() -> String:
+	match get_class_name() :
+		"Tank" :
+			return "🛡️"
+		"Healer" :
+			return "💚"
+		"Support" : 
+			return "🔮"
+		"Attacker" : 
+			return "⚔️"
+		_: return "no_icon"
 #endregion
