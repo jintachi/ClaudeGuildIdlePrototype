@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://bmk3h7t4c8xij" path="res://ui/components/Navigation.tscn" id="3_navigation"]
 [ext_resource type="PackedScene" uid="uid://bv807ia8vio2t" path="res://scenes/rooms/TownMap.tscn" id="4_townmap"]
 
-[node name="Guild Hall" type="Control" node_paths=PackedStringArray("room_container", "navigation_panel", "resources_display", "town_map", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
+[node name="Guild Hall" type="Control" node_paths=PackedStringArray("room_container", "navigation_panel", "resources_display", "inventory_button", "town_map", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -18,6 +18,7 @@ script = ExtResource("1")
 room_container = NodePath("VBoxContainer/RoomContainer")
 navigation_panel = NodePath("VBoxContainer/TopBar/Navigation")
 resources_display = NodePath("VBoxContainer/BottomBar/ResourcesPanel/ResourcesDisplay")
+inventory_button = NodePath("VBoxContainer/BottomBar/ResourcesPanel/InventoryButton")
 town_map = NodePath("TownMap")
 scale_05_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale05Button")
 scale_075_button = NodePath("VBoxContainer/BottomBar/UIScalingPanel/Scale075Button")
@@ -71,8 +72,13 @@ size_flags_horizontal = 3
 
 [node name="ResourcesDisplay" type="Label" parent="VBoxContainer/BottomBar/ResourcesPanel"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Resources: Influence: 0 | Gold: 0 | Food: 0 | Materials: 0 | Armor: 0 | Weapons: 0"
 horizontal_alignment = 1
+
+[node name="InventoryButton" type="Button" parent="VBoxContainer/BottomBar/ResourcesPanel"]
+layout_mode = 2
+text = "Inventory"
 
 [node name="UIScalingPanel" type="HBoxContainer" parent="VBoxContainer/BottomBar"]
 layout_mode = 2
@@ -119,5 +125,6 @@ layout_mode = 2
 text = "New Game"
 
 [node name="TownMap" parent="." instance=ExtResource("4_townmap")]
+visible = false
 z_index = 100
 layout_mode = 1

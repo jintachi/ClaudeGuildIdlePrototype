@@ -59,8 +59,12 @@ var current_room: String = "Adventurer's Guild"
 var previous_room: String = ""
 var room_history: Array[String] = []
 var max_history_size: int = 10
-var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
-var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+
+# Inventory System
+var inventory: Inventory
+var inventory_ui: InventoryUI
 
 func _ready():
 	#load_game()
@@ -89,6 +93,9 @@ func initialize_guild():
 	
 	if available_recruits.is_empty():
 		generate_recruits()
+	
+	# Initialize inventory system
+	initialize_inventory()
 	
 	# Refresh quest cards to ensure they display correct data
 	refresh_quest_cards()
@@ -1218,4 +1225,79 @@ func is_room_unlocked(room_name: String) -> bool:
 func can_enter_room(room_name: String) -> bool:
 	"""Check if a room can be entered"""
 	return unlocked_rooms.has(room_name) and available_rooms.has(room_name)
+#endregion 
+
+#region Inventory System
+func initialize_inventory():
+	"""Initialize the inventory system"""
+	inventory = Inventory.new()
+	
+	# Create inventory UI instance
+	var inventory_scene = preload("res://ui/components/Inventory.tscn")
+	inventory_ui = inventory_scene.instantiate()
+	inventory_ui.inventory = inventory
+	inventory_ui.visible = false
+	
+	# Add some test items
+	add_test_items()
+
+func add_test_items():
+	"""Add some test items to the inventory"""
+	var health_potion = InventoryItem.new("health_potion", "Health Potion", "Restores 50 HP", "consumables")
+	health_potion.base_value = 25
+	health_potion.quantity = 3
+	inventory.add_item(health_potion)
+	
+	var mana_potion = InventoryItem.new("mana_potion", "Mana Potion", "Restores 30 MP", "consumables")
+	mana_potion.base_value = 20
+	mana_potion.quantity = 2
+	inventory.add_item(mana_potion)
+	
+	var antidote = InventoryItem.new("antidote", "Antidote", "Cures poison", "consumables")
+	antidote.base_value = 15
+	antidote.quantity = 1
+	inventory.add_item(antidote)
+	
+	var promotion_scroll = InventoryItem.new("promotion_scroll", "Promotion Scroll", "Required for rank-up quests", "quest-specific-items")
+	promotion_scroll.base_value = 50
+	promotion_scroll.quantity = 1
+	inventory.add_item(promotion_scroll)
+	
+	var iron_sword = InventoryItem.new("iron_sword", "Iron Sword", "A basic iron sword", "equipment")
+	iron_sword.base_value = 100
+	iron_sword.equipment_slot = "weapon"
+	iron_sword.stat_bonuses = {"attack_power": 10}
+	inventory.add_item(iron_sword)
+	
+	var leather_armor = InventoryItem.new("leather_armor", "Leather Armor", "Basic leather armor", "equipment")
+	leather_armor.base_value = 75
+	leather_armor.equipment_slot = "armor"
+	leather_armor.stat_bonuses = {"defense": 8}
+	inventory.add_item(leather_armor)
+
+func display_inventory(current_room: String) -> Control:
+	"""Display inventory for a specific room. Returns the UI element."""
+	if inventory_ui:
+		return inventory_ui.display_inventory(current_room)
+	return null
+
+func get_inventory() -> Inventory:
+	"""Get the inventory instance"""
+	return inventory
+
+func get_inventory_ui() -> InventoryUI:
+	"""Get the inventory UI instance"""
+	return inventory_ui
+
+func add_item_to_inventory(item: InventoryItem) -> bool:
+	"""Add an item to the inventory"""
+	if inventory:
+		return inventory.add_item(item)
+	return false
+
+func remove_item_from_inventory(slot_index: int, quantity: int = 1) -> InventoryItem:
+	"""Remove an item from the inventory"""
+	if inventory:
+		return inventory.remove_item(slot_index, quantity)
+	return null
 #endregion 

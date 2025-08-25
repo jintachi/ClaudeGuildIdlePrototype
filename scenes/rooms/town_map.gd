@@ -10,6 +10,7 @@ extends Control
 @export var roster_button: Button
 @export var quests_button: Button
 @export var recruitment_button: Button
+@export var training_room_button: Button
 
 # External Guild buttons
 @export var merchants_guild_button: Button
@@ -48,6 +49,9 @@ func setup_button_connections():
 	
 	if recruitment_button:
 		recruitment_button.pressed.connect(_on_recruitment_travel)
+	
+	if training_room_button:
+		training_room_button.pressed.connect(_on_training_room_travel)
 	
 	# External Guild buttons
 	if merchants_guild_button:
@@ -146,6 +150,10 @@ func _on_quests_travel():
 func _on_recruitment_travel():
 	"""Travel to Recruitment"""
 	_travel_to_room("Recruitment")
+
+func _on_training_room_travel():
+	"""Travel to Training Room"""
+	_travel_to_room("Training Room")
 
 func _on_merchants_guild_travel():
 	"""Travel to Merchant's Guild"""

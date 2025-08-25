@@ -524,7 +524,7 @@ func complete_quest():
 	for character in assigned_party:
 		# Calculate individual success chance based on character's contribution
 		var individual_success_chance = calculate_individual_success_chance(character)
-		var individual_success = randf_range(0,100) < individual_success_chance
+		var individual_success = randf() < individual_success_chance
 		
 		if individual_success:
 			successful_members += 1

@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dm8vh6t4daxkl" path="res://ui/components/StatsComparisonTable.tscn" id="3"]
 [ext_resource type="PackedScene" uid="uid://cel4cu6gapfm0" path="res://ui/components/CompactQuestCard.tscn" id="3_ujbs8"]
 
-[node name="QuestsRoom" type="Control" node_paths=PackedStringArray("available_quests_list", "quest_details_panel", "start_quest_button", "quest_info_label", "stats_comparison_table", "guild_roster_grid", "room_container", "back_button", "room_title_label")]
+[node name="QuestsRoom" type="Control" node_paths=PackedStringArray("available_quests_list", "quest_details_panel", "start_quest_button", "quest_inventory_button", "quest_info_label", "stats_comparison_table", "guild_roster_grid", "room_container", "back_button", "room_title_label")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,7 +17,8 @@ theme = ExtResource("2")
 script = ExtResource("1")
 available_quests_list = NodePath("VBoxContainer/RoomContainer/MainContent/LeftPanel/AvailableQuestsScroll/AvailableQuestsVBox")
 quest_details_panel = NodePath("VBoxContainer/RoomContainer/MainContent/MiddlePanel/QuestDetailsScroll/QuestDetailsVBox")
-start_quest_button = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/StartQuestButton")
+start_quest_button = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/HBoxContainer/StartQuestButton")
+quest_inventory_button = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/HBoxContainer/QuestInventoryButton")
 quest_info_label = NodePath("VBoxContainer/RoomContainer/QuestsHeader/QuestsInfo")
 stats_comparison_table = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/StatsComparisonTable")
 guild_roster_grid = NodePath("VBoxContainer/RoomContainer/MainContent/RightPanel/PartySelectionPanel/GuildRosterGrid")
@@ -129,10 +130,21 @@ layout_mode = 2
 size_flags_vertical = 3
 columns = 8
 
-[node name="StartQuestButton" type="Button" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RightPanel"]
 layout_mode = 2
+
+[node name="StartQuestButton" type="Button" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 disabled = true
 text = "Start Quest"
+
+[node name="QuestInventoryButton" type="Button" parent="VBoxContainer/RoomContainer/MainContent/RightPanel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+disabled = true
+text = "Add Items"
 
 [node name="StatsComparisonTable" parent="VBoxContainer/RoomContainer/MainContent/RightPanel" instance=ExtResource("3")]
 layout_mode = 2

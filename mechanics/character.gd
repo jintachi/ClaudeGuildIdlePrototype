@@ -74,6 +74,8 @@ enum CharacterStatus {
 
 #region Personal Resources
 @export var personal_gold: int = 0
+@export var training_potential: int = 0  # Current available training potential
+@export var max_training_potential: int = 0  # Maximum training potential based on rank/quality
 #endregion
 
 #region Portrait
@@ -107,6 +109,7 @@ func _init(name: String = "", char_class: CharacterClass = CharacterClass.ATTACK
 	generate_base_stats()
 	generate_random_substats()
 	assign_random_portrait()
+	initialize_potential()
 
 func generate_random_name() -> String:
 	var first_names = ["Aeliana", "Borin", "Caelen", "Dara", "Elowen", "Finn", "Gilda", "Hamon", "Iris", "Joren", "Kira", "Lael", "Mira", "Nolan", "Orin", "Piper", "Quinn", "Raven", "Sera", "Thane", "Uma", "Vex", "Wren", "Xara", "Yara", "Zephyr"]
@@ -650,4 +653,69 @@ func get_class_icon() -> String:
 		"Attacker" : 
 			return "⚔️"
 		_: return "no_icon"
+
+#region Training Potential System
+func calculate_max_potential() -> int:
+	"""Calculate maximum training potential based on rank and quality"""
+	var base_potential = 3  # Base potential for all characters
+	
+	# Add potential based on rank
+	var rank_potential = {
+		Rank.F: 0,
+		Rank.E: 1,
+		Rank.D: 2,
+		Rank.C: 3,
+		Rank.B: 4,
+		Rank.A: 5,
+		Rank.S: 6,
+		Rank.SS: 7,
+		Rank.SSS: 8
+	}
+	
+	# Add potential based on quality
+	var quality_potential = {
+		Quality.ONE_STAR: 0,
+		Quality.TWO_STAR: 1,
+		Quality.THREE_STAR: 2
+	}
+	
+	return base_potential + rank_potential[rank] + quality_potential[quality]
+
+func initialize_potential():
+	"""Initialize training potential when character is created or promoted"""
+	max_training_potential = calculate_max_potential()
+	training_potential = max_training_potential
+
+func get_available_potential() -> int:
+	"""Get current available training potential"""
+	return training_potential
+
+func use_potential(amount: int) -> bool:
+	"""Use training potential, returns true if successful"""
+	if training_potential >= amount:
+		training_potential -= amount
+		return true
+	return false
+
+func restore_potential(amount: int):
+	"""Restore training potential (up to max)"""
+	training_potential = min(max_training_potential, training_potential + amount)
+
+func reset_potential():
+	"""Reset training potential to maximum"""
+	training_potential = max_training_potential
+
+func on_rank_up():
+	"""Called when character ranks up - increases potential"""
+	var old_max = max_training_potential
+	max_training_potential = calculate_max_potential()
+	# Add the difference to current potential
+	training_potential += (max_training_potential - old_max)
+
+func on_quality_upgrade():
+	"""Called when character quality is upgraded - increases potential"""
+	var old_max = max_training_potential
+	max_training_potential = calculate_max_potential()
+	# Add the difference to current potential
+	training_potential += (max_training_potential - old_max)
 #endregion

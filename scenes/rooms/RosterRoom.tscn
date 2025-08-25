@@ -65,14 +65,17 @@ size_flags_vertical = 3
 [node name="RosterList" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.66
 
 [node name="RosterScroll" type="ScrollContainer" parent="VBoxContainer/RoomContainer/MainContent/RosterList"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="RosterVBox" type="VBoxContainer" parent="VBoxContainer/RoomContainer/MainContent/RosterList/RosterScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.05
 
 [node name="AdventurerInspectionPanel" parent="VBoxContainer/RoomContainer/MainContent" instance=ExtResource("3_7vkpg")]
 layout_mode = 2

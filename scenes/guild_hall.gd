@@ -6,6 +6,7 @@ extends Control
 @export var room_container: Control
 @export var navigation_panel: Control
 @export var resources_display: Label
+@export var inventory_button: Button
 
 # Town Map reference
 @export var town_map: Control
@@ -42,6 +43,10 @@ func _ready():
 	GuildManager.enter_room("Main Hall")
 	update_ui()
 	
+	# Refresh navigation to include any unlocked rooms
+	if navigation_panel and navigation_panel.has_method("refresh_dynamic_navigation"):
+		navigation_panel.refresh_dynamic_navigation()
+	
 	# Set initial navigation context to main hall
 	call_deferred("update_navigation_context", "main_hall")
 #endregion
@@ -63,7 +68,22 @@ func apply_responsive_layout():
 	# Load ResponsiveLayout class if available
 	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
 	if responsive_layout_script:
+		# Apply to the main guild hall
 		responsive_layout_script.convert_scene_to_responsive(self, responsive_layout_script.ConversionMode.SMART_GRID)
+		
+		# Specifically apply to room container to ensure all rooms are properly scaled
+		if room_container:
+			responsive_layout_script.convert_scene_to_responsive(room_container, responsive_layout_script.ConversionMode.SMART_GRID)
+			
+			# Apply to all child rooms in the container
+			for child in room_container.get_children():
+				apply_responsive_layout_to_room(child)
+
+func apply_responsive_layout_to_room(room_instance: Node):
+	"""Apply responsive layout to a specific room instance"""
+	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	if responsive_layout_script and room_instance is Control:
+		responsive_layout_script.convert_scene_to_responsive(room_instance, responsive_layout_script.ConversionMode.SMART_GRID)
 
 func _on_viewport_size_changed():
 	"""Handle viewport size changes"""
@@ -73,6 +93,9 @@ func _on_viewport_size_changed():
 func _on_ui_scale_changed(new_scale: float):
 	"""Handle UI scale changes from SignalBus"""
 	update_scale_button_states(new_scale)
+	
+	# Reapply responsive layout to room container when UI scale changes
+	call_deferred("apply_responsive_layout")
 #endregion
 
 #region UI Setup and Connections
@@ -99,6 +122,10 @@ func setup_ui_connections():
 		load_button.pressed.connect(_on_load_pressed)
 	if new_game_button:
 		new_game_button.pressed.connect(_on_new_game_pressed)
+	
+	# Inventory button
+	if inventory_button:
+		inventory_button.pressed.connect(_on_inventory_button_pressed)
 
 func setup_signal_connections():
 	"""Setup signal connections for the guild hall"""
@@ -140,10 +167,20 @@ func update_resource_display():
 		return
 	
 	var resources = GuildManager.get_guild_status_summary().resources
-	resources_display.text = "Resources: Influence: %d | Gold: %d | Food: %d | Materials: %d | Armor: %d | Weapons: %d" % [
+	var inventory = GuildManager.get_inventory()
+	
+	var inventory_text = ""
+	if inventory:
+		inventory_text = " | Inventory: %d/%d" % [inventory.filled_slots, inventory.total_slots]
+	
+	resources_display.text = "Resources: Influence: %d | Gold: %d | Food: %d | Materials: %d | Armor: %d | Weapons: %d%s" % [
 		resources.influence, resources.gold, resources.food, 
-		resources.building_materials, resources.armor, resources.weapons
+		resources.building_materials, resources.armor, resources.weapons, inventory_text
 	]
+	
+	# Update inventory button color based on usage
+	if inventory_button and inventory:
+		inventory_button.modulate = inventory.get_usage_color()
 
 func update_room_display():
 	"""Update the room display based on current room"""
@@ -181,6 +218,8 @@ func update_room_display():
 			room_scene_path = "res://scenes/rooms/QuestsRoom.tscn"
 		"Recruitment":
 			room_scene_path = "res://scenes/rooms/RecruitmentRoom.tscn"
+		"Training Room":
+			room_scene_path = "res://scenes/rooms/TrainingRoom.tscn"
 		"Merchant's Guild":
 			room_scene_path = "res://scenes/rooms/MerchantsGuildRoom.tscn"
 		"Blacksmith's Guild":
@@ -192,6 +231,9 @@ func update_room_display():
 		var room_scene = load(room_scene_path)
 		var room_instance = room_scene.instantiate()
 		room_container.add_child(room_instance)
+		
+		# Apply responsive layout to the new room
+		apply_responsive_layout_to_room(room_instance)
 		
 		# Enter the room
 		if room_instance is BaseRoom:
@@ -206,7 +248,11 @@ func get_current_room_context() -> String:
 
 func update_navigation_context(context: String):
 	"""Update the navigation component with the current context"""
-	if navigation_panel and navigation_panel.has_method("set_current_tab"):
+	if navigation_panel and navigation_panel.has_method("set_current_room"):
+		# Convert context back to room name format
+		var room_name = context.replace("_", " ").capitalize()
+		navigation_panel.set_current_room(room_name)
+	elif navigation_panel and navigation_panel.has_method("set_current_tab"):
 		navigation_panel.set_current_tab(context)
 #endregion
 
@@ -216,6 +262,13 @@ func _on_room_changed(from_room: String, to_room: String):
 	print("Room changed from %s to %s" % [from_room, to_room])
 	update_ui()
 	update_navigation_context(to_room.to_lower().replace(" ", "_"))
+	
+	# Refresh navigation to ensure all unlocked rooms are available
+	if navigation_panel and navigation_panel.has_method("refresh_dynamic_navigation"):
+		navigation_panel.refresh_dynamic_navigation()
+	
+	# Apply responsive layout to the new room after a short delay to ensure it's fully loaded
+	call_deferred("apply_responsive_layout")
 
 func _on_room_unlocked(room_name: String):
 	"""Handle room unlocking"""
@@ -269,6 +322,11 @@ func _on_load_pressed():
 	"""Handle load button press"""
 	GuildManager.load_game()
 	update_ui()
+	
+	# Refresh navigation to include any unlocked rooms from save
+	if navigation_panel and navigation_panel.has_method("refresh_dynamic_navigation"):
+		navigation_panel.refresh_dynamic_navigation()
+	
 	print("Game loaded!")
 
 func _on_new_game_pressed():
@@ -287,6 +345,9 @@ func _on_scale_05_pressed():
 	
 	print("UI Scale set to: 0.5")
 	update_scale_button_states(0.5)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func _on_scale_075_pressed():
 	"""Set UI scale to 0.75"""
@@ -298,6 +359,9 @@ func _on_scale_075_pressed():
 	
 	print("UI Scale set to: 0.75")
 	update_scale_button_states(0.75)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func _on_scale_1_pressed():
 	"""Set UI scale to 1.0"""
@@ -309,6 +373,9 @@ func _on_scale_1_pressed():
 	
 	print("UI Scale set to: 1.0")
 	update_scale_button_states(1.0)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func _on_scale_15_pressed():
 	"""Set UI scale to 1.5"""
@@ -320,6 +387,9 @@ func _on_scale_15_pressed():
 	
 	print("UI Scale set to: 1.5")
 	update_scale_button_states(1.5)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func _on_scale_2_pressed():
 	"""Set UI scale to 2.0"""
@@ -331,6 +401,9 @@ func _on_scale_2_pressed():
 	
 	print("UI Scale set to: 2.0")
 	update_scale_button_states(2.0)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func _on_scale_3_pressed():
 	"""Set UI scale to 3.0"""
@@ -342,6 +415,9 @@ func _on_scale_3_pressed():
 	
 	print("UI Scale set to: 3.0")
 	update_scale_button_states(3.0)
+	
+	# Apply responsive layout to ensure proper scaling
+	call_deferred("apply_responsive_layout")
 
 func update_scale_button_states(current_scale: float):
 	"""Update button states to show which scale is currently active"""
@@ -395,4 +471,37 @@ func _show_new_game_confirmation():
 		print("New game started!")
 	)
 	confirm.popup_centered()
+
+func _on_inventory_button_pressed():
+	"""Handle inventory button press"""
+	if not GuildManager or not GuildManager.get_inventory_ui():
+		return
+	
+	var inventory_ui = GuildManager.get_inventory_ui()
+	var current_room = GuildManager.get_current_room()
+	
+	# Check if inventory is already visible
+	if inventory_ui.visible:
+		inventory_ui.visible = false
+		return
+	
+	# Check if we're in a room that already displays inventory
+	var room_instance = get_current_room_instance()
+	if room_instance and room_instance.has_method("has_inventory_display"):
+		if room_instance.has_inventory_display():
+			return  # Don't show inventory if room already has it
+	
+	# Show inventory for current room
+	inventory_ui.display_inventory(current_room)
+	inventory_ui.visible = true
+	
+	# Add inventory UI to scene if not already added
+	if not inventory_ui.get_parent():
+		add_child(inventory_ui)
+
+func get_current_room_instance() -> Node:
+	"""Get the current room instance"""
+	if room_container and room_container.get_child_count() > 0:
+		return room_container.get_child(0)
+	return null
 #endregion

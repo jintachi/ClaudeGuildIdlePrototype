@@ -133,7 +133,12 @@ func create_character_panel(character: Character) -> Control:
 	substats_label.text = substat_text + (", ".join(skills) if not skills.is_empty() else "None")
 	vbox.add_child(substats_label)
 	
-	# Status
+	# Status section - create an HBox to hold status and injury recovery side by side
+	var status_hbox = HBoxContainer.new()
+	status_hbox.name = "Status"
+	status_hbox.add_theme_constant_override("separation", 10)
+	
+	# Status label
 	var status_label = Label.new()
 	if character.is_injured():
 		status_label.text = "INJURED"
@@ -154,13 +159,15 @@ func create_character_panel(character: Character) -> Control:
 			Character.CharacterStatus.WAITING_TO_PROGRESS:
 				status_label.modulate = Color.ORANGE
 	
-	vbox.add_child(status_label)
+	status_hbox.add_child(status_label)
 	
-	# Add injury recovery progress bar if character is injured
+	# Add injury recovery container if injured
 	if character.is_injured():
 		var injury_container = create_injury_recovery_bar(character)
-		vbox.add_child(injury_container)
+		status_hbox.add_child(injury_container)
 	
+	vbox.add_child(status_hbox)
+
 	return panel_button
 
 func create_injury_recovery_bar(character: Character) -> Control:
@@ -278,18 +285,23 @@ func update_injury_recovery_progress(delta: float):
 		if child.has_meta("character"):
 			var character = child.get_meta("character")
 			if character and character.is_injured():
-				# Find the injury recovery container in the panel
-				var inner_panel = child.get_child(0)
+				# Find the injury recovery container in the new Status VBox structure
+				var inner_panel = child.get_child(0)  # The Panel inside the Button
 				if not inner_panel or not inner_panel is Panel:
 					continue
 				
-				var vbox = inner_panel.get_child(0)
-				if not vbox or not vbox is VBoxContainer:
+				var main_vbox = inner_panel.get_child(0)  # Main VBoxContainer
+				if not main_vbox or not main_vbox is VBoxContainer:
 					continue
 				
-				# Look for the injury recovery container (it should be the last child)
-				for i in range(vbox.get_child_count()):
-					var recovery_container = vbox.get_child(i)
+				# Find the Status HBox (should be the last child)
+				var status_hbox = main_vbox.get_child(main_vbox.get_child_count() - 1)
+				if not status_hbox or not status_hbox is HBoxContainer or status_hbox.name != "Status":
+					continue
+				
+				# Look for the injury recovery container in the Status HBox
+				for i in range(status_hbox.get_child_count()):
+					var recovery_container = status_hbox.get_child(i)
 					if recovery_container and recovery_container.has_method("update_injury_recovery"):
 						recovery_container.update_injury_recovery(character)
 						break

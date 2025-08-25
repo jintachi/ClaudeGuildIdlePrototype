@@ -7,10 +7,14 @@ extends BaseRoom
 @export var available_quests_list: VBoxContainer
 @export var quest_details_panel: VBoxContainer
 @export var start_quest_button: Button
+@export var quest_inventory_button: Button
 @export var quest_info_label: Label
 @export var stats_comparison_table: VBoxContainer
 @export var guild_roster_grid: GridContainer
 @export var quest_card:PackedScene
+
+# Quest inventory panel
+var quest_inventory_panel: QuestInventoryPanel = null
 
 
 # Quest and party state
@@ -31,9 +35,15 @@ func setup_room_specific_ui():
 		GuildManager.quest_card_moved.connect(_on_quest_card_moved)
 		SignalBus.quest_card_selected.connect(_on_quest_card_selected)
 	
+	# Connect to character status change signals
+	if SignalBus:
+		SignalBus.character_status_changed.connect(_on_character_status_changed)
+	
 	# Connect UI buttons
 	if start_quest_button:
 		start_quest_button.pressed.connect(_on_start_quest_button_pressed)
+	if quest_inventory_button:
+		quest_inventory_button.pressed.connect(_on_quest_inventory_button_pressed)
 
 func on_room_entered():
 	"""Called when entering the quests room"""
@@ -504,6 +514,10 @@ func update_start_quest_button_state():
 	var assignment_check = quest.can_assign_party(current_party)
 	start_quest_button.disabled = not assignment_check.can_assign
 	start_quest_button.text = "Start Quest" if assignment_check.can_assign else "Cannot Start: " + str(assignment_check.reasons[0] if not assignment_check.reasons.is_empty() else "Unknown")
+	
+	# Enable inventory button when a quest is selected
+	if quest_inventory_button:
+		quest_inventory_button.disabled = current_selected_quest_card == null
 
 func create_party_selection_panel(character: Character) -> Control:
 	"""Create a party selection panel for a character"""
@@ -565,18 +579,71 @@ func update_party_selection_panel_states():
 func update_party_selection_panel_state(panel: Control, character: Character):
 	"""Update the visual state of a party selection panel"""
 	var is_in_party = current_party.has(character)
+	var button = panel.get_child(0) if panel.get_child_count() > 0 else null
 	
-	# Update panel appearance based on selection state
+	# Get character status and determine if character is available
+	var character_status = get_character_status(character)
+	var is_available = character_status == "available"
+	
+	# Update button disabled state based on availability
+	if button and button is Button:
+		button.disabled = not is_available
+	
+	# Update panel appearance based on selection state and status
 	if is_in_party:
 		panel.modulate = Color.GREEN
 	else:
-		panel.modulate = Color.WHITE
+		# Apply status-based modulation
+		match character_status:
+			"injured":
+				panel.modulate = Color.RED
+			"on_quest":
+				panel.modulate = Color.YELLOW
+			"awaiting":
+				panel.modulate = Color.BLUE
+			_:
+				panel.modulate = Color.WHITE
+
+func get_character_status(character: Character) -> String:
+	"""Get the current status of a character"""
+	# Check for injuries first (highest priority)
+	if character.is_injured():
+		return "injured"
+	
+	# Check for quest status
+	if character.is_on_quest():
+		return "on_quest"
+	
+	# Check for awaiting status (for future mechanics)
+	if character.is_waiting_to_progress():
+		return "awaiting"
+	
+	# Check for other status conditions
+	match character.character_status:
+		Character.CharacterStatus.WAITING_FOR_RESULTS:
+			return "awaiting"
+		Character.CharacterStatus.WAITING_TO_PROGRESS:
+			return "awaiting"
+		Character.CharacterStatus.ON_QUEST:
+			return "on_quest"
+		_:
+			return "available"
 
 # Signal handlers
 func _on_quest_started(quest: Quest):
 	"""Handle when a quest is started"""
 	# Refresh quest display
 	update_room_display()
+
+func _on_character_status_changed(character: Character):
+	"""Handle when a character's status changes - update only the specific character panel"""
+	# Find and update the specific character panel without redrawing the entire scene
+	for child in guild_roster_grid.get_children():
+		if child.has_meta("character"):
+			var panel_character = child.get_meta("character")
+			if panel_character == character:
+				update_party_selection_panel_state(child, character)
+				break
 
 func _on_quest_completed(quest: Quest):
 	"""Handle when a quest is completed"""
@@ -609,6 +676,37 @@ func _on_start_quest_button_pressed():
 			reset_quest_tab_to_default()
 			# Update the display to show replacement quest
 			update_room_display()
+
+func _on_quest_inventory_button_pressed():
+	"""Handle quest inventory button press"""
+	if not current_selected_quest_card:
+		return
+	
+	# Create quest inventory panel if it doesn't exist
+	if not quest_inventory_panel:
+		var quest_inventory_scene = preload("res://ui/components/QuestInventoryPanel.tscn")
+		quest_inventory_panel = quest_inventory_scene.instantiate()
+		quest_inventory_panel.items_confirmed.connect(_on_quest_items_confirmed)
+		quest_inventory_panel.panel_closed.connect(_on_quest_inventory_panel_closed)
+		add_child(quest_inventory_panel)
+	
+	# Setup the panel for the current quest
+	var quest = current_selected_quest_card.get_quest()
+	var inventory = GuildManager.get_inventory()
+	quest_inventory_panel.setup_for_quest(quest, inventory)
+	quest_inventory_panel.visible = true
+
+func _on_quest_items_confirmed(items: Array[InventoryItem], total_cost: int):
+	"""Handle when quest items are confirmed"""
+	print("Quest items confirmed: ", items.size(), " items, total cost: ", total_cost)
+	# TODO: Store the selected items for the quest
+	# TODO: Update quest success rate based on items
+	# TODO: Update quest cost display
+
+func _on_quest_inventory_panel_closed():
+	"""Handle when quest inventory panel is closed"""
+	# Panel is already hidden, no additional cleanup needed
+	pass
 
 func save_room_state():
 	"""Save quests room state"""

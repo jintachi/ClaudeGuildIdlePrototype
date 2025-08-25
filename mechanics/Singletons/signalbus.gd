@@ -11,6 +11,7 @@ extends Node
 
 #region Guild Hall Signals
 # Guild hall signals removed - were unused
+signal room_unlocked(room_name:String)
 #endregion
 
 #region Character Management Signals
@@ -71,7 +72,7 @@ signal ui_scale_changed
 signal keybinding_changed(action_name: String, binding)
 signal keybindings_reset
 # signal action_executed(action_name: String) - removed, was unused
-# signal scene_navigation_requested(from_scene: String, to_scene: String) - removed, was unused
+signal scene_navigation_requested(from_scene: String, to_scene: String) #- removed, was unused
 signal map_key_pressed
 #endregion
 

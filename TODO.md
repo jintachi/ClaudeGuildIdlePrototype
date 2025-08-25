@@ -19,6 +19,7 @@
 - [x] Fix completed quest display showing current injury state instead of completion-time injury state
 - [x] Add in-game UI scaling controls (preset scale buttons: 0.5, 0.75, 1.0, 1.5, 2.0, 3.0)
 - [x] Fix UI scaling runtime errors (enum access and theme property access)
+- [x] Implement Training Room with character potential system, training courses, and compatibility bonuses
 
 ## Current Tasks
 - [x] Fix stats comparison table update issues between quest selection and party management
@@ -156,8 +157,8 @@
   - [ ] Create quality-based character potential and growth rates
 
 ### Guild Hall Progression
-- [ ] **Training Facilities**
-  - [ ] Add training room for manual stat improvement
+- [x] **Training Facilities**
+  - [x] Add training room for manual stat improvement
   - [ ] Create library for skill book storage and research
   - [ ] Implement workshop for equipment crafting and enhancement
   - [ ] Add medical bay for injury treatment and prevention

@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bee8khvhco8e" path="res://scenes/rooms/town_map.gd" id="1_townmap"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
-[node name="TownMap" type="Control" node_paths=PackedStringArray("main_hall_button", "roster_button", "quests_button", "recruitment_button", "merchants_guild_button", "blacksmiths_guild_button", "healers_guild_button")]
+[node name="TownMap" type="Control" node_paths=PackedStringArray("main_hall_button", "roster_button", "quests_button", "recruitment_button", "training_room_button", "merchants_guild_button", "blacksmiths_guild_button", "healers_guild_button")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -17,6 +17,7 @@ main_hall_button = NodePath("Background/MapContainer/AdventurersGuildSection/Adv
 roster_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/RosterButton")
 quests_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/QuestsButton")
 recruitment_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/RecruitmentButton")
+training_room_button = NodePath("Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons/TrainingRoomButton")
 merchants_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/MerchantsGuildButton")
 blacksmiths_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/BlacksmithsGuildButton")
 healers_guild_button = NodePath("Background/MapContainer/ExternalGuildsSection/ExternalGuildButtons/HealersGuildButton")
@@ -83,6 +84,11 @@ text = "Quest Counter"
 layout_mode = 2
 tooltip_text = "Hire new guild members"
 text = "Recruitment Office"
+
+[node name="TrainingRoomButton" type="Button" parent="Background/MapContainer/AdventurersGuildSection/AdventurersGuildButtons"]
+layout_mode = 2
+tooltip_text = "Train your guild members"
+text = "Training Room"
 
 [node name="ExternalGuildsSection" type="VBoxContainer" parent="Background/MapContainer"]
 layout_mode = 2
