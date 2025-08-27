@@ -1,0 +1,87 @@
+[gd_scene load_steps=3 format=3 uid="uid://cao5be8mbga4o"]
+
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
+[ext_resource type="Script" uid="uid://dybfvc1re01bw" path="res://scenes/rooms/main_hall_room.gd" id="2_4wxht"]
+
+[node name="MainHallRoom" type="Control" node_paths=PackedStringArray("active_quests_panel", "awaiting_completion_panel", "promotion_panel", "room_container")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2")
+script = ExtResource("2_4wxht")
+active_quests_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll/ActiveQuestsVBox")
+awaiting_completion_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel")
+promotion_panel = NodePath("RoomContainer/RoomContent/Body/PromotionPanel")
+room_container = NodePath("RoomContainer")
+
+[node name="RoomContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RoomContent" type="VBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Body" type="HBoxContainer" parent="RoomContainer/RoomContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="QuestsContainer" type="HBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ActiveQuestsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActiveQuestsLabel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel"]
+layout_mode = 2
+text = "Active Quests"
+horizontal_alignment = 1
+
+[node name="ActiveQuestsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActiveQuestsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AwaitingCompletionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QuestCompletionPanel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel"]
+layout_mode = 2
+text = "Quest Completion Panel"
+horizontal_alignment = 1
+
+[node name="AwaitingScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PromotionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.25
+
+[node name="PromotionLabel" type="Label" parent="RoomContainer/RoomContent/Body/PromotionPanel"]
+layout_mode = 2
+text = "Characters Ready for Promotion"
+horizontal_alignment = 1
+
+[node name="PromotionScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/PromotionPanel"]
+layout_mode = 2
+
+[node name="PromotionVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PromotionPanel/PromotionScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

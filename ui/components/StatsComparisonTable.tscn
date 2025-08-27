@@ -1,10 +1,9 @@
 [gd_scene load_steps=3 format=3 uid="uid://dm8vh6t4daxkl"]
 
-[ext_resource type="Script" path="res://ui/components/stats_comparison_table.gd" id="1_m3k8v"]
+[ext_resource type="Script" uid="uid://bdj5s5brsdrfs" path="res://ui/components/stats_comparison_table.gd" id="1_m3k8v"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_h4d9k"]
 
 [node name="StatsComparisonTable" type="VBoxContainer"]
-layout_mode = 2
 size_flags_vertical = 0
 theme = ExtResource("2_h4d9k")
 script = ExtResource("1_m3k8v")

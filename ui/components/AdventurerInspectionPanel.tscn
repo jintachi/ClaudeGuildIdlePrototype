@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3 uid="uid://nd6jwxmofr8v"]
 
-[ext_resource type="Script" uid="uid://bvn8x7y2q3m4p" path="res://ui/components/adventurer_inspection_panel.gd" id="1_inspection"]
+[ext_resource type="Script" uid="uid://bvn8x7y2q3m4p" path="res://ui/components/adventurer_inspection_panel.gd" id="2_experience"]
 
-[node name="AdventurerInspectionPanel" type="Control" node_paths=PackedStringArray("character_name_label", "tab_container", "class_info_label", "level_info_label", "health_stat_label", "defense_stat_label", "mana_stat_label", "spell_power_stat_label", "attack_power_stat_label", "movement_speed_stat_label", "luck_stat_label", "gathering_stat_label", "hunting_stat_label", "diplomacy_stat_label", "caravan_stat_label", "escort_stat_label", "stealth_stat_label", "odd_jobs_stat_label", "quests_completed_label", "quests_failed_label", "success_rate_label", "total_gold_label", "total_experience_label", "total_influence_label", "total_injuries_label", "promotions_attempted_label", "promotions_succeeded_label", "promotions_failed_label", "equipment_vbox", "equipment_label", "equipment_descrip")]
+[node name="AdventurerInspectionPanel" type="Control" node_paths=PackedStringArray("character_name_label", "tab_container", "class_info_label", "health_stat_label", "defense_stat_label", "mana_stat_label", "spell_power_stat_label", "attack_power_stat_label", "movement_speed_stat_label", "luck_stat_label", "gathering_stat_label", "hunting_stat_label", "diplomacy_stat_label", "caravan_stat_label", "escort_stat_label", "stealth_stat_label", "odd_jobs_stat_label", "quests_completed_label", "quests_failed_label", "success_rate_label", "total_gold_label", "total_experience_label", "total_influence_label", "total_injuries_label", "promotions_attempted_label", "promotions_succeeded_label", "promotions_failed_label", "equipment_vbox", "equipment_label", "equipment_descrip")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,11 +11,10 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-script = ExtResource("1_inspection")
+script = ExtResource("2_experience")
 character_name_label = NodePath("MainContainer/CharacterName")
 tab_container = NodePath("MainContainer/TabContainer")
 class_info_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox/ClassInfo")
-level_info_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox/LevelInfo")
 health_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/HealthStat")
 defense_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/DefenseStat")
 mana_stat_label = NodePath("MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/CoreStatsVBox/ManaStat")
@@ -101,11 +100,6 @@ layout_mode = 2
 
 [node name="BasicInfoVBox" type="VBoxContainer" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox"]
 layout_mode = 2
-
-[node name="LevelInfo" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox"]
-layout_mode = 2
-size_flags_vertical = 3
-text = "Level: 1 | Experience: 0/10"
 
 [node name="ClassInfo" type="Label" parent="MainContainer/TabContainer/Statistics/ScrollContainer/StatsVBox/BasicInfoVBox"]
 layout_mode = 2

@@ -1,0 +1,122 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvn8x7y2q3m4n"]
+
+[ext_resource type="Script" uid="uid://cd8wku00bg4jb" path="res://scenes/rooms/training_room.gd" id="1_abc12"]
+
+[node name="TrainingRoom" type="Control" node_paths=PackedStringArray("character_grid", "course_list", "selected_character_panel", "course_details_panel", "reroll_button", "start_training_button", "room_container")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_abc12")
+character_grid = NodePath("MainContainer/ContentContainer/LeftPanel/ScrollContainer/CharacterGrid")
+course_list = NodePath("MainContainer/ContentContainer/MiddlePanel/ScrollContainer/CourseList")
+selected_character_panel = NodePath("MainContainer/ContentContainer/LeftPanel/SelectedCharacterPanel")
+course_details_panel = NodePath("MainContainer/ContentContainer/RightPanel/CourseDetailsPanel")
+reroll_button = NodePath("MainContainer/ContentContainer/RightPanel/VBoxContainer/RerollButton")
+start_training_button = NodePath("MainContainer/ContentContainer/RightPanel/VBoxContainer/StartTrainingButton")
+room_name = "Training Hall"
+room_description = "This is the room where adventurers come to train!"
+room_container = NodePath(".")
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Header" type="HBoxContainer" parent="MainContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Training Room"
+horizontal_alignment = 1
+
+[node name="ContentContainer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.33
+
+[node name="CharacterSelectionLabel" type="Label" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+text = "Select Character:"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+size_flags_stretch_ratio = 0.1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="CharacterGrid" type="GridContainer" parent="MainContainer/ContentContainer/LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 3
+
+[node name="SelectedCharacterPanel" type="Panel" parent="MainContainer/ContentContainer/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MiddlePanel" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.33
+
+[node name="CourseSelectionLabel" type="Label" parent="MainContainer/ContentContainer/MiddlePanel"]
+layout_mode = 2
+text = "Available Training Courses:"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainContainer/ContentContainer/MiddlePanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="CourseList" type="VBoxContainer" parent="MainContainer/ContentContainer/MiddlePanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RightPanel" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.33
+
+[node name="VBoxContainer" type="HBoxContainer" parent="MainContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+
+[node name="RerollButton" type="Button" parent="MainContainer/ContentContainer/RightPanel/VBoxContainer"]
+layout_mode = 2
+text = "Reroll Courses (10 gold)"
+
+[node name="StartTrainingButton" type="Button" parent="MainContainer/ContentContainer/RightPanel/VBoxContainer"]
+layout_mode = 2
+disabled = true
+text = "Start Training"
+
+[node name="CourseDetailsPanel" type="Panel" parent="MainContainer/ContentContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[connection signal="pressed" from="MainContainer/ContentContainer/RightPanel/VBoxContainer/RerollButton" to="." method="_on_reroll_button_pressed"]
+[connection signal="pressed" from="MainContainer/ContentContainer/RightPanel/VBoxContainer/StartTrainingButton" to="." method="_on_start_training_button_pressed"]

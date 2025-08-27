@@ -25,7 +25,7 @@ static func show_quest_completion_popup(quest: Quest, parent: Node):
 	
 	## TODO: Add a series of tabs or a cleaner display for which units got EXP, and any levelup gains, maybe a click-through series of tabs for each character.
 	for _char in quest.assigned_party:
-		_char.is_on_quest = false
+		_char.set_status(Character.CharacterStatus.AVAILABLE)
 	
 	var success_rate = float(success_count) / party_info.size()
 	var result_text = "QUEST COMPLETED!\n\n"

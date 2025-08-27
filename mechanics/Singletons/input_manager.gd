@@ -3,6 +3,9 @@ extends Node
 ## Input Manager
 ## Centralized input handling and keybinding management system
 
+# Signals
+signal map_key_pressed
+
 # Default keybindings
 var default_keybindings = {
 	"options_menu": KEY_ESCAPE,
@@ -10,7 +13,8 @@ var default_keybindings = {
 	"quick_save": [KEY_CTRL, KEY_S],
 	"quick_load": [KEY_CTRL, KEY_L],
 	"toggle_fullscreen": KEY_F11,
-	"screenshot": KEY_F12
+	"screenshot": KEY_F12,
+	"map": KEY_M
 }
 
 # Current keybindings (loaded from settings)
@@ -92,6 +96,8 @@ func execute_action(action_name: String):
 				toggle_fullscreen()
 			"screenshot":
 				take_screenshot()
+			"map":
+				open_map()
 
 func setup_default_actions():
 	# Register default action callbacks with proper callable
@@ -329,6 +335,11 @@ func take_screenshot():
 	var filename = "user://screenshot_" + timestamp + ".png"
 	screenshot.save_png(filename)
 	print("Screenshot saved: ", filename)
+
+func open_map():
+	"""Open the game map"""
+	if SignalBus:
+		SignalBus.map_key_pressed.emit()
 
 func _on_settings_applied():
 	"""Reload keybindings when settings are applied"""

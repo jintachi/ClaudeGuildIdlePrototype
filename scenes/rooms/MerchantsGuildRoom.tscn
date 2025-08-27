@@ -1,0 +1,99 @@
+[gd_scene load_steps=3 format=3 uid="uid://bm2n4p6q8r0s"]
+
+[ext_resource type="Script" uid="uid://dn5p7q9s1t3u" path="res://scenes/rooms/merchants_guild_room.gd" id="1_merchants"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="MerchantsGuildRoom" type="Control" node_paths=PackedStringArray("shop_items_panel", "player_inventory_panel", "trade_contracts_panel", "gold_display")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_merchants")
+shop_items_panel = NodePath("RoomContainer/RoomContent/Body/ShopPanel/ShopItemsScroll/ShopItemsVBox")
+player_inventory_panel = NodePath("RoomContainer/RoomContent/Body/InventoryPanel/InventoryScroll/InventoryVBox")
+trade_contracts_panel = NodePath("RoomContainer/RoomContent/Body/ContractsPanel/ContractsScroll/ContractsVBox")
+gold_display = NodePath("RoomContainer/RoomHeader/GoldDisplay")
+
+[node name="RoomContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RoomHeader" type="HBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+
+[node name="RoomTitle" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Merchant's Guild"
+horizontal_alignment = 1
+
+[node name="GoldDisplay" type="Label" parent="RoomContainer/RoomHeader"]
+layout_mode = 2
+text = "Gold: 0"
+horizontal_alignment = 2
+
+[node name="RoomContent" type="VBoxContainer" parent="RoomContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Body" type="HBoxContainer" parent="RoomContainer/RoomContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShopPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ShopLabel" type="Label" parent="RoomContainer/RoomContent/Body/ShopPanel"]
+layout_mode = 2
+text = "Merchant's Shop"
+horizontal_alignment = 1
+
+[node name="ShopItemsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/ShopPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ShopItemsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/ShopPanel/ShopItemsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InventoryPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InventoryLabel" type="Label" parent="RoomContainer/RoomContent/Body/InventoryPanel"]
+layout_mode = 2
+text = "Guild Inventory"
+horizontal_alignment = 1
+
+[node name="InventoryScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/InventoryPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InventoryVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/InventoryPanel/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContractsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContractsLabel" type="Label" parent="RoomContainer/RoomContent/Body/ContractsPanel"]
+layout_mode = 2
+text = "Trade Contracts"
+horizontal_alignment = 1
+
+[node name="ContractsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/ContractsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ContractsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/ContractsPanel/ContractsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3

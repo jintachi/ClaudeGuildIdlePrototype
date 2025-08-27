@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3 uid="uid://b32shg06prx87"]
+
+[ext_resource type="Script" uid="uid://jykbcsrkysrp" path="res://ui/components/experience_bar.gd" id="1_experience"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_guvxm"]
+
+[node name="ExperienceBar" type="VBoxContainer" node_paths=PackedStringArray("level_label", "experience_label", "progress_bar")]
+size_flags_horizontal = 3
+mouse_filter = 2
+script = ExtResource("1_experience")
+level_label = NodePath("ExperienceInfo/LevelLabel")
+experience_label = NodePath("ExperienceInfo/ExperienceLabel")
+progress_bar = NodePath("MarginContainer/ProgressBar")
+
+[node name="ExperienceInfo" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="LevelLabel" type="Label" parent="ExperienceInfo"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Level 1"
+
+[node name="ExperienceLabel" type="Label" parent="ExperienceInfo"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0/10 XP"
+horizontal_alignment = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme = ExtResource("2_guvxm")
+
+[node name="ProgressBar" type="ProgressBar" parent="MarginContainer"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+size_flags_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_guvxm")
+show_percentage = false
+
+[node name="ProgressFill" type="Panel" parent="MarginContainer/ProgressBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+theme = ExtResource("2_guvxm")

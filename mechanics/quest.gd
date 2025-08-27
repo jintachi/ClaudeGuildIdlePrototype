@@ -16,6 +16,7 @@ enum QuestType {
 enum QuestStatus {
 	NOTSTARTED,
 	INPROGRESS,
+	AWAITING_COMPLETION,
 	COMPLETED,
 	FAILED
 }
@@ -68,12 +69,17 @@ enum QuestRank {
 @export var success_rate: float = 0.0
 @export var individual_checks: Array[bool] = []
 @export var active_quest_status = QuestStatus.NOTSTARTED
+@export var final_success_rate: float = 0.0  # Stored for when results are accepted
 
 # Quest completion snapshot - stores injury state at completion time
 @export var completion_injuries: Dictionary = {}  # character_id -> injury_type
+# Quest completion snapshot - stores level up information
+@export var completion_level_ups: Dictionary = {}  # character_id -> level_up_data
+@export var completion_stats: Dictionary = {}  # character_id -> stats_at_completion
 #endregion
 
 signal quest_completed(quest:Quest)
+signal quest_finalized(quest:Quest)
 
 func _init():
 	generate_random_quest()
@@ -101,6 +107,7 @@ func generate_quest_from_template(type: QuestType, rank: QuestRank):
 	var rank_multiplier = get_rank_multiplier()
 	var base_duration = get_base_duration_for_type()
 	duration = base_duration * rank_multiplier
+		
 	difficulty_modifier = 1.0 + (rank * 0.15)  # Each rank adds 15% difficulty
 	
 	# Generate requirements based on type and rank
@@ -354,7 +361,7 @@ func start_quest(party: Array[Character]) -> bool:
 	
 	assigned_party = party.duplicate()
 	for character in assigned_party:
-		character.is_on_quest = true
+		character.set_status(Character.CharacterStatus.ON_QUEST)
 	
 	self.active_quest_status = QuestStatus.INPROGRESS
 	start_time = Time.get_unix_time_from_system()
@@ -374,9 +381,13 @@ func calculate_success_rate():
 	# Apply class abilities and bonuses
 	var party_modifiers = calculate_party_modifiers()
 	
-	# Base success rate from stat comparison
+	# Enhanced success rate calculation with stat overage bonuses
 	var stat_ratio = float(base_power) / max(required_power, 1)
 	var base_success = min(0.95, stat_ratio * 0.6)  # Cap at 95%, stats contribute 60% max
+	
+	# Apply stat overage bonuses - the more stats exceed requirements, the higher success chance
+	var stat_overage_bonus = calculate_stat_overage_bonus(party_stats)
+	base_success += stat_overage_bonus
 	
 	# Apply difficulty modifier
 	base_success /= difficulty_modifier
@@ -385,6 +396,22 @@ func calculate_success_rate():
 	base_success += party_modifiers
 	
 	success_rate = max(0.05, min(0.95, base_success))  # Clamp between 5% and 95%
+
+func calculate_stat_overage_bonus(party_stats: Dictionary) -> float:
+	"""Calculate bonus success chance based on how much stats exceed requirements"""
+	var bonus = 0.0
+	
+	# Calculate overage for each stat type
+	var health_overage = max(0, party_stats.health - min_total_health)
+	var defense_overage = max(0, party_stats.defense - min_total_defense)
+	var attack_overage = max(0, party_stats.attack_power - min_total_attack_power)
+	var spell_overage = max(0, party_stats.spell_power - min_total_spell_power)
+	
+	# Convert overage to bonus (each 10 points of overage = 1% bonus, capped at 15%)
+	var total_overage = health_overage + defense_overage + attack_overage + spell_overage
+	bonus = min(0.15, total_overage * 0.001)  # 0.1% per point, max 15%
+	
+	return bonus
 
 func calculate_party_modifiers() -> float:
 	var modifiers = 0.0
@@ -399,15 +426,82 @@ func calculate_party_modifiers() -> float:
 				if character.rank >= Character.Rank.B:
 					modifiers += 0.03  # "Damage Shield" ability
 		
-		# Substat bonus for relevant quest type
+		# Enhanced substat bonus for relevant quest type
 		var substat_name = get_substat_name_for_quest_type()
 		var substat_value = character.get(substat_name)
-		modifiers += substat_value * 0.01  # Each substat point adds 1%
+		var substat_requirement = min_substat_requirement
+		
+		# Base substat bonus (each substat point adds 1%)
+		modifiers += substat_value * 0.01
+		
+		# Additional bonus for characters with substat higher than requirement
+		if substat_value > substat_requirement:
+			var substat_overage = substat_value - substat_requirement
+			# Each point over requirement adds 2% bonus (more significant than base)
+			modifiers += substat_overage * 0.02
+	
+	return modifiers
+
+func get_suggested_success_chance(party: Array[Character]) -> float:
+	"""Calculate and return the suggested success chance for a given party (without starting the quest)"""
+	if party.is_empty():
+		return 0.0
+	
+	var party_stats = calculate_party_stats(party)
+	var base_power = party_stats.health + party_stats.defense + party_stats.attack_power + party_stats.spell_power
+	var required_power = min_total_health + min_total_defense + min_total_attack_power + min_total_spell_power
+	
+	# Apply class abilities and bonuses
+	var party_modifiers = calculate_party_modifiers_for_party(party)
+	
+	# Enhanced success rate calculation with stat overage bonuses
+	var stat_ratio = float(base_power) / max(required_power, 1)
+	var base_success = min(0.95, stat_ratio * 0.6)  # Cap at 95%, stats contribute 60% max
+	
+	# Apply stat overage bonuses
+	var stat_overage_bonus = calculate_stat_overage_bonus(party_stats)
+	base_success += stat_overage_bonus
+	
+	# Apply difficulty modifier
+	base_success /= difficulty_modifier
+	
+	# Apply party modifiers
+	base_success += party_modifiers
+	
+	return max(0.05, min(0.95, base_success))  # Clamp between 5% and 95%
+
+func calculate_party_modifiers_for_party(party: Array[Character]) -> float:
+	"""Calculate party modifiers for a given party (without starting the quest)"""
+	var modifiers = 0.0
+	
+	for character in party:
+		# Class-specific bonuses (placeholder for future abilities)
+		match character.character_class:
+			Character.CharacterClass.ATTACKER:
+				if character.rank >= Character.Rank.B:
+					modifiers += 0.05  # "Remove Enemy" ability
+			Character.CharacterClass.TANK:
+				if character.rank >= Character.Rank.B:
+					modifiers += 0.03  # "Damage Shield" ability
+		
+		# Enhanced substat bonus for relevant quest type
+		var substat_name = get_substat_name_for_quest_type()
+		var substat_value = character.get(substat_name)
+		var substat_requirement = min_substat_requirement
+		
+		# Base substat bonus (each substat point adds 1%)
+		modifiers += substat_value * 0.01
+		
+		# Additional bonus for characters with substat higher than requirement
+		if substat_value > substat_requirement:
+			var substat_overage = substat_value - substat_requirement
+			# Each point over requirement adds 2% bonus (more significant than base)
+			modifiers += substat_overage * 0.02
 	
 	return modifiers
 
 func update_quest_progress() -> bool:
-	if active_quest_status == QuestStatus.FAILED:
+	if active_quest_status == QuestStatus.FAILED or active_quest_status == QuestStatus.AWAITING_COMPLETION:
 		return false
 	
 	var current_time = Time.get_unix_time_from_system()
@@ -420,18 +514,19 @@ func update_quest_progress() -> bool:
 	return false
 
 func complete_quest():
-	#if self.active_quest_status == QuestStatus.COMPLETED :
-		#return
+	if self.active_quest_status == QuestStatus.COMPLETED or self.active_quest_status == QuestStatus.AWAITING_COMPLETION:
+		return
 	
 	# Perform individual success checks
 	individual_checks.clear()
 	var successful_members = 0
 	
 	for character in assigned_party:
+		# Calculate individual success chance based on character's contribution
+		var individual_success_chance = calculate_individual_success_chance(character)
+		var individual_success = randf() < individual_success_chance
 		
-		var individual_success = randf_range(0,1) # set chance to succeed to random for now COME BACK LATER TO FIX
-		
-		if individual_success > .6:
+		if individual_success:
 			successful_members += 1
 			character.improve_substat_from_quest(get_substat_name_for_quest_type(), success_rate)
 			individual_checks.append(true)
@@ -448,29 +543,123 @@ func complete_quest():
 	elif final_success_rate < 0.6:
 		final_success_rate = 0.0  # Less than 60% counts as failure
 		
+	# Store the final success rate for later use when accepting results
+	self.final_success_rate = final_success_rate
+	
+	# Move to awaiting completion status instead of directly completing
 	if final_success_rate > .6 and allow_partial_failure :
-		self.active_quest_status = QuestStatus.COMPLETED
+		self.active_quest_status = QuestStatus.AWAITING_COMPLETION
 	else : 
-		self.active_quest_status = QuestStatus.FAILED
-
-	apply_rewards(final_success_rate)
-	apply_injuries_on_failure(final_success_rate)
+		self.active_quest_status = QuestStatus.AWAITING_COMPLETION  # Even failed quests await acceptance
+	
+	# Set characters to waiting for results status
+	for character in assigned_party:
+		character.set_status(Character.CharacterStatus.WAITING_FOR_RESULTS)
 	
 	# Capture injury state at completion time
 	capture_completion_injuries()
-		
-
-func apply_rewards(final_success_rate: float):
-	# Enhanced experience calculation with multiple factors
-	var base_exp_per_member = calculate_enhanced_experience(final_success_rate)
-	var gold_per_member = int((gold_reward * 0.8) / assigned_party.size())  # 80% to party, 20% to guild
+	# Capture level up state at completion time
+	capture_completion_level_ups()
 	
+	# Emit signal for awaiting completion (not final completion)
+	quest_completed.emit(self)
+
+func accept_quest_results():
+	"""Accept quest results - apply rewards, injuries, and finalize quest status"""
+	# Apply rewards and injuries based on the stored final success rate
+	apply_rewards(final_success_rate)
+	apply_injuries_on_failure(final_success_rate)
+	
+	# Set final quest status
+	if final_success_rate > 0.6 and allow_partial_failure:
+		self.active_quest_status = QuestStatus.COMPLETED
+	else:
+		self.active_quest_status = QuestStatus.FAILED
+	
+	# Set characters to appropriate final status and emit notifications
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
 		var member_success = individual_checks[i]
 		
+		# Emit character injury notification if injured
+		if character.is_injured():
+			var injury_name = get_injury_name(character.injury_type)
+			SignalBus.character_injured_notification.emit(character.character_name, injury_name)
+			character.set_status(Character.CharacterStatus.AVAILABLE)  # Injured characters stay injured but available
+		else:
+			character.set_status(Character.CharacterStatus.AVAILABLE)  # Characters become available after quest completion
+		
+		# Emit character level up notification if applicable
+		# Note: This will be handled by the character's add_experience method
+	
+	# Emit final completion signal for notifications
+	quest_finalized.emit(self)
+
+func get_injury_name(injury_type: Character.InjuryType) -> String:
+	"""Get the display name for an injury type"""
+	match injury_type:
+		Character.InjuryType.PHYSICAL_WOUND: return "Physical Wound"
+		Character.InjuryType.MENTAL_TRAUMA: return "Mental Trauma"
+		Character.InjuryType.CURSED_AFFLICTION: return "Cursed"
+		Character.InjuryType.EXHAUSTION: return "Exhausted"
+		Character.InjuryType.POISON: return "Poisoned"
+		_: return "Unknown"
+
+func calculate_individual_success_chance(character: Character) -> float:
+	"""Calculate individual success chance for a character based on their stats and substats"""
+	var base_chance = success_rate
+	
+	# Get character's relevant substat
+	var substat_name = get_substat_name_for_quest_type()
+	var substat_value = character.get(substat_name)
+	var substat_requirement = min_substat_requirement
+	
+	# Calculate substat bonus
+	var substat_bonus = 0.0
+	if substat_value > 0:
+		# Base substat bonus (each point adds 2%)
+		substat_bonus += substat_value * 0.02
+		
+		# Additional bonus for exceeding requirement (each point over adds 3%)
+		if substat_value > substat_requirement:
+			var substat_overage = substat_value - substat_requirement
+			substat_bonus += substat_overage * 0.03
+	
+	# Calculate stat contribution bonus
+	var character_stats = character.get_effective_stats()
+	var total_character_power = character_stats.health + character_stats.defense + character_stats.attack_power + character_stats.spell_power
+	var total_required_power = min_total_health + min_total_defense + min_total_attack_power + min_total_spell_power
+	var power_ratio = float(total_character_power) / max(total_required_power, 1)
+	
+	# Individual power bonus (up to 10% bonus for strong characters)
+	var power_bonus = min(0.10, (power_ratio - 1.0) * 0.05)
+	
+	# Combine all bonuses
+	var final_chance = base_chance + substat_bonus + power_bonus
+	
+	# Clamp between 5% and 95%
+	return max(0.05, min(0.95, final_chance))
+
+func apply_rewards(final_success_rate: float):
+	# Enhanced experience calculation with multiple factors
+	var total_quest_experience = calculate_enhanced_experience(final_success_rate)
+	var gold_per_member = int((gold_reward * 0.8) / assigned_party.size())  # 80% to party, 20% to guild
+	
+	# Calculate experience sharing based on party size vs minimum requirement
+	var experience_per_member = calculate_experience_sharing(total_quest_experience)
+	
+	for i in range(assigned_party.size()):
+		var character = assigned_party[i]
+		var member_success
+		if individual_checks.size() < 1 :
+			match final_success_rate :
+				100.0 : member_success = true
+				0 : member_success = false
+		else :
+			member_success = individual_checks[i]
+		
 		# Calculate individual experience with character-specific modifiers
-		var individual_exp = calculate_individual_experience(character, base_exp_per_member, member_success, final_success_rate)
+		var individual_exp = calculate_individual_experience(character, experience_per_member, member_success, final_success_rate)
 		
 		# Record quest completion in character history
 		var rewards = {
@@ -489,6 +678,20 @@ func apply_rewards(final_success_rate: float):
 			character.add_experience(int(individual_exp * 0.6))
 			character.personal_gold += int(gold_per_member * 0.6)
 
+func calculate_experience_sharing(total_quest_experience: int) -> int:
+	"""Calculate experience per member based on party size vs minimum requirement"""
+	var party_size = assigned_party.size()
+	
+	# Special case: If party size equals minimum requirement, all members get full experience
+	if party_size == min_party_size:
+		return total_quest_experience
+	
+	# If party size is larger than minimum, experience is shared among all members
+	# This encourages optimal party composition while still rewarding larger parties
+	var experience_per_member = int(total_quest_experience / party_size)
+	
+	return experience_per_member
+
 func calculate_enhanced_experience(final_success_rate: float) -> int:
 	"""Calculate enhanced experience based on multiple factors"""
 	var base_exp = base_experience
@@ -502,10 +705,10 @@ func calculate_enhanced_experience(final_success_rate: float) -> int:
 	# Quest rank multiplier (higher rank = more XP)
 	var rank_multiplier = 1.0 + (quest_rank * 0.2)  # 1.0x to 2.8x for rank 0-9
 	
-	# Party size efficiency (smaller parties get more XP per person)
-	var party_size_efficiency = 1.0 + (max_party_size - assigned_party.size()) * 0.1  # 1.0x to 1.3x
+	# Remove party size efficiency since we now handle sharing separately
+	# This prevents double-penalizing larger parties
 	
-	var enhanced_exp = int(base_exp * success_multiplier * quest_type_multiplier * rank_multiplier * party_size_efficiency)
+	var enhanced_exp = int(base_exp * success_multiplier * quest_type_multiplier * rank_multiplier)
 	
 	return enhanced_exp
 
@@ -555,7 +758,8 @@ func get_substat_relevance_bonus(character: Character) -> float:
 
 func get_rest_bonus(character: Character) -> float:
 	"""Get bonus XP for characters who haven't quested recently"""
-	# This is a placeholder - we'll implement this when we add quest history tracking
+	# TODO: Implement rest bonus system after Inn system is added
+	# This will give bonus XP to characters who haven't been on quests recently
 	# For now, return 1.0 (no bonus)
 	return 1.0
 
@@ -598,9 +802,30 @@ func capture_completion_injuries():
 		# Store character ID and injury type at completion
 		completion_injuries[character.character_name] = character.injury_type
 
+func capture_completion_level_ups():
+	"""Capture level up information for all party members at quest completion time"""
+	completion_level_ups.clear()
+	completion_stats.clear()
+	
+	for character in assigned_party:
+		# Store character level and stats at completion (will be compared later)
+		completion_level_ups[character.character_name] = {
+			"level": character.level,
+			"experience": character.experience
+		}
+		completion_stats[character.character_name] = character.get_current_stats()
+
 func get_completion_injuries() -> Dictionary:
 	"""Get the injury state that was captured at quest completion time"""
 	return completion_injuries
+
+func get_completion_level_ups() -> Dictionary:
+	"""Get the level up information that was captured at quest completion time"""
+	return completion_level_ups
+
+func get_completion_stats() -> Dictionary:
+	"""Get the stats that were captured at quest completion time"""
+	return completion_stats
 
 func get_base_injury_duration(injury_type: Character.InjuryType) -> float:
 	match injury_type:
@@ -621,15 +846,12 @@ func get_time_remaining() -> float:
 	return max(0.0, duration - elapsed_time)
 
 func get_progress_percentage() -> float:
-	if self.active_quest_status == QuestStatus.COMPLETED :
-		
+	if self.active_quest_status == QuestStatus.COMPLETED:
 		return 100.0
-	else :
-		return 100 - (get_time_remaining()/duration)*100
-	
-	var current_time = Time.get_unix_time_from_system()
-	var elapsed_time = current_time - start_time
-	return min(100.0, (elapsed_time / duration) * 100.0)
+	else:
+		var current_time = Time.get_unix_time_from_system()
+		var elapsed_time = current_time - start_time
+		return min(100.0, (elapsed_time / duration) * 100.0)
 
 func get_party_display_info() -> Array:
 	var party_info = []

@@ -27,6 +27,13 @@ enum InjuryType {
 	EXHAUSTION,
 	POISON
 }
+
+enum CharacterStatus {
+	AVAILABLE,
+	ON_QUEST,
+	WAITING_FOR_RESULTS,
+	WAITING_TO_PROGRESS
+}
 #endregion
 
 #region Base Stats
@@ -59,7 +66,7 @@ enum InjuryType {
 #endregion
 
 #region Status
-@export var is_on_quest: bool = false
+@export var character_status: CharacterStatus = CharacterStatus.AVAILABLE
 @export var injury_type: InjuryType = InjuryType.NONE
 @export var injury_duration: float = 0.0
 @export var injury_start_time: float = 0.0
@@ -67,6 +74,12 @@ enum InjuryType {
 
 #region Personal Resources
 @export var personal_gold: int = 0
+@export var training_potential: int = 0  # Current available training potential
+@export var max_training_potential: int = 0  # Maximum training potential based on rank/quality
+#endregion
+
+#region Portrait
+@export var portrait_path: String = ""
 #endregion
 
 #region Promotion Tracking
@@ -95,6 +108,8 @@ func _init(name: String = "", char_class: CharacterClass = CharacterClass.ATTACK
 	quality = char_quality
 	generate_base_stats()
 	generate_random_substats()
+	assign_random_portrait()
+	initialize_potential()
 
 func generate_random_name() -> String:
 	var first_names = ["Aeliana", "Borin", "Caelen", "Dara", "Elowen", "Finn", "Gilda", "Hamon", "Iris", "Joren", "Kira", "Lael", "Mira", "Nolan", "Orin", "Piper", "Quinn", "Raven", "Sera", "Thane", "Uma", "Vex", "Wren", "Xara", "Yara", "Zephyr"]
@@ -149,12 +164,79 @@ func generate_random_substats():
 		var value = randi_range(1, 5)
 		set(substat, value)
 
+func assign_random_portrait():
+	"""Assign a random portrait from the available character art, themed to character class"""
+	var all_portraits = [
+		"res://assets/character_art_temp/h_warrior_male.png",
+		"res://assets/character_art_temp/h_warrior_female.png",
+		"res://assets/character_art_temp/h_scout_male.png",
+		"res://assets/character_art_temp/h_rogue_male.png",
+		"res://assets/character_art_temp/h_rogue_female.png",
+		"res://assets/character_art_temp/h_mage_male.png",
+		"res://assets/character_art_temp/h_mage_female.png",
+		"res://assets/character_art_temp/h_barbarian_male.png",
+		"res://assets/character_art_temp/elf_sentinel_male.png",
+		"res://assets/character_art_temp/elf_sentinel_female.png",
+		"res://assets/character_art_temp/Dwarven_healer_female.png",
+		"res://assets/character_art_temp/Dwarf_warrior_male.png",
+		"res://assets/character_art_temp/Dwarf_warrior_female.png",
+		"res://assets/character_art_temp/drow_warrior_male.png",
+		"res://assets/character_art_temp/drow_warrior_female.png"
+	]
+	
+	# Class-specific portrait preferences
+	var class_portraits = {
+		CharacterClass.TANK: [
+			"res://assets/character_art_temp/h_warrior_male.png",
+			"res://assets/character_art_temp/h_warrior_female.png",
+			"res://assets/character_art_temp/Dwarf_warrior_male.png",
+			"res://assets/character_art_temp/Dwarf_warrior_female.png",
+			"res://assets/character_art_temp/drow_warrior_male.png",
+			"res://assets/character_art_temp/drow_warrior_female.png"
+		],
+		CharacterClass.HEALER: [
+			"res://assets/character_art_temp/h_mage_male.png",
+			"res://assets/character_art_temp/h_mage_female.png",
+			"res://assets/character_art_temp/Dwarven_healer_female.png",
+			"res://assets/character_art_temp/elf_sentinel_male.png",
+			"res://assets/character_art_temp/elf_sentinel_female.png"
+		],
+		CharacterClass.SUPPORT: [
+			"res://assets/character_art_temp/h_mage_male.png",
+			"res://assets/character_art_temp/h_mage_female.png",
+			"res://assets/character_art_temp/h_scout_male.png",
+			"res://assets/character_art_temp/elf_sentinel_male.png",
+			"res://assets/character_art_temp/elf_sentinel_female.png"
+		],
+		CharacterClass.ATTACKER: [
+			"res://assets/character_art_temp/h_warrior_male.png",
+			"res://assets/character_art_temp/h_warrior_female.png",
+			"res://assets/character_art_temp/h_barbarian_male.png",
+			"res://assets/character_art_temp/h_rogue_male.png",
+			"res://assets/character_art_temp/h_rogue_female.png",
+			"res://assets/character_art_temp/drow_warrior_male.png",
+			"res://assets/character_art_temp/drow_warrior_female.png"
+		]
+	}
+	
+	# Try to use class-specific portraits first, fall back to all portraits
+	var available_portraits = class_portraits.get(character_class, all_portraits)
+	portrait_path = available_portraits[randi() % available_portraits.size()]
+
+func get_portrait_texture() -> Texture2D:
+	"""Get the portrait texture for this character"""
+	if portrait_path.is_empty():
+		# If no portrait is assigned, assign one now (for existing characters)
+		assign_random_portrait()
+	
+	var texture = load(portrait_path)
+	return texture
+
 #endregion
 
 #region Leveling and Progression
 func level_up():
 	level += 1
-	experience = 0
 	
 	# Get class-based stat gain probabilities and amounts
 	var stat_gains = calculate_level_up_stat_gains()
@@ -173,6 +255,52 @@ func level_up():
 		SignalBus.character_leveled_up.emit(self, stat_gains)
 	
 	check_promotion_eligibility()
+
+func get_current_stats() -> Dictionary:
+	"""Get current character stats"""
+	return {
+		"health": health,
+		"defense": defense,
+		"mana": mana,
+		"spell_power": spell_power,
+		"attack_power": attack_power,
+		"movement_speed": movement_speed,
+		"luck": luck
+	}
+
+func get_level_up_stat_changes(previous_level: int) -> Dictionary:
+	"""Get the stat changes that occurred during level up"""
+	var changes = {
+		"health": health - get_base_stats_for_level(previous_level).health,
+		"defense": defense - get_base_stats_for_level(previous_level).defense,
+		"mana": mana - get_base_stats_for_level(previous_level).mana,
+		"spell_power": spell_power - get_base_stats_for_level(previous_level).spell_power,
+		"attack_power": attack_power - get_base_stats_for_level(previous_level).attack_power,
+		"movement_speed": movement_speed - get_base_stats_for_level(previous_level).movement_speed,
+		"luck": luck - get_base_stats_for_level(previous_level).luck
+	}
+	return changes
+
+func get_base_stats_for_level(target_level: int) -> Dictionary:
+	"""Get what the base stats would be at a given level (without level up gains)"""
+	# This is a simplified calculation - in a real system you'd track base stats separately
+	# For now, we'll estimate based on starting stats and level
+	var base_stats = {
+		"health": 100,
+		"defense": 10,
+		"mana": 50,
+		"spell_power": 10,
+		"attack_power": 15,
+		"movement_speed": 10,
+		"luck": 5
+	}
+	
+	# Apply class modifiers for the target level
+	var class_modifiers = get_class_level_modifiers()
+	for stat in base_stats.keys():
+		base_stats[stat] = int(base_stats[stat] * (1.0 + (target_level - 1) * 0.1 * class_modifiers[stat]))
+	
+	return base_stats
 
 func calculate_level_up_stat_gains() -> Dictionary:
 	"""Calculate stat gains for level up with class-based probabilities"""
@@ -399,7 +527,7 @@ func apply_injury(injury: InjuryType, duration: float):
 	injury_type = injury
 	injury_duration = duration
 	injury_start_time = Time.get_unix_time_from_system()
-	is_on_quest = false  # Remove from any active quest
+	character_status = CharacterStatus.AVAILABLE  # Remove from any active quest
 	
 	# Record injury in history
 	record_injury(injury, duration)
@@ -472,7 +600,7 @@ func get_upkeep_cost() -> int:
 	return 1 + (rank / 3)  # Food cost increases with rank
 
 func can_go_on_quest() -> bool:
-	return not is_on_quest and not is_injured()
+	return character_status == CharacterStatus.AVAILABLE and not is_injured()
 
 func get_class_name() -> String:
 	match character_class:
@@ -494,4 +622,100 @@ func get_rank_name() -> String:
 		Rank.SS: return "SS"
 		Rank.SSS: return "SSS"
 		_: return "?"
+
+func get_status_name() -> String:
+	match character_status:
+		CharacterStatus.AVAILABLE: return "Available"
+		CharacterStatus.ON_QUEST: return "On Quest"
+		CharacterStatus.WAITING_FOR_RESULTS: return "Waiting for Results"
+		CharacterStatus.WAITING_TO_PROGRESS: return "Waiting to Progress"
+		_: return "Unknown"
+
+func is_on_quest() -> bool:
+	return character_status == CharacterStatus.ON_QUEST
+
+func is_waiting_to_progress() -> bool:
+	return character_status == CharacterStatus.WAITING_TO_PROGRESS
+
+func set_status(new_status: CharacterStatus):
+	character_status = new_status
+	# Emit signal to notify UI of status change
+	SignalBus.character_status_changed.emit(self)
+	
+func get_class_icon() -> String:
+	match get_class_name() :
+		"Tank" :
+			return "🛡️"
+		"Healer" :
+			return "💚"
+		"Support" : 
+			return "🔮"
+		"Attacker" : 
+			return "⚔️"
+		_: return "no_icon"
+
+#region Training Potential System
+func calculate_max_potential() -> int:
+	"""Calculate maximum training potential based on rank and quality"""
+	var base_potential = 3  # Base potential for all characters
+	
+	# Add potential based on rank
+	var rank_potential = {
+		Rank.F: 0,
+		Rank.E: 1,
+		Rank.D: 2,
+		Rank.C: 3,
+		Rank.B: 4,
+		Rank.A: 5,
+		Rank.S: 6,
+		Rank.SS: 7,
+		Rank.SSS: 8
+	}
+	
+	# Add potential based on quality
+	var quality_potential = {
+		Quality.ONE_STAR: 0,
+		Quality.TWO_STAR: 1,
+		Quality.THREE_STAR: 2
+	}
+	
+	return base_potential + rank_potential[rank] + quality_potential[quality]
+
+func initialize_potential():
+	"""Initialize training potential when character is created or promoted"""
+	max_training_potential = calculate_max_potential()
+	training_potential = max_training_potential
+
+func get_available_potential() -> int:
+	"""Get current available training potential"""
+	return training_potential
+
+func use_potential(amount: int) -> bool:
+	"""Use training potential, returns true if successful"""
+	if training_potential >= amount:
+		training_potential -= amount
+		return true
+	return false
+
+func restore_potential(amount: int):
+	"""Restore training potential (up to max)"""
+	training_potential = min(max_training_potential, training_potential + amount)
+
+func reset_potential():
+	"""Reset training potential to maximum"""
+	training_potential = max_training_potential
+
+func on_rank_up():
+	"""Called when character ranks up - increases potential"""
+	var old_max = max_training_potential
+	max_training_potential = calculate_max_potential()
+	# Add the difference to current potential
+	training_potential += (max_training_potential - old_max)
+
+func on_quality_upgrade():
+	"""Called when character quality is upgraded - increases potential"""
+	var old_max = max_training_potential
+	max_training_potential = calculate_max_potential()
+	# Add the difference to current potential
+	training_potential += (max_training_potential - old_max)
 #endregion
