@@ -45,7 +45,6 @@ func enter_room():
 	is_active = true
 	room_entered.emit(room_name)
 	on_room_entered()
-	update_room_display()
 
 func exit_room():
 	"""Called when exiting this room"""
@@ -69,8 +68,7 @@ func _on_back_button_pressed():
 	"""Handle back button press"""
 	exit_room()
 	# Signal to parent to return to main hall
-	if get_parent() and get_parent().has_method("return_to_main_hall"):
-		get_parent().return_to_main_hall()
+	GuildManager.return_to_main_hall()
 
 func apply_responsive_layout():
 	"""Apply responsive layout to the room"""

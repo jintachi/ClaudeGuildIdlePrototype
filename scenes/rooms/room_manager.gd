@@ -1,4 +1,3 @@
-class_name RoomManager
 extends Node
 
 # Room management system

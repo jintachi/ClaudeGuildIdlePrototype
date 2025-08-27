@@ -7,6 +7,11 @@ signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
 signal emergency_quest_available(requirements: Dictionary)
 signal transformation_unlocked(transformation_name: String)
+signal game_data_loaded()
+signal room_changed(from_room: String, to_room: String)
+signal room_unlocked(room_name: String)
+signal quest_cards_updated()
+signal quest_card_moved(quest: Quest, from_state: String, to_state: String)
 
 # Guild Resources
 @export var influence: int = 100
@@ -25,11 +30,13 @@ var cur_scene : StringName # holder for the scene name
 @export var recruit_refresh_time: float = 300.0  # 5 minutes
 
 # Quest Management
-@export var available_quests: Array[Quest] = []
-@export var active_quests: Array[Quest] = []
-@export var awaiting_completion_quests: Array[Quest] = []
-@export var completed_quests: Array[Quest] = []
-@export var emergency_quests: Array[Quest] = []
+@export var completed_quests: Array[CompactQuestCard] = []
+@export var emergency_quests: Array[CompactQuestCard] = []
+
+# Quest Card Management
+var available_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
+var active_quest_cards: Array[CompactQuestCard]    # Array of CompactQuestCard instances
+var awaiting_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
 
 # Progression Tracking
 @export var total_quests_completed: int = 0
@@ -47,9 +54,22 @@ var cur_scene : StringName # holder for the scene name
 @export var max_available_recruits: int = 3
 @export var recruit_stay_duration: float = 600.0  # 10 minutes
 
+# Room Management System
+var current_room: String = "Adventurer's Guild"
+var previous_room: String = ""
+var room_history: Array[String] = []
+var max_history_size: int = 10
+var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+
+# Inventory System
+var inventory: Inventory
+var inventory_ui: InventoryUI
+
 func _ready():
 	#load_game()
 	initialize_guild()
+	initialize_room_system()
 	
 	
 	# Initialize quest completion tracking
@@ -68,19 +88,77 @@ func initialize_guild():
 		var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
 		add_character_to_roster(starter)
 	
-	if available_quests.is_empty():
-		generate_initial_quests()
+	if available_quest_cards.is_empty():
+		generate_initial_quest_cards()
 	
 	if available_recruits.is_empty():
 		generate_recruits()
+	
+	# Initialize inventory system
+	initialize_inventory()
+	
+	# Refresh quest cards to ensure they display correct data
+	refresh_quest_cards()
+	
+	# Emit signal to notify UI that guild has been initialized (for new games)
+	# Use call_deferred to ensure this happens after the scene is ready
+	call_deferred("emit_signal", "game_data_loaded")
 
-func generate_initial_quests():
+func generate_initial_quest_cards():
 	# Generate some basic F and D rank quests to start
 	for i in range(5):
 		var quest_rank = Quest.QuestRank.F if i < 3 else Quest.QuestRank.D
 		var quest_type = Quest.QuestType.values()[randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
 		var quest = Quest.create_quest(quest_type, quest_rank)
-		available_quests.append(quest)
+		available_quest_cards.append(create_quest_card(quest))
+
+
+func create_quest_card(quest: Quest):
+	"""Create a quest card for a given quest"""
+	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
+	var quest_card = quest_card_scene.instantiate()
+	
+	# Check if the instantiated object is the correct type
+	if not quest_card.has_method("populate_with_quest"):
+		print("Error: CompactQuestCard scene did not instantiate correctly")
+		return null
+	
+	# Populate with quest data
+	quest_card.populate_with_quest(quest)
+	
+	return quest_card
+
+func get_available_quest_cards() -> Array:
+	"""Get all available quest cards (these are unparented)"""
+	return available_quest_cards
+
+func get_active_quest_cards() -> Array:
+	"""Get all active quest cards (these are unparented)"""
+	return active_quest_cards
+
+func get_awaiting_quest_cards() -> Array:
+	"""Get all awaiting completion quest cards (these are unparented)"""
+	return awaiting_quest_cards
+
+func refresh_quest_cards():
+	"""Refresh all quest cards to ensure they display correct data"""
+	# Refresh available quest cards
+	for quest_card in available_quest_cards:
+		if is_instance_valid(quest_card) and quest_card.get_quest():
+			quest_card.populate_with_quest(quest_card.get_quest())
+	
+	# Refresh active quest cards
+	for quest_card in active_quest_cards:
+		if is_instance_valid(quest_card) and quest_card.get_quest():
+			quest_card.populate_with_quest(quest_card.get_quest())
+	
+	# Refresh awaiting quest cards
+	for quest_card in awaiting_quest_cards:
+		if is_instance_valid(quest_card) and quest_card.get_quest():
+			quest_card.populate_with_quest(quest_card.get_quest())
+	
+	# Emit signal to notify UI that quest cards have been updated
+	quest_cards_updated.emit()
 
 func generate_recruits():
 	available_recruits.clear()
@@ -163,14 +241,14 @@ func add_resources(resources: Dictionary):
 	weapons += resources.get("weapons", 0)
 	food += resources.get("food", 0)
 
-func start_quest(quest: Quest, party: Array[Character]) -> Dictionary:
+func start_quest(quest_card: CompactQuestCard, party: Array[Character]) -> Dictionary:
 	var result = {"success": false, "message": ""}
 	
-	if not quest in available_quests:
+	if not quest_card in available_quest_cards:
 		result.message = "Quest not available"
 		return result
 	
-	var assignment_check = quest.can_assign_party(party)
+	var assignment_check = quest_card.get_quest().can_assign_party(party)
 	if not assignment_check.can_assign:
 		result.message = "Party requirements not met: " + str(assignment_check.reasons)
 		return result
@@ -187,10 +265,15 @@ func start_quest(quest: Quest, party: Array[Character]) -> Dictionary:
 	food -= total_upkeep
 	
 	# Start the quest
-	if quest.start_quest(party):
-		available_quests.erase(quest)
-		active_quests.append(quest)
-		quest_started.emit(quest)
+	if quest_card.get_quest().start_quest(party):
+		# Move quest from available to active
+		available_quest_cards.erase(quest_card)
+		active_quest_cards.append(quest_card)
+		
+		
+		quest_card.set_active_party_roster(quest_card.get_quest())
+		quest_started.emit(quest_card.get_quest())
+		quest_card_moved.emit(quest_card.get_quest(), "available", "active")
 		save_game()  # Save when starting quest
 		
 		result.success = true
@@ -200,35 +283,55 @@ func start_quest(quest: Quest, party: Array[Character]) -> Dictionary:
 	
 	return result
 
-func update_quest_timers(delta: float):
-	var completed_this_frame = []
-	
-	for quest in active_quests:
-		if quest.update_quest_progress():
-			completed_this_frame.append(quest)
-	
-	for quest in completed_this_frame:
-		complete_quest(quest)
+func find_quest_card_by_quest(quest: Quest, card_array: Array):
+	"""Find a quest card by its associated quest"""
+	for card in card_array:
+		if card.quest_card == quest:
+			return card
+	return null
 
-func complete_quest(quest: Quest):
-	# Move quest from active to awaiting completion (not completed yet)
-	active_quests.erase(quest)
-	awaiting_completion_quests.append(quest)
+func update_quest_timers(delta: float):
+	if current_room == "Main Hall":
+		var completed_this_frame = []
+		
+		for card in active_quest_cards:
+			if card == null : return
+			elif card.get_quest().update_quest_progress():
+				completed_this_frame.append(card)
+		
+		for card in completed_this_frame:
+			complete_quest(card)
+
+func complete_quest(quest_card: CompactQuestCard):
+	# Move quest card from active to awaiting
+	active_quest_cards.erase(quest_card)
+	awaiting_quest_cards.append(quest_card)
+	# Remove from current parent to allow reparenting
+	if quest_card.get_parent():
+		quest_card.get_parent().remove_child(quest_card)
 	
 	# Emit signal for awaiting completion
-	quest_completed.emit(quest)
+	quest_completed.emit(quest_card.get_quest())
+	quest_card_moved.emit(quest_card.get_quest(), "active", "awaiting")
 	
 	# Save game when quest moves to awaiting completion
 	save_game()
 	
 	# Generate replacement quest
-	generate_replacement_quest(quest.quest_rank)
+	generate_replacement_quest_card(quest_card.get_quest().quest_rank)
 
-func accept_quest_results(quest: Quest):
+func accept_quest_results(quest_card: CompactQuestCard):
 	"""Accept quest results and finalize the quest"""
-	# Remove from awaiting completion
-	awaiting_completion_quests.erase(quest)
-	completed_quests.append(quest)
+	# Remove quest card from awaiting and clean it up
+	var quest = quest_card.get_quest()
+	if quest_card :
+		awaiting_quest_cards.erase(quest_card)
+		# Remove from current parent before cleanup
+		if quest_card.get_parent():
+			quest_card.get_parent().remove_child(quest_card)
+		if is_instance_valid(quest_card):
+			quest_card.queue_free()
+		quest_card_moved.emit(quest, "awaiting", "completed")
 	
 	# Accept the quest results (this will apply rewards, injuries, and emit notifications)
 	quest.accept_quest_results()
@@ -261,7 +364,7 @@ func remove_completed_quest(quest: Quest):
 	"""Remove a completed quest from the completed_quests list after rewards have been collected"""
 	completed_quests.erase(quest)
 
-func generate_replacement_quest(completed_rank: Quest.QuestRank):
+func generate_replacement_quest_card(completed_rank: Quest.QuestRank):
 	# Generate a new quest of similar or slightly higher rank
 	var new_rank = completed_rank
 	if randf() < 0.2 and completed_rank < Quest.QuestRank.SSS:  # 20% chance for higher rank
@@ -269,7 +372,11 @@ func generate_replacement_quest(completed_rank: Quest.QuestRank):
 	
 	var quest_type = Quest.QuestType.values()[randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
 	var new_quest = Quest.create_quest(quest_type, new_rank)
-	available_quests.append(new_quest)
+	
+	# Create quest card for the new quest
+	var new_quest_card = create_quest_card(new_quest)
+	if new_quest_card:
+		available_quest_cards.append(new_quest_card)
 
 func update_recruitment_timer(delta: float):
 	recruit_rotation_timer += delta
@@ -397,9 +504,9 @@ func save_game():
 		"roster": serialize_characters(roster),
 		"max_roster_size": max_roster_size,
 		"available_recruits": serialize_characters(available_recruits),
-		"available_quests": serialize_quests(available_quests),
-		"active_quests": serialize_quests(active_quests),
-		"awaiting_completion_quests": serialize_quests(awaiting_completion_quests),
+		"available_quest_cards": serialize_quests(available_quest_cards),
+		"active_quest_cards": serialize_quests(active_quest_cards),
+		"awaiting_quest_cards": serialize_quests(awaiting_quest_cards),
 		"completed_quests": serialize_quests(completed_quests),
 		"emergency_quests": serialize_quests(emergency_quests),
 		"total_quests_completed": total_quests_completed,
@@ -524,9 +631,9 @@ func load_game_from_slot(slot: int):
 	max_roster_size = save_data.get("max_roster_size", 5)
 	roster = deserialize_characters(save_data.get("roster", []))
 	available_recruits = deserialize_characters(save_data.get("available_recruits", []))
-	available_quests = deserialize_quests(save_data.get("available_quests", []))
-	active_quests = deserialize_quests(save_data.get("active_quests", []))
-	awaiting_completion_quests = deserialize_quests(save_data.get("awaiting_completion_quests", []))
+	available_quest_cards = deserialize_quests(save_data.get("available_quest_cards", []))
+	active_quest_cards = deserialize_quests(save_data.get("active_quest_cards", []))
+	awaiting_quest_cards = deserialize_quests(save_data.get("awaiting_quest_cards", []))
 	completed_quests = deserialize_quests(save_data.get("completed_quests", []))
 	emergency_quests = deserialize_quests(save_data.get("emergency_quests", []))
 	total_quests_completed = save_data.get("total_quests_completed", 0)
@@ -539,6 +646,12 @@ func load_game_from_slot(slot: int):
 	
 	# Handle offline progress for time-based systems
 	handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
+	
+	# Refresh quest cards to ensure they display correctly
+	refresh_quest_cards()
+	
+	# Emit signal to notify UI that game data has been loaded
+	game_data_loaded.emit()
 
 func handle_offline_progress(last_save_timestamp: float):
 	var current_time = Time.get_unix_time_from_system()
@@ -549,14 +662,15 @@ func handle_offline_progress(last_save_timestamp: float):
 	
 	# Update quest progress for active quests
 	var completed_offline = []
-	for quest in active_quests:
-		quest.start_time -= offline_seconds  # Simulate time passage
+	for card in active_quest_cards:
+		var quest = card.get_quest()
+		card.get_quest().start_time -= offline_seconds  # Simulate time passage
 		if quest.get_time_remaining() <= 0:
 			quest.complete_quest()
-			completed_offline.append(quest)
+			completed_offline.append(card)
 	
-	for quest in completed_offline:
-		complete_quest(quest)
+	for card in completed_offline:
+		complete_quest(card)
 	
 	# Update recruitment rotation
 	var rotations_missed = int(offline_seconds / recruit_refresh_time)
@@ -575,17 +689,17 @@ func deserialize_characters(data: Array) -> Array[Character]:
 		characters.append(dict_to_character(char_data))
 	return characters
 
-func serialize_quests(quests: Array[Quest]) -> Array:
+func serialize_quests(quests: Array[CompactQuestCard]) -> Array:
 	var serialized = []
 	for quest in quests:
 		serialized.append(quest_to_dict(quest))
 	return serialized
 
-func deserialize_quests(data: Array) -> Array[Quest]:
-	var quests: Array[Quest] = []
-	for quest_data in data:
-		quests.append(dict_to_quest(quest_data))
-	return quests
+func deserialize_quests(data: Array) -> Array[CompactQuestCard]:
+	var quest_cards : Array[CompactQuestCard] = []
+	for quest_card_data in data:
+		quest_cards.append(dict_to_quest(quest_card_data))
+	return quest_cards
 
 func character_to_dict(character: Character) -> Dictionary:
 	return {
@@ -649,7 +763,8 @@ func dict_to_character(data: Dictionary) -> Character:
 	character.promotion_quest_completed = data.get("promotion_quest_completed", false)
 	return character
 
-func quest_to_dict(quest: Quest) -> Dictionary:
+func quest_to_dict(quest_card: CompactQuestCard) -> Dictionary:
+	var quest = quest_card.get_quest()
 	return {
 		"quest_name": quest.quest_name,
 		"quest_type": quest.quest_type,
@@ -684,7 +799,9 @@ func quest_to_dict(quest: Quest) -> Dictionary:
 		#"individual_checks": quest.individual_checks
 	}
 
-func dict_to_quest(data: Dictionary) -> Quest:
+func dict_to_quest(data: Dictionary) -> CompactQuestCard:
+	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
+	var compact = quest_card_scene.instantiate()
 	var quest = Quest.new()
 	quest.quest_name = data.get("quest_name", "")
 	quest.quest_type = data.get("quest_type", Quest.QuestType.GATHERING)
@@ -717,7 +834,14 @@ func dict_to_quest(data: Dictionary) -> Quest:
 	quest.success_rate = data.get("success_rate", 0.0)
 	quest.final_success_rate = data.get("final_success_rate", 0.0)
 	#quest.individual_checks = data.get("individual_checks", [])
-	return quest
+	
+	compact.populate_with_quest(quest)
+	
+	# Debug: Verify quest card was populated correctly
+	print("DEBUG: Created quest card for: " + quest.quest_name)
+	print("DEBUG: Quest card has quest: " + str(compact.get_quest() != null))
+	
+	return compact
 
 func clear_save_file():
 	"""Clear the current save slot to start fresh"""
@@ -733,9 +857,9 @@ func clear_save_file():
 	roster.clear()
 	max_roster_size = 5
 	available_recruits.clear()
-	available_quests.clear()
-	active_quests.clear()
-	awaiting_completion_quests.clear()
+	available_quest_cards.clear()
+	active_quest_cards.clear()
+	awaiting_quest_cards.clear()
 	completed_quests.clear()
 	emergency_quests.clear()
 	total_quests_completed = 0
@@ -747,7 +871,7 @@ func clear_save_file():
 
 func get_guild_status_summary() -> Dictionary:
 	return {
-		"active_quests_count": active_quests.size(),
+		"active_quest_cards_count": active_quest_cards.size(),
 		"available_characters": get_available_characters().size(),
 		"total_characters": roster.size(),
 		"characters_needing_promotion": get_characters_needing_promotion().size(),
@@ -919,7 +1043,7 @@ func get_available_rooms() -> Array[Dictionary]:
 func get_ui_notification_data() -> Dictionary:
 	"""Get data for UI notifications and alerts"""
 	return {
-		"quests_awaiting_completion": awaiting_completion_quests.size(),
+		"quest_cards_awaiting_completion": awaiting_quest_cards.size(),
 		"characters_needing_promotion": get_characters_needing_promotion().size(),
 		"injured_characters": get_injured_characters().size(),
 		"available_recruits": available_recruits.size(),
@@ -1025,4 +1149,155 @@ func has_class_in_party(party: Array[Character], character_class: Character.Char
 			return true
 	return false
 
+#endregion 
+
+#region Room Management System
+func initialize_room_system():
+	"""Initialize the room management system"""
+	room_history.append("Main Hall")
+	print("Room system initialized")
+
+func enter_room(room_name: String) -> bool:
+	"""Enter a specific room"""
+	if not unlocked_rooms.has(room_name):
+		print("Room not unlocked: ", room_name)
+		return false
+	
+	if not available_rooms.has(room_name):
+		print("Room not available: ", room_name)
+		return false
+	
+	# Exit current room
+	if current_room != "":
+		previous_room = current_room
+	
+	# Enter new room
+	current_room = room_name
+	
+	# Update history
+	add_to_room_history(room_name)
+	
+	# Emit room change signal
+	room_changed.emit(previous_room, room_name)
+	print("Entered room: ", room_name)
+	return true
+
+func return_to_main_hall():
+	"""Return to the main hall"""
+	enter_room("Main Hall")
+
+func go_back():
+	"""Go back to the previous room in history"""
+	if room_history.size() > 1:
+		room_history.pop_back()  # Remove current room
+		var previous_room_name = room_history[-1]
+		enter_room(previous_room_name)
+
+func add_to_room_history(room_name: String):
+	"""Add room to navigation history"""
+	room_history.append(room_name)
+	if room_history.size() > max_history_size:
+		room_history.pop_front()
+
+func get_current_room() -> String:
+	"""Get the currently active room"""
+	return current_room
+
+func get_room_history() -> Array[String]:
+	"""Get the room navigation history"""
+	return room_history.duplicate()
+
+func get_unlocked_rooms() -> Array[String]:
+	"""Get list of unlocked rooms"""
+	return unlocked_rooms.duplicate()
+
+func unlock_room(room_name: String):
+	"""Unlock a room"""
+	if not unlocked_rooms.has(room_name):
+		unlocked_rooms.append(room_name)
+		room_unlocked.emit(room_name)
+		print("Room unlocked: ", room_name)
+
+func is_room_unlocked(room_name: String) -> bool:
+	"""Check if a room is unlocked"""
+	return unlocked_rooms.has(room_name)
+
+func can_enter_room(room_name: String) -> bool:
+	"""Check if a room can be entered"""
+	return unlocked_rooms.has(room_name) and available_rooms.has(room_name)
+#endregion 
+
+#region Inventory System
+func initialize_inventory():
+	"""Initialize the inventory system"""
+	inventory = Inventory.new()
+	
+	# Create inventory UI instance
+	var inventory_scene = preload("res://ui/components/Inventory.tscn")
+	inventory_ui = inventory_scene.instantiate()
+	inventory_ui.inventory = inventory
+	inventory_ui.visible = false
+	
+	# Add some test items
+	add_test_items()
+
+func add_test_items():
+	"""Add some test items to the inventory"""
+	var health_potion = InventoryItem.new("health_potion", "Health Potion", "Restores 50 HP", "consumables")
+	health_potion.base_value = 25
+	health_potion.quantity = 3
+	inventory.add_item(health_potion)
+	
+	var mana_potion = InventoryItem.new("mana_potion", "Mana Potion", "Restores 30 MP", "consumables")
+	mana_potion.base_value = 20
+	mana_potion.quantity = 2
+	inventory.add_item(mana_potion)
+	
+	var antidote = InventoryItem.new("antidote", "Antidote", "Cures poison", "consumables")
+	antidote.base_value = 15
+	antidote.quantity = 1
+	inventory.add_item(antidote)
+	
+	var promotion_scroll = InventoryItem.new("promotion_scroll", "Promotion Scroll", "Required for rank-up quests", "quest-specific-items")
+	promotion_scroll.base_value = 50
+	promotion_scroll.quantity = 1
+	inventory.add_item(promotion_scroll)
+	
+	var iron_sword = InventoryItem.new("iron_sword", "Iron Sword", "A basic iron sword", "equipment")
+	iron_sword.base_value = 100
+	iron_sword.equipment_slot = "weapon"
+	iron_sword.stat_bonuses = {"attack_power": 10}
+	inventory.add_item(iron_sword)
+	
+	var leather_armor = InventoryItem.new("leather_armor", "Leather Armor", "Basic leather armor", "equipment")
+	leather_armor.base_value = 75
+	leather_armor.equipment_slot = "armor"
+	leather_armor.stat_bonuses = {"defense": 8}
+	inventory.add_item(leather_armor)
+
+func display_inventory(current_room: String) -> Control:
+	"""Display inventory for a specific room. Returns the UI element."""
+	if inventory_ui:
+		return inventory_ui.display_inventory(current_room)
+	return null
+
+func get_inventory() -> Inventory:
+	"""Get the inventory instance"""
+	return inventory
+
+func get_inventory_ui() -> InventoryUI:
+	"""Get the inventory UI instance"""
+	return inventory_ui
+
+func add_item_to_inventory(item: InventoryItem) -> bool:
+	"""Add an item to the inventory"""
+	if inventory:
+		return inventory.add_item(item)
+	return false
+
+func remove_item_from_inventory(slot_index: int, quantity: int = 1) -> InventoryItem:
+	"""Remove an item from the inventory"""
+	if inventory:
+		return inventory.remove_item(slot_index, quantity)
+	return null
 #endregion 

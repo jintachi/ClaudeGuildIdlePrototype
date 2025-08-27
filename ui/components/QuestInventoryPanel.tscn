@@ -1,0 +1,110 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8yay203w4v6u"]
+
+[ext_resource type="Script" uid="uid://bfoa1ynl4p7kl" path="res://ui/components/quest_inventory_panel.gd" id="1_quest_inv"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="QuestInventoryPanel" type="Control" node_paths=PackedStringArray("inventory_column", "party_inventory_column", "close_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_quest_inv")
+inventory_column = NodePath("MainContainer/ContentContainer/InventoryColumn")
+party_inventory_column = NodePath("MainContainer/ContentContainer/PartyInventoryColumn")
+close_button = NodePath("MainContainer/Header/CloseButton")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="Header" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.1
+
+[node name="Title" type="Label" parent="MainContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Quest Inventory"
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="MainContainer/Header"]
+layout_mode = 2
+text = "X"
+
+[node name="ContentContainer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InventoryColumn" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.5
+
+[node name="InventoryTitle" type="Label" parent="MainContainer/ContentContainer/InventoryColumn"]
+layout_mode = 2
+text = "Inventory"
+horizontal_alignment = 1
+
+[node name="InventoryScroll" type="ScrollContainer" parent="MainContainer/ContentContainer/InventoryColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="InventoryGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryColumn/InventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="PartyInventoryColumn" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_stretch_ratio = 0.5
+
+[node name="PartyInventoryTitle" type="Label" parent="MainContainer/ContentContainer/PartyInventoryColumn"]
+layout_mode = 2
+text = "Party Inventory"
+horizontal_alignment = 1
+
+[node name="PartyInventoryScroll" type="ScrollContainer" parent="MainContainer/ContentContainer/PartyInventoryColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PartyInventoryGrid" type="GridContainer" parent="MainContainer/ContentContainer/PartyInventoryColumn/PartyInventoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="Footer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.1
+
+[node name="TotalCostLabel" type="Label" parent="MainContainer/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Total Cost: 0g"
+horizontal_alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MainContainer/Footer"]
+layout_mode = 2
+text = "Confirm Items"

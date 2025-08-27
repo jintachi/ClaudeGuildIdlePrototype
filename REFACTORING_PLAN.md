@@ -25,16 +25,20 @@ The current `guild_hall.gd` file is 2034 lines long and handles everything from 
 
 ## Proposed Solution: Room-Based Architecture
 
+**Architectural Decision**: Room management has been integrated into GuildManager as a singleton rather than using a separate RoomManager class. This provides better centralization and avoids runtime instantiation issues.
+
 ### 1. **Base Room System**
 ```
 scenes/rooms/
 ├── base_room.gd          # Base class for all rooms
-├── room_manager.gd       # Manages room navigation and state
 ├── main_hall_room.gd     # Main hall functionality
 ├── roster_room.gd        # Character management
 ├── quests_room.gd        # Quest management
 ├── recruitment_room.gd   # Character recruitment
 └── training_room.gd      # Character training (future)
+
+mechanics/Singletons/
+└── guild_manager.gd      # Room management integrated into GuildManager
 ```
 
 ### 2. **Inheritance Structure**
@@ -88,11 +92,11 @@ Move all business logic to `GuildManager`:
 - [x] Create `MainHallRoom` as first example room
 - [x] Add UI business logic methods to `GuildManager`
 
-### Phase 2: Room Extraction
-- [ ] Extract roster functionality to `RosterRoom`
-- [ ] Extract quest functionality to `QuestsRoom`
-- [ ] Extract recruitment functionality to `RecruitmentRoom`
-- [ ] Update main guild hall to use room system
+### Phase 2: Room Extraction (COMPLETED)
+- [x] Extract roster functionality to `RosterRoom`
+- [x] Extract quest functionality to `QuestsRoom`
+- [x] Extract recruitment functionality to `RecruitmentRoom`
+- [x] Update main guild hall to use room system
 
 ### Phase 3: New Room Creation
 - [ ] Create `TrainingRoom` for character training
