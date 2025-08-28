@@ -3,7 +3,7 @@
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
 [ext_resource type="Script" uid="uid://dybfvc1re01bw" path="res://scenes/rooms/main_hall_room.gd" id="2_4wxht"]
 
-[node name="MainHallRoom" type="Control" node_paths=PackedStringArray("active_quests_panel", "awaiting_completion_panel", "promotion_panel", "room_container")]
+[node name="MainHallRoom" type="Control" node_paths=PackedStringArray("active_quests_panel", "awaiting_completion_panel", "promotion_panel", "quest_counter_panel", "room_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,6 +15,7 @@ script = ExtResource("2_4wxht")
 active_quests_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll/ActiveQuestsVBox")
 awaiting_completion_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel")
 promotion_panel = NodePath("RoomContainer/RoomContent/Body/PromotionPanel")
+quest_counter_panel = NodePath("RoomContainer/QuestCounterPanel")
 room_container = NodePath("RoomContainer")
 
 [node name="RoomContainer" type="VBoxContainer" parent="."]
@@ -54,6 +55,7 @@ size_flags_vertical = 3
 [node name="ActiveQuestsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="AwaitingCompletionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
 layout_mode = 2
@@ -85,3 +87,61 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="QuestCounterPanel" type="Panel" parent="RoomContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="QuestCounterHBox" type="HBoxContainer" parent="RoomContainer/QuestCounterPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="AvailableQuestCounter" type="VBoxContainer" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AvailableQuestLabel" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/AvailableQuestCounter"]
+layout_mode = 2
+text = "AQC"
+horizontal_alignment = 1
+
+[node name="AvailableQuestCount" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/AvailableQuestCounter"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ActiveQuestCounter" type="VBoxContainer" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActiveQuestLabel" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/ActiveQuestCounter"]
+layout_mode = 2
+text = "IPQC"
+horizontal_alignment = 1
+
+[node name="ActiveQuestCount" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/ActiveQuestCounter"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AwaitingQuestCounter" type="VBoxContainer" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AwaitingQuestLabel" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/AwaitingQuestCounter"]
+layout_mode = 2
+text = "ACQC"
+horizontal_alignment = 1
+
+[node name="AwaitingQuestCount" type="Label" parent="RoomContainer/QuestCounterPanel/QuestCounterHBox/AwaitingQuestCounter"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1

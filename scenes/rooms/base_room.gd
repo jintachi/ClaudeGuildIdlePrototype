@@ -33,8 +33,8 @@ func setup_base_room():
 	if room_title_label:
 		room_title_label.text = room_name
 	
-	# Apply responsive layout
-	apply_responsive_layout()
+	# Apply responsive layout after room is fully initialized
+	call_deferred("apply_responsive_layout")
 
 func setup_room_specific_ui():
 	"""Override this in child classes to setup room-specific UI"""
@@ -42,8 +42,10 @@ func setup_room_specific_ui():
 
 func enter_room():
 	"""Called when entering this room"""
+	print("BaseRoom: enter_room() called for: ", room_name)
 	is_active = true
 	room_entered.emit(room_name)
+	print("BaseRoom: Calling on_room_entered() for: ", room_name)
 	on_room_entered()
 
 func exit_room():

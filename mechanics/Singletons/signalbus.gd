@@ -20,6 +20,14 @@ signal character_promoted(character: Character)
 signal character_injured(character: Character)
 # signal character_healed(character: Character) - removed, was unused
 signal character_status_changed(character: Character)
+
+# Character data request signals
+signal request_roster_data
+signal request_available_characters
+signal request_characters_needing_promotion
+signal request_injured_characters
+signal request_character_display_data(character: Character)
+signal request_recruit_display_data(character: Character)
 #endregion
 
 #region Quest Management Signals
@@ -30,14 +38,29 @@ signal quest_card_selected(card:CompactQuestCard)
 signal emergency_quest_available(requirements: Dictionary)
 # signal quest_failed(quest: Quest) - removed, was unused  
 # signal party_assembled(party: Array[Character]) - removed, was unused
+
+# Quest data request signals
+signal request_available_quest_cards
+signal request_active_quest_cards
+signal request_awaiting_quest_cards
+signal request_quest_display_data(quest: Quest)
+signal request_quest_validation(quest: Quest, party: Array[Character])
 #endregion
 
 #region Resource Management Signals
-# Resource management signals removed - were unused
+# Resource data request signals
+signal request_guild_resources
+signal request_guild_status_summary
+signal request_resource_display_data
+signal request_cost_calculation(cost: Dictionary)
+signal request_can_afford_check(cost: Dictionary)
 #endregion
 
 #region Recruitment Signals
-# Recruitment signals removed - were unused
+# Recruitment data request signals
+signal request_available_recruits
+signal request_recruitment_cost(character: Character)
+signal request_recruit_refresh
 #endregion
 
 #region Save/Load Signals

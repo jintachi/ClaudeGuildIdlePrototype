@@ -1,7 +1,7 @@
 extends Node
 
 ## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND
-
+@warning_ignore_start("unused_signal")
 signal character_recruited(character: Character)
 signal quest_started(quest: Quest)
 signal quest_completed(quest: Quest)
@@ -11,7 +11,9 @@ signal game_data_loaded()
 signal room_changed(from_room: String, to_room: String)
 signal room_unlocked(room_name: String)
 signal quest_cards_updated()
-signal quest_card_moved(quest: Quest, from_state: String, to_state: String)
+signal quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_state: String)
+@warning_ignore_restore("unused_signal")
+
 
 # Guild Resources
 @export var influence: int = 100
@@ -61,15 +63,18 @@ var room_history: Array[String] = []
 var max_history_size: int = 10
 var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
 var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+var cached_room_instances: Dictionary = {}  # Cache room instances to preserve state
 
 # Inventory System
 var inventory: Inventory
 var inventory_ui: InventoryUI
 
 func _ready():
+	print("GuildManager: _ready() called")
 	#load_game()
 	initialize_guild()
 	initialize_room_system()
+	print("GuildManager: _ready() completed")
 	
 	
 	# Initialize quest completion tracking
@@ -115,6 +120,7 @@ func generate_initial_quest_cards():
 
 func create_quest_card(quest: Quest):
 	"""Create a quest card for a given quest"""
+	print("GuildManager: create_quest_card() called for quest: ", quest.quest_name if quest else "null")
 	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
 	var quest_card = quest_card_scene.instantiate()
 	
@@ -125,18 +131,28 @@ func create_quest_card(quest: Quest):
 	
 	# Populate with quest data
 	quest_card.populate_with_quest(quest)
+	print("GuildManager: Quest card created and populated: ", quest_card.get_quest().quest_name if quest_card.get_quest() else "null")
 	
 	return quest_card
 
-func get_available_quest_cards() -> Array:
+func get_available_quest_cards() -> Array[CompactQuestCard]:
 	"""Get all available quest cards (these are unparented)"""
+	print("GuildManager: get_available_quest_cards() called")
+	print("GuildManager: Available quest cards size: ", available_quest_cards.size())
+	for i in range(available_quest_cards.size()):
+		var quest_card = available_quest_cards[i]
+		if is_instance_valid(quest_card) and quest_card.get_quest():
+			print("GuildManager: Quest card ", i, ": ", quest_card.get_quest().quest_name)
+		else:
+			print("GuildManager: Quest card ", i, ": invalid or null quest")
+	print("GuildManager: Returning ", available_quest_cards.size(), " quest cards")
 	return available_quest_cards
 
-func get_active_quest_cards() -> Array:
+func get_active_quest_cards() -> Array[CompactQuestCard]:
 	"""Get all active quest cards (these are unparented)"""
 	return active_quest_cards
 
-func get_awaiting_quest_cards() -> Array:
+func get_awaiting_quest_cards() -> Array[CompactQuestCard]:
 	"""Get all awaiting completion quest cards (these are unparented)"""
 	return awaiting_quest_cards
 
@@ -172,17 +188,17 @@ func generate_random_recruit() -> Character:
 	var char_class = classes[randi() % classes.size()]
 	
 	# Apply recruitment quality modifier
-	var quality_roll = randf()
-	var quality: Character.Quality
+	var quality_roll: float = randf()
+	var _quality := Character.Quality.ONE_STAR
 	
 	if quality_roll < 0.1 * recruitment_quality_modifier:
-		quality = Character.Quality.THREE_STAR
+		_quality = Character.Quality.THREE_STAR
 	elif quality_roll < 0.3 * recruitment_quality_modifier:
-		quality = Character.Quality.TWO_STAR
+		_quality = Character.Quality.TWO_STAR
 	else:
-		quality = Character.Quality.ONE_STAR
+		_quality = Character.Quality.ONE_STAR
 	
-	return Character.new("", char_class, quality)
+	return Character.new("", char_class, _quality)
 
 func add_character_to_roster(character: Character) -> bool:
 	if roster.size() >= max_roster_size:
@@ -192,10 +208,10 @@ func add_character_to_roster(character: Character) -> bool:
 	character_recruited.emit(character)
 	return true
 
-func recruit_character(character: Character) -> Dictionary:
+func recruit_character(_character: Character) -> Dictionary:
 	var result = {"success": false, "message": ""}
 	
-	if not character in available_recruits:
+	if not _character in available_recruits:
 		result.message = "Character not available for recruitment"
 		return result
 	
@@ -203,7 +219,7 @@ func recruit_character(character: Character) -> Dictionary:
 		result.message = "Roster is full"
 		return result
 	
-	var cost = character.get_recruitment_cost()
+	var cost = _character.get_recruitment_cost()
 	if not can_afford_cost(cost):
 		result.message = "Cannot afford recruitment cost"
 		return result
@@ -212,11 +228,11 @@ func recruit_character(character: Character) -> Dictionary:
 	spend_resources(cost)
 	
 	# Add to roster
-	add_character_to_roster(character)
-	available_recruits.erase(character)
+	add_character_to_roster(_character)
+	available_recruits.erase(_character)
 	
 	result.success = true
-	result.message = "Successfully recruited " + character.character_name
+	result.message = "Successfully recruited " + _character.character_name
 	return result
 
 func can_afford_cost(cost: Dictionary) -> bool:
@@ -265,16 +281,32 @@ func start_quest(quest_card: CompactQuestCard, party: Array[Character]) -> Dicti
 	food -= total_upkeep
 	
 	# Start the quest
+	print("AVAILABLE_QUESTS: GuildManager.start_quest() - calling quest.start_quest()")
 	if quest_card.get_quest().start_quest(party):
-		# Move quest from available to active
-		available_quest_cards.erase(quest_card)
-		active_quest_cards.append(quest_card)
+		print("AVAILABLE_QUESTS: Quest started successfully, moving from available to active")
+		print("AVAILABLE_QUESTS: Available quest cards before removal: ", available_quest_cards.size())
 		
+		# Move quest from available to active
+		print("AVAILABLE_QUESTS: Removing quest card from available_quest_cards: ", quest_card.get_quest().quest_name)
+		print("AVAILABLE_QUESTS: Available quest cards before removal: ", available_quest_cards.size())
+		available_quest_cards.erase(quest_card)
+		print("AVAILABLE_QUESTS: Available quest cards after removal: ", available_quest_cards.size())
+		print("AVAILABLE_QUESTS: Adding quest card to active_quest_cards: ", quest_card.get_quest().quest_name)
+		active_quest_cards.append(quest_card)
+		print("AVAILABLE_QUESTS: Active quest cards after addition: ", active_quest_cards.size())
+		
+		print("AVAILABLE_QUESTS: Available quest cards after removal: ", available_quest_cards.size())
+		
+		# Generate a replacement quest to maintain quest availability
+		print("AVAILABLE_QUESTS: Generating replacement quest")
+		generate_replacement_quest_card(quest_card.get_quest().quest_rank)
+		
+		print("AVAILABLE_QUESTS: Available quest cards after replacement generation: ", available_quest_cards.size())
 		
 		quest_card.set_active_party_roster(quest_card.get_quest())
-		quest_started.emit(quest_card.get_quest())
-		quest_card_moved.emit(quest_card.get_quest(), "available", "active")
+		print("AVAILABLE_QUESTS: Available quest cards before save_game(): ", available_quest_cards.size())
 		save_game()  # Save when starting quest
+		print("AVAILABLE_QUESTS: Available quest cards after save_game(): ", available_quest_cards.size())
 		
 		result.success = true
 		result.message = "Quest started successfully"
@@ -297,44 +329,70 @@ func update_quest_timers(delta: float):
 		for card in active_quest_cards:
 			if card == null : return
 			elif card.get_quest().update_quest_progress():
+				print("GuildManager: Quest completed during timer update: ", card.get_quest().quest_name)
 				completed_this_frame.append(card)
 		
 		for card in completed_this_frame:
 			complete_quest(card)
 
 func complete_quest(quest_card: CompactQuestCard):
+	print("AVAILABLE_QUESTS: Quest completed, moving from active to awaiting")
+	print("AVAILABLE_QUESTS: Quest name: ", quest_card.get_quest().quest_name)
 	# Move quest card from active to awaiting
+	print("GuildManager: Moving quest from active to awaiting: ", quest_card.get_quest().quest_name)
+	print("GuildManager: Active quest cards before removal: ", active_quest_cards.size())
 	active_quest_cards.erase(quest_card)
+	print("GuildManager: Active quest cards after removal: ", active_quest_cards.size())
+	print("GuildManager: Awaiting quest cards before addition: ", awaiting_quest_cards.size())
 	awaiting_quest_cards.append(quest_card)
+	print("GuildManager: Awaiting quest cards after addition: ", awaiting_quest_cards.size())
+	print("AVAILABLE_QUESTS: Available quests after removal: ", available_quest_cards.size())
+	print("AVAILABLE_QUESTS: Active quests after removal: ", active_quest_cards.size())
+	print("AVAILABLE_QUESTS: Awaiting quests after addition: ", awaiting_quest_cards.size())
 	# Remove from current parent to allow reparenting
 	if quest_card.get_parent():
 		quest_card.get_parent().remove_child(quest_card)
 	
+	# Generate replacement quest BEFORE saving
+	print("AVAILABLE_QUESTS: Generating replacement quest when quest completes")
+	generate_replacement_quest_card(quest_card.get_quest().quest_rank)
+	
 	# Emit signal for awaiting completion
 	quest_completed.emit(quest_card.get_quest())
-	quest_card_moved.emit(quest_card.get_quest(), "active", "awaiting")
+	quest_card_moved.emit(quest_card, "active", "awaiting")
 	
-	# Save game when quest moves to awaiting completion
+	# Save game when quest moves to awaiting completion (now with replacement quest)
 	save_game()
-	
-	# Generate replacement quest
-	generate_replacement_quest_card(quest_card.get_quest().quest_rank)
 
 func accept_quest_results(quest_card: CompactQuestCard):
 	"""Accept quest results and finalize the quest"""
-	# Remove quest card from awaiting and clean it up
+	print("AVAILABLE_QUESTS: Accept quest results called")
+	print("AVAILABLE_QUESTS: Quest name: ", quest_card.get_quest().quest_name)
+	print("AVAILABLE_QUESTS: Awaiting quests before removal: ", awaiting_quest_cards.size())
+	
+	# Store quest info before destroying the card
 	var quest = quest_card.get_quest()
-	if quest_card :
+	var quest_name = quest.quest_name
+	var quest_rank = quest.quest_rank
+	
+	# Remove quest card from awaiting and clean it up
+	if quest_card:
 		awaiting_quest_cards.erase(quest_card)
+		print("AVAILABLE_QUESTS: Awaiting quests after removal: ", awaiting_quest_cards.size())
 		# Remove from current parent before cleanup
 		if quest_card.get_parent():
 			quest_card.get_parent().remove_child(quest_card)
+		print("AVAILABLE_QUESTS: Quest card valid before queue_free: ", is_instance_valid(quest_card))
 		if is_instance_valid(quest_card):
 			quest_card.queue_free()
-		quest_card_moved.emit(quest, "awaiting", "completed")
+		print("AVAILABLE_QUESTS: Quest card valid after queue_free: ", is_instance_valid(quest_card))
 	
 	# Accept the quest results (this will apply rewards, injuries, and emit notifications)
+	print("AVAILABLE_QUESTS: Calling quest.accept_quest_results()")
 	quest.accept_quest_results()
+	
+	# Emit signal (replacement quest already generated in complete_quest)
+	quest_card_moved.emit(null, "awaiting", "completed")
 	
 	# Add guild rewards (20% of gold goes to guild)
 	var guild_gold = int(quest.gold_reward * 0.2)
@@ -365,18 +423,33 @@ func remove_completed_quest(quest: Quest):
 	completed_quests.erase(quest)
 
 func generate_replacement_quest_card(completed_rank: Quest.QuestRank):
+	print("GuildManager: generate_replacement_quest_card() called for rank: ", completed_rank)
+	print("GuildManager: Available quest cards before generation: ", available_quest_cards.size())
+	
 	# Generate a new quest of similar or slightly higher rank
 	var new_rank = completed_rank
-	if randf() < 0.2 and completed_rank < Quest.QuestRank.SSS:  # 20% chance for higher rank
+	if randf() < 0.1 and completed_rank < Quest.QuestRank.SSS:  # 10% chance for higher rank
 		new_rank = Quest.QuestRank.values()[completed_rank + 1]
+		print("GuildManager: Upgraded quest rank to: ", new_rank)
 	
 	var quest_type = Quest.QuestType.values()[randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
+	print("GuildManager: Selected quest type: ", quest_type)
 	var new_quest = Quest.create_quest(quest_type, new_rank)
+	print("GuildManager: Created new quest: ", new_quest.quest_name if new_quest else "null")
 	
 	# Create quest card for the new quest
 	var new_quest_card = create_quest_card(new_quest)
+	print("GuildManager: Created quest card: ", new_quest_card if new_quest_card else "null")
 	if new_quest_card:
+		print("GuildManager: Quest card valid: ", is_instance_valid(new_quest_card))
+		print("GuildManager: Quest card has quest: ", new_quest_card.get_quest() != null)
+		print("GuildManager: Adding new quest card to available_quest_cards: ", new_quest_card.get_quest().quest_name)
 		available_quest_cards.append(new_quest_card)
+		print("GuildManager: Added quest card to available_quest_cards. Total available: ", available_quest_cards.size())
+		print("GuildManager: Available quest cards after append: ", available_quest_cards.size())
+		print("GuildManager: Available quest cards after generation: ", available_quest_cards.size())
+	else:
+		print("GuildManager: Failed to create quest card!")
 
 func update_recruitment_timer(delta: float):
 	recruit_rotation_timer += delta
@@ -494,6 +567,20 @@ func update_auto_save(delta: float):
 		last_save_time = 0.0
 
 func save_game():
+	print("GuildManager: save_game() called")
+	print("GuildManager: Available quest cards before save: ", available_quest_cards.size())
+	print("GuildManager: Active quest cards before save: ", active_quest_cards.size())
+	print("GuildManager: Awaiting quest cards before save: ", awaiting_quest_cards.size())
+	
+	# Debug: Check each quest card in the array
+	for i in range(available_quest_cards.size()):
+		var quest_card = available_quest_cards[i]
+		print("GuildManager: Quest card ", i, " valid: ", is_instance_valid(quest_card))
+		if is_instance_valid(quest_card):
+			print("GuildManager: Quest card ", i, " has quest: ", quest_card.get_quest() != null)
+			if quest_card.get_quest():
+				print("GuildManager: Quest card ", i, " quest name: ", quest_card.get_quest().quest_name)
+	
 	var save_data = {
 		"influence": influence,
 		"gold": gold,
@@ -516,14 +603,27 @@ func save_game():
 		"timestamp": Time.get_unix_time_from_system()
 	}
 	
+	print("GuildManager: Serialized available quest cards: ", save_data["available_quest_cards"].size())
+	
 	# Load existing save file to preserve other slots
 	var all_saves = load_all_save_slots()
 	all_saves["slot_" + str(current_save_slot)] = save_data
 	
+	# Debug: Check if save_data can be serialized
+	var json_string = JSON.stringify(all_saves)
+	if json_string.is_empty():
+		print("GuildManager: Error - Failed to serialize save data to JSON")
+		return
+	
 	var file = FileAccess.open(save_file_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(all_saves))
+		file.store_string(json_string)
 		file.close()
+		print("GuildManager: Save file written successfully")
+	else:
+		print("GuildManager: Error - Failed to open save file for writing")
+	
+	print("GuildManager: Save completed. Available quest cards after save: ", available_quest_cards.size())
 
 func save_game_to_slot(slot: int):
 	"""Save game to a specific slot"""
@@ -631,10 +731,16 @@ func load_game_from_slot(slot: int):
 	max_roster_size = save_data.get("max_roster_size", 5)
 	roster = deserialize_characters(save_data.get("roster", []))
 	available_recruits = deserialize_characters(save_data.get("available_recruits", []))
+	
+	print("GuildManager: Loading available quest cards...")
 	available_quest_cards = deserialize_quests(save_data.get("available_quest_cards", []))
+	print("GuildManager: Loading active quest cards...")
 	active_quest_cards = deserialize_quests(save_data.get("active_quest_cards", []))
+	print("GuildManager: Loading awaiting quest cards...")
 	awaiting_quest_cards = deserialize_quests(save_data.get("awaiting_quest_cards", []))
+	print("GuildManager: Loading completed quests...")
 	completed_quests = deserialize_quests(save_data.get("completed_quests", []))
+	print("GuildManager: Loading emergency quests...")
 	emergency_quests = deserialize_quests(save_data.get("emergency_quests", []))
 	total_quests_completed = save_data.get("total_quests_completed", 0)
 	quests_completed_by_rank = save_data.get("quests_completed_by_rank", {})
@@ -650,6 +756,14 @@ func load_game_from_slot(slot: int):
 	# Refresh quest cards to ensure they display correctly
 	refresh_quest_cards()
 	
+	# Log final counts after loading
+	print("GuildManager: Final counts after loading:")
+	print("  - Available quest cards: ", available_quest_cards.size())
+	print("  - Active quest cards: ", active_quest_cards.size())
+	print("  - Awaiting quest cards: ", awaiting_quest_cards.size())
+	print("  - Completed quests: ", completed_quests.size())
+	print("  - Emergency quests: ", emergency_quests.size())
+	
 	# Emit signal to notify UI that game data has been loaded
 	game_data_loaded.emit()
 
@@ -662,15 +776,18 @@ func handle_offline_progress(last_save_timestamp: float):
 	
 	# Update quest progress for active quests
 	var completed_offline = []
-	for card in active_quest_cards:
-		var quest = card.get_quest()
-		card.get_quest().start_time -= offline_seconds  # Simulate time passage
-		if quest.get_time_remaining() <= 0:
-			quest.complete_quest()
-			completed_offline.append(card)
+	if awaiting_quest_cards:
+		for card in awaiting_quest_cards:
+			if is_instance_valid(card) and card.get_quest():
+				var quest = card.get_quest()
+				quest.start_time -= offline_seconds  # Simulate time passage
+				if quest.get_time_remaining() <= 0:
+					quest.complete_quest()
+					completed_offline.append(card)
 	
 	for card in completed_offline:
-		complete_quest(card)
+		if is_instance_valid(card):
+			complete_quest(card)
 	
 	# Update recruitment rotation
 	var rotations_missed = int(offline_seconds / recruit_refresh_time)
@@ -690,15 +807,29 @@ func deserialize_characters(data: Array) -> Array[Character]:
 	return characters
 
 func serialize_quests(quests: Array[CompactQuestCard]) -> Array:
+	print("GuildManager: serialize_quests() called with ", quests.size(), " quests")
 	var serialized = []
 	for quest in quests:
-		serialized.append(quest_to_dict(quest))
+		if is_instance_valid(quest) and quest.get_quest():
+			serialized.append(quest_to_dict(quest))
+			print("GuildManager: Serialized quest: ", quest.get_quest().quest_name)
+		else:
+			print("GuildManager: Skipping invalid quest card")
+	print("GuildManager: serialize_quests() returning ", serialized.size(), " serialized quests")
 	return serialized
 
 func deserialize_quests(data: Array) -> Array[CompactQuestCard]:
+	print("GuildManager: deserialize_quests() called with ", data.size(), " quests")
 	var quest_cards : Array[CompactQuestCard] = []
-	for quest_card_data in data:
-		quest_cards.append(dict_to_quest(quest_card_data))
+	for i in range(data.size()):
+		var quest_card_data = data[i]
+		print("GuildManager: Deserializing quest ", i, " of ", data.size())
+		var quest_card = dict_to_quest(quest_card_data)
+		if quest_card:
+			quest_cards.append(quest_card)
+		else:
+			print("GuildManager: Failed to deserialize quest ", i)
+	print("GuildManager: deserialize_quests() returning ", quest_cards.size(), " quest cards")
 	return quest_cards
 
 func character_to_dict(character: Character) -> Dictionary:
@@ -765,6 +896,13 @@ func dict_to_character(data: Dictionary) -> Character:
 
 func quest_to_dict(quest_card: CompactQuestCard) -> Dictionary:
 	var quest = quest_card.get_quest()
+	print("GuildManager: Serializing quest: " + quest.quest_name + " with assigned party size: " + str(quest.assigned_party.size()))
+	
+	# Ensure individual_checks is properly formatted for JSON serialization
+	var individual_checks_serializable = []
+	for check in quest.individual_checks:
+		individual_checks_serializable.append(bool(check))
+	
 	return {
 		"quest_name": quest.quest_name,
 		"quest_type": quest.quest_type,
@@ -796,13 +934,55 @@ func quest_to_dict(quest_card: CompactQuestCard) -> Dictionary:
 		"active_quest_status" : quest.active_quest_status,
 		"success_rate": quest.success_rate,
 		"final_success_rate": quest.final_success_rate,
-		#"individual_checks": quest.individual_checks
+		"individual_checks": individual_checks_serializable,
+		"completion_injuries": quest.completion_injuries,
+		"completion_level_ups": quest.completion_level_ups,
+		"completion_stats": quest.completion_stats
 	}
+
+func fix_character_references(serialized_characters: Array) -> Array[Character]:
+	"""Fix character references by finding the actual characters in the roster"""
+	var fixed_party: Array[Character] = []
+	
+	print("GuildManager: fix_character_references() called with ", serialized_characters.size(), " characters")
+	print("GuildManager: Current roster size: ", roster.size())
+	
+	for char_data in serialized_characters:
+		# Find the character in the roster by name
+		var found_character: Character = null
+		for roster_char in roster:
+			if roster_char.character_name == char_data.get("character_name", ""):
+				found_character = roster_char
+				break
+		
+		if found_character:
+			fixed_party.append(found_character)
+			print("GuildManager: Fixed character reference for: " + found_character.character_name)
+		else:
+			print("GuildManager: Warning - Could not find character in roster: " + char_data.get("character_name", ""))
+	
+	print("GuildManager: Fixed party size: ", fixed_party.size())
+	return fixed_party
 
 func dict_to_quest(data: Dictionary) -> CompactQuestCard:
 	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
 	var compact = quest_card_scene.instantiate()
 	var quest = Quest.new()
+	
+	
+	# Initialize the individual_checks array properly with a default false value
+	quest.individual_checks.append(false)
+	
+	# Add error handling for missing or invalid data
+	if not data.has("quest_name"):
+		print("GuildManager: Error - Quest data missing quest_name")
+		return compact
+	var assigned_party_size = data.get("assigned_party", []).size()
+	print("GuildManager: Deserializing quest: " + data.get("quest_name", "") + " with assigned party size: " + str(assigned_party_size))
+	if assigned_party_size > 0:
+		print("GuildManager: *** QUEST WITH ASSIGNED PARTY FOUND ***")
+		print("GuildManager: Quest status: " + str(data.get("active_quest_status", 0)))
+		print("GuildManager: Assigned party data: " + str(data.get("assigned_party", [])))
 	quest.quest_name = data.get("quest_name", "")
 	quest.quest_type = data.get("quest_type", Quest.QuestType.GATHERING)
 	quest.quest_rank = data.get("quest_rank", Quest.QuestRank.F)
@@ -829,17 +1009,47 @@ func dict_to_quest(data: Dictionary) -> CompactQuestCard:
 	quest.weapons = data.get("weapons", 0)
 	quest.food = data.get("food", 0)
 	quest.start_time = data.get("start_time", 0.0)
-	quest.assigned_party = deserialize_characters(data.get("assigned_party", []))
+	
+	# Fix character references for assigned party
+	quest.assigned_party = fix_character_references(data.get("assigned_party", []))
+	print("GuildManager: Quest assigned party size after fixing references: " + str(quest.assigned_party.size()))
+	
 	quest.active_quest_status = data.get("active_quest_status", Quest.QuestStatus.NOTSTARTED)
 	quest.success_rate = data.get("success_rate", 0.0)
 	quest.final_success_rate = data.get("final_success_rate", 0.0)
-	#quest.individual_checks = data.get("individual_checks", [])
+	# Convert individual_checks to proper Array[bool] type
+	var raw_individual_checks = data.get("individual_checks", [])
+	print("GuildManager: Raw individual_checks type: ", typeof(raw_individual_checks))
+	print("GuildManager: Raw individual_checks value: ", raw_individual_checks)
+	
+	# Clear and populate the existing array instead of creating a new one
+	quest.individual_checks.clear()
+	if raw_individual_checks is Array:
+		for check in raw_individual_checks:
+			quest.individual_checks.append(bool(check))
+		print("GuildManager: Populated individual_checks size: ", quest.individual_checks.size())
+	else:
+		print("GuildManager: Warning - individual_checks is not an Array, using default false value")
+	
+	# Ensure we always have at least one element
+	if quest.individual_checks.is_empty():
+		quest.individual_checks.append(false)
+	
+	quest.completion_injuries = data.get("completion_injuries", {})
+	quest.completion_level_ups = data.get("completion_level_ups", {})
+	quest.completion_stats = data.get("completion_stats", {})
+	
+	# Validate individual_checks array size matches assigned party size
+	if quest.has_method("validate_individual_checks"):
+		quest.validate_individual_checks()
+	else:
+		print("GuildManager: Warning - Quest does not have validate_individual_checks method")
 	
 	compact.populate_with_quest(quest)
 	
 	# Debug: Verify quest card was populated correctly
-	print("DEBUG: Created quest card for: " + quest.quest_name)
-	print("DEBUG: Quest card has quest: " + str(compact.get_quest() != null))
+	print("AVAILABLE_QUESTS: Created quest card for: " + quest.quest_name)
+	print("AVAILABLE_QUESTS: Quest card has quest: " + str(compact.get_quest() != null))
 	
 	return compact
 
@@ -857,6 +1067,7 @@ func clear_save_file():
 	roster.clear()
 	max_roster_size = 5
 	available_recruits.clear()
+	print("GuildManager: Clearing available_quest_cards array")
 	available_quest_cards.clear()
 	active_quest_cards.clear()
 	awaiting_quest_cards.clear()
@@ -1159,6 +1370,13 @@ func initialize_room_system():
 
 func enter_room(room_name: String) -> bool:
 	"""Enter a specific room"""
+	print("GuildManager: enter_room() called for: ", room_name)
+	print("GuildManager: enter_room() - Function entry point reached")
+	print("GuildManager: enter_room() - About to check unlocked_rooms")
+	print("GuildManager: Current room: ", current_room)
+	print("GuildManager: Previous room: ", previous_room)
+	print("GuildManager: Target room: ", room_name)
+	
 	if not unlocked_rooms.has(room_name):
 		print("Room not unlocked: ", room_name)
 		return false
@@ -1170,15 +1388,20 @@ func enter_room(room_name: String) -> bool:
 	# Exit current room
 	if current_room != "":
 		previous_room = current_room
+		print("GuildManager: Set previous_room to: ", previous_room)
 	
 	# Enter new room
 	current_room = room_name
+	print("GuildManager: Set current_room to: ", current_room)
 	
 	# Update history
 	add_to_room_history(room_name)
+	print("GuildManager: Added to room history: ", room_name)
 	
 	# Emit room change signal
+	print("GuildManager: About to emit room_changed signal from %s to %s" % [previous_room, room_name])
 	room_changed.emit(previous_room, room_name)
+	print("GuildManager: Emitted room_changed signal")
 	print("Entered room: ", room_name)
 	return true
 
@@ -1225,6 +1448,64 @@ func is_room_unlocked(room_name: String) -> bool:
 func can_enter_room(room_name: String) -> bool:
 	"""Check if a room can be entered"""
 	return unlocked_rooms.has(room_name) and available_rooms.has(room_name)
+
+func get_cached_room_instance(room_name: String):
+	"""Get a cached room instance, creating it if it doesn't exist"""
+	print("GuildManager: get_cached_room_instance() called for: ", room_name)
+	print("GuildManager: Current cached instances: ", cached_room_instances.keys())
+	
+	if not cached_room_instances.has(room_name):
+		print("GuildManager: Room not in cache, creating new instance")
+		var room_instance = create_room_instance(room_name)
+		if room_instance:
+			cached_room_instances[room_name] = room_instance
+			print("GuildManager: Created cached instance for room: ", room_name)
+		else:
+			print("GuildManager: Failed to create room instance for: ", room_name)
+	else:
+		print("GuildManager: Found cached instance for room: ", room_name)
+	
+	var result = cached_room_instances.get(room_name, null)
+	print("GuildManager: Returning room instance: ", result)
+	return result
+
+func create_room_instance(room_name: String):
+	"""Create a room instance for the given room name"""
+	var room_scene_path = ""
+	match room_name:
+		"Main Hall":
+			room_scene_path = "res://scenes/rooms/MainHallRoom.tscn"
+		"Roster":
+			room_scene_path = "res://scenes/rooms/RosterRoom.tscn"
+		"Quests":
+			room_scene_path = "res://scenes/rooms/QuestsRoom.tscn"
+		"Recruitment":
+			room_scene_path = "res://scenes/rooms/RecruitmentRoom.tscn"
+		"Training Room":
+			room_scene_path = "res://scenes/rooms/TrainingRoom.tscn"
+		"Merchant's Guild":
+			room_scene_path = "res://scenes/rooms/MerchantsGuildRoom.tscn"
+		"Blacksmith's Guild":
+			room_scene_path = "res://scenes/rooms/BlacksmithsGuildRoom.tscn"
+		"Healer's Guild":
+			room_scene_path = "res://scenes/rooms/HealersGuildRoom.tscn"
+	
+	if room_scene_path and ResourceLoader.exists(room_scene_path):
+		var room_scene = load(room_scene_path)
+		var room_instance = room_scene.instantiate()
+		print("GuildManager: Created room instance for: ", room_name)
+		return room_instance
+	else:
+		print("GuildManager: Room scene not found: ", room_scene_path)
+		return null
+
+func clear_room_cache():
+	"""Clear all cached room instances (useful for memory management)"""
+	for room_instance in cached_room_instances.values():
+		if is_instance_valid(room_instance):
+			room_instance.queue_free()
+	cached_room_instances.clear()
+	print("GuildManager: Cleared room cache")
 #endregion 
 
 #region Inventory System

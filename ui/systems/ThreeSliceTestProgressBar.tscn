@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3 uid="uid://co6b3eh07rsk8"]
+
+[ext_resource type="Script" uid="uid://cuj6oafkrphec" path="res://ui/systems/ThreeSliceTestProgressBar.gd" id="1_three_slice"]
+
+[node name="ThreeSliceTestProgressBar" type="ProgressBar"]
+custom_minimum_size = Vector2(300, 22)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1300.0
+offset_bottom = -626.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+value = 75.0
+show_percentage = false
+script = ExtResource("1_three_slice")
+bg_start_region = Rect2(2, 0, 8, 22)
+bg_end_region = Rect2(86, 0, 8, 22)
+fill_start_region = Rect2(99, 0, 8, 22)
+fill_end_region = Rect2(181, 0, 8, 22)

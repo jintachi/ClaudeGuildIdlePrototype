@@ -60,8 +60,8 @@ func setup_viewport_scaling():
 	# Connect to viewport and resolution changes
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	
-	# Apply responsive layout to the main container
-	apply_responsive_layout()
+	# Apply responsive layout to the main container after initialization
+	call_deferred("apply_responsive_layout")
 
 func apply_responsive_layout():
 	"""Apply responsive layout to the guild hall"""
@@ -72,15 +72,20 @@ func apply_responsive_layout():
 		responsive_layout_script.convert_scene_to_responsive(self, responsive_layout_script.ConversionMode.SMART_GRID)
 		
 		# Specifically apply to room container to ensure all rooms are properly scaled
-		if room_container:
+		if room_container and is_instance_valid(room_container):
 			responsive_layout_script.convert_scene_to_responsive(room_container, responsive_layout_script.ConversionMode.SMART_GRID)
 			
 			# Apply to all child rooms in the container
-			for child in room_container.get_children():
-				apply_responsive_layout_to_room(child)
+			var children = room_container.get_children()
+			for child in children:
+				if is_instance_valid(child):
+					apply_responsive_layout_to_room(child)
 
 func apply_responsive_layout_to_room(room_instance: Node):
 	"""Apply responsive layout to a specific room instance"""
+	if not room_instance or not is_instance_valid(room_instance):
+		return
+		
 	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
 	if responsive_layout_script and room_instance is Control:
 		responsive_layout_script.convert_scene_to_responsive(room_instance, responsive_layout_script.ConversionMode.SMART_GRID)
@@ -152,6 +157,7 @@ func setup_signal_connections():
 #region UI Update Functions
 func update_ui():
 	"""Update the main UI display"""
+	print("GuildHall: update_ui() called")
 	# Update current room display based on GuildManager's current room
 	update_room_display()
 	
@@ -185,19 +191,28 @@ func update_resource_display():
 func update_room_display():
 	"""Update the room display based on current room"""
 	var current_room = GuildManager.get_current_room()
+	print("GuildHall: update_room_display() called for room: ", current_room)
 	
 	# Call on_room_exited() on current room before clearing
 	for child in room_container.get_children():
 		if child is BaseRoom and child.has_method("on_room_exited"):
 			child.on_room_exited()
 	
-	# Clear the room container
+	# Clear the room container - but preserve cached instances
 	for child in room_container.get_children():
-		child.queue_free()
+		# Don't free cached room instances, just remove them from the container
+		if child is BaseRoom:
+			# Remove from container but don't free the instance
+			room_container.remove_child(child)
+		else:
+			# Free non-room children
+			child.queue_free()
 	
 	# Check if it's a custom room first
 	var custom_room_creator = get_node_or_null("/root/CustomRoomCreator")
+	print("GuildHall: Custom room creator found: ", custom_room_creator != null)
 	if custom_room_creator and custom_room_creator.is_custom_room(current_room):
+		print("GuildHall: Room is a custom room, creating custom instance")
 		var room_instance = custom_room_creator.create_custom_room(current_room)
 		if room_instance:
 			room_container.add_child(room_instance)
@@ -206,40 +221,44 @@ func update_room_display():
 		else:
 			print("Failed to create custom room: ", current_room)
 		return
+	else:
+		print("GuildHall: Room is not a custom room, using cached system")
 	
-	# Load and instantiate the appropriate built-in room scene
-	var room_scene_path = ""
-	match current_room:
-		"Main Hall":
-			room_scene_path = "res://scenes/rooms/MainHallRoom.tscn"
-		"Roster":
-			room_scene_path = "res://scenes/rooms/RosterRoom.tscn"
-		"Quests":
-			room_scene_path = "res://scenes/rooms/QuestsRoom.tscn"
-		"Recruitment":
-			room_scene_path = "res://scenes/rooms/RecruitmentRoom.tscn"
-		"Training Room":
-			room_scene_path = "res://scenes/rooms/TrainingRoom.tscn"
-		"Merchant's Guild":
-			room_scene_path = "res://scenes/rooms/MerchantsGuildRoom.tscn"
-		"Blacksmith's Guild":
-			room_scene_path = "res://scenes/rooms/BlacksmithsGuildRoom.tscn"
-		"Healer's Guild":
-			room_scene_path = "res://scenes/rooms/HealersGuildRoom.tscn"
-	
-	if room_scene_path and ResourceLoader.exists(room_scene_path):
-		var room_scene = load(room_scene_path)
-		var room_instance = room_scene.instantiate()
-		room_container.add_child(room_instance)
+	# Use cached room instance instead of creating new one
+	print("GuildHall: About to get cached room instance for: ", current_room)
+	var room_instance = GuildManager.get_cached_room_instance(current_room)
+	print("GuildHall: Got room instance: ", room_instance)
+	if room_instance:
+		print("GuildHall: Got cached room instance for: ", current_room)
 		
-		# Apply responsive layout to the new room
+		# Check if the room instance is already in the container
+		if room_instance.get_parent() == room_container:
+			print("GuildHall: Room instance already in container")
+		else:
+			# Remove from current parent if it has one
+			if room_instance.get_parent():
+				print("GuildHall: Removing room from current parent")
+				room_instance.get_parent().remove_child(room_instance)
+			
+			# Add to room container
+			print("GuildHall: Adding room to container")
+			room_container.add_child(room_instance)
+		
+		# Apply responsive layout to the room
 		apply_responsive_layout_to_room(room_instance)
 		
 		# Enter the room
+		print("GuildHall: Room instance type: ", room_instance.get_class())
+		print("GuildHall: Is BaseRoom: ", room_instance is BaseRoom)
 		if room_instance is BaseRoom:
+			print("GuildHall: Calling enter_room() on cached instance")
 			room_instance.enter_room()
+		else:
+			print("GuildHall: Room instance is not a BaseRoom!")
+		
+		print("GuildHall: Using cached room instance for: ", current_room)
 	else:
-		print("Room scene not found: ", room_scene_path)
+		print("GuildHall: Failed to get cached room instance for: ", current_room)
 
 func get_current_room_context() -> String:
 	"""Get the current room context for navigation"""
@@ -259,7 +278,7 @@ func update_navigation_context(context: String):
 #region Signal Handlers
 func _on_room_changed(from_room: String, to_room: String):
 	"""Handle room changes"""
-	print("Room changed from %s to %s" % [from_room, to_room])
+	print("GuildHall: _on_room_changed() called from %s to %s" % [from_room, to_room])
 	update_ui()
 	update_navigation_context(to_room.to_lower().replace(" ", "_"))
 	

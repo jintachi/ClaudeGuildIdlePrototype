@@ -158,7 +158,7 @@ func get_usage_color() -> Color:
 
 func save_data() -> Dictionary:
 	"""Save inventory data for persistence"""
-	var save_data = {
+	var _save_data = {
 		"total_slots": total_slots,
 		"filled_slots": filled_slots,
 		"items": []
@@ -166,11 +166,11 @@ func save_data() -> Dictionary:
 	
 	for item in items:
 		if item != null:
-			save_data["items"].append(item.save_data())
+			_save_data["items"].append(item.save_data())
 		else:
-			save_data["items"].append(null)
+			_save_data["items"].append(null)
 	
-	return save_data
+	return _save_data
 
 func load_data(data: Dictionary):
 	"""Load inventory data from persistence"""

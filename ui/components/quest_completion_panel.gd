@@ -148,6 +148,8 @@ func get_injury_name(injury_type: Character.InjuryType) -> String:
 
 func _on_accept_button_pressed():
 	"""Handle accepting quest results"""
+	print("AVAILABLE_QUESTS: Quest completion panel accept button pressed")
+	print("AVAILABLE_QUESTS: Current quest: ", current_quest.quest_name if current_quest else "null")
 	if current_quest and GuildManager:
 		# Find the quest card for this quest
 		var quest_card: CompactQuestCard = null
@@ -157,8 +159,14 @@ func _on_accept_button_pressed():
 				break
 		
 		if quest_card:
+			print("AVAILABLE_QUESTS: Found quest card, calling GuildManager.accept_quest_results")
 			GuildManager.accept_quest_results(quest_card)
 			# Emit signal to notify parent that results were accepted
+			print("AVAILABLE_QUESTS: Emitting quest_results_accepted signal")
 			quest_results_accepted.emit(current_quest)
+		else:
+			print("AVAILABLE_QUESTS: Quest card not found in awaiting quests")
+	else:
+		print("AVAILABLE_QUESTS: Current quest or GuildManager is null")
 
 signal quest_results_accepted(quest: Quest)

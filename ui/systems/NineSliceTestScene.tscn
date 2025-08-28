@@ -1,0 +1,85 @@
+[gd_scene load_steps=2 format=3 uid="uid://i8x7y6z5w4v3u4"]
+
+[ext_resource type="Script" path="res://ui/systems/ThreeSliceTestProgressBar.gd" id="1_three_slice"]
+
+[node name="ThreeSliceTestScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Three-Slice Progress Bar Test"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ProgressBar1" parent="VBoxContainer" instance=ExtResource("1_three_slice")]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 22)
+value = 25.0
+
+[node name="ProgressBar2" parent="VBoxContainer" instance=ExtResource("1_three_slice")]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 22)
+value = 50.0
+
+[node name="ProgressBar3" parent="VBoxContainer" instance=ExtResource("1_three_slice")]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 22)
+value = 75.0
+
+[node name="ProgressBar4" parent="VBoxContainer" instance=ExtResource("1_three_slice")]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 22)
+value = 100.0
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Controls" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TestButton" type="Button" parent="VBoxContainer/Controls"]
+layout_mode = 2
+text = "Test Progress (0-100%)"
+
+[node name="ResetButton" type="Button" parent="VBoxContainer/Controls"]
+layout_mode = 2
+text = "Reset Progress"
+
+[node name="ToggleThreeSliceButton" type="Button" parent="VBoxContainer/Controls"]
+layout_mode = 2
+text = "Toggle Three-Slice Mode"
+
+[node name="UpdateRegionsButton" type="Button" parent="VBoxContainer/Controls"]
+layout_mode = 2
+text = "Update Regions (Apply Changes)"
+
+[node name="Instructions" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Instructions:
+1. Select any progress bar in the scene tree
+2. Edit the region coordinates in the Inspector
+3. Click 'Update Regions' to apply changes
+4. Adjust segment_width if needed
+5. Toggle three-slice mode to compare"
+autowrap_mode = 2 

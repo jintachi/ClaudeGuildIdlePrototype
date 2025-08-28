@@ -42,29 +42,70 @@ var all_stats = [
 # Current data
 var quest_requirements: Dictionary = {}
 var party_stats: Dictionary = {}
+var table_initialized: bool = false
+var stat_rows: Dictionary = {}  # Store references to all stat rows
 
 func _ready():
 	"""Initialize the stats comparison table"""
 	setup_table_structure()
 
 func setup_table_structure():
-	"""Create the table structure with all stats"""
-	# Clear any existing rows
-	for child in stats_container.get_children():
-		child.queue_free()
+	"""Create the table structure with all possible stat rows"""
+	# Prevent multiple initializations
+	if table_initialized:
+		return
 	
 	# Wait a frame for cleanup
 	await get_tree().process_frame
 	
-	# Create rows for all stats
+	# Ensure the container is scrollable
+	if not stats_container.get_parent() is ScrollContainer:
+		# Wrap the stats container in a ScrollContainer
+		var scroll_container = ScrollContainer.new()
+		scroll_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+		scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		
+		# Get the current parent and remove stats_container from it
+		var parent = stats_container.get_parent()
+		var index = stats_container.get_index()
+		parent.remove_child(stats_container)
+		
+		# Add scroll_container to parent and stats_container to scroll_container
+		parent.add_child(scroll_container)
+		parent.move_child(scroll_container, index)
+		scroll_container.add_child(stats_container)
+		
+		# Set stats_container to expand
+		stats_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stats_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	
+	# Create all possible stat rows upfront
+	create_all_stat_rows()
+	
+	table_initialized = true
+
+func create_all_stat_rows():
+	"""Create a row for every possible stat and store references"""
+	print("StatsTable: Creating all stat rows")
+	
+	# Clear any existing rows
+	for child in stats_container.get_children():
+		child.queue_free()
+	
+	stat_rows.clear()
+	
+	# Create a row for every stat
 	for stat_info in all_stats:
-		create_stat_row(stat_info)
+		var row = create_stat_row(stat_info)
+		stat_rows[stat_info.key] = row
+		stats_container.add_child(row)
+		# Initially hide all rows
+		row.visible = false
 
 func create_stat_row(stat_info: Dictionary) -> HBoxContainer:
 	"""Create a single stat row"""
 	var row = HBoxContainer.new()
 	row.name = stat_info.key + "_row"
-	stats_container.add_child(row)
 	
 	# Stat name
 	var stat_label = Label.new()
@@ -112,36 +153,45 @@ func create_stat_row(stat_info: Dictionary) -> HBoxContainer:
 	return row
 
 func update_quest_requirements(requirements: Dictionary):
-	"""Update the quest requirements"""
+	"""Update the quest requirements and toggle row visibility"""
+	print("StatsTable: update_quest_requirements called with: ", requirements)
 	quest_requirements = requirements
-	refresh_table()
+	update_row_visibility()
+	update_all_rows()
 
 func update_party_stats(stats: Dictionary):
 	"""Update the current party stats"""
+	print("StatsTable: update_party_stats called with: ", stats)
 	party_stats = stats
-	refresh_table()
+	update_all_rows()
 
-func refresh_table():
-	"""Refresh all stat rows with current data"""
-	# If no quest requirements, show default message
-	if quest_requirements.is_empty():
-		show_default_message()
-		return
-	
-	# Otherwise, clear any default message and show stat rows
-	for child in stats_container.get_children():
-		if child is Label and child.text == "Select a quest first":
-			child.queue_free()
+func update_row_visibility():
+	"""Show/hide rows based on quest requirements"""
+	print("StatsTable: update_row_visibility called")
 	
 	for stat_info in all_stats:
-		update_stat_row(stat_info)
+		var row = stat_rows.get(stat_info.key)
+		if row:
+			var required_value = quest_requirements.get(stat_info.key, 0)
+			row.visible = required_value > 0
+			print("StatsTable: Row ", stat_info.key, " visibility set to: ", required_value > 0)
+
+func update_all_rows():
+	"""Update all visible rows with current data"""
+	print("StatsTable: update_all_rows called")
+	
+	for stat_info in all_stats:
+		var row = stat_rows.get(stat_info.key)
+		if row and row.visible:
+			update_stat_row(stat_info)
 
 func update_stat_row(stat_info: Dictionary):
 	"""Update a single stat row with current data"""
-	var row = stats_container.get_node_or_null(stat_info.key + "_row")
+	print("StatsTable: update_stat_row called for ", stat_info.key)
+	var row = stat_rows.get(stat_info.key)
 	if not row:
-		# Create the row if it doesn't exist
-		row = create_stat_row(stat_info)
+		print("WARNING: Stat row not found for ", stat_info.key)
+		return
 	
 	var required_label = row.get_node("required")
 	var current_label = row.get_node("current")
@@ -150,6 +200,7 @@ func update_stat_row(stat_info: Dictionary):
 	# Get values
 	var required_value = quest_requirements.get(stat_info.key, 0)
 	var current_value = party_stats.get(stat_info.key, 0)
+	print("StatsTable: ", stat_info.key, " - Required: ", required_value, ", Current: ", current_value)
 	
 	# Handle class requirements differently from numeric stats
 	if stat_info.category == "class":
@@ -194,41 +245,19 @@ func update_stat_row(stat_info: Dictionary):
 		status_label.text = "-"
 		status_label.modulate = Color.GRAY
 		current_label.modulate = COLOR_NEUTRAL
-	
-	# Show core stats always, sub-stats only if relevant to quest or party has them
-	var should_show = false
-	if stat_info.category == "core":
-		should_show = true  # Always show core stats
-	elif stat_info.category == "substat":
-		# Show sub-stats if they're required OR if party has points in them
-		should_show = required_value > 0 or current_value > 0
-	elif stat_info.category == "class":
-		# Show class requirements if they exist
-		should_show = required_value > 0
-	
-	row.visible = should_show
 
 func clear_data():
-	"""Clear all data and show default message"""
+	"""Clear all data and hide all rows"""
 	quest_requirements.clear()
 	party_stats.clear()
-	show_default_message()
+	hide_all_rows()
 
-func show_default_message():
-	"""Show 'Select a quest first' message when no quest is selected"""
-	# Clear all existing stat rows
-	for child in stats_container.get_children():
-		child.queue_free()
-	
-	# Create a centered message label
-	var message_label = Label.new()
-	message_label.text = "Select a quest first"
-	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	message_label.add_theme_font_size_override("font_size", 16)
-	message_label.modulate = Color(0.7, 0.7, 0.7)  # Slightly dimmed
-	message_label.custom_minimum_size = Vector2(0, 100)  # Give it some height
-	stats_container.add_child(message_label)
+func hide_all_rows():
+	"""Hide all stat rows"""
+	for stat_info in all_stats:
+		var row = stat_rows.get(stat_info.key)
+		if row:
+			row.visible = false
 
 func get_overall_status() -> bool:
 	"""Check if party meets all quest requirements"""

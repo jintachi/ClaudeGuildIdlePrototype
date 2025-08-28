@@ -22,11 +22,11 @@ enum ConversionMode {
 # Static utility functions for layout conversion
 static func convert_absolute_to_responsive(control: Control, mode: ConversionMode = ConversionMode.SMART_GRID, reference_size: Vector2 = REFERENCE_SIZE):
 	"""Convert a control from absolute positioning to responsive anchoring"""
-	if not control or control.layout_mode != 0:
+	if not control or not is_instance_valid(control) or control.layout_mode != 0:
 		return  # Skip if not absolute positioned
 	
 	var parent = control.get_parent()
-	if not parent is Control:
+	if not parent or not is_instance_valid(parent) or not parent is Control:
 		return  # Need a Control parent for anchoring
 	
 	var parent_control = parent as Control
@@ -193,7 +193,7 @@ static func _adjust_offsets_for_position(control: Control, target_pos: Vector2, 
 # Batch conversion functions
 static func convert_scene_to_responsive(scene_root: Control, mode: ConversionMode = ConversionMode.SMART_GRID):
 	"""Convert an entire scene tree to responsive layout"""
-	if not scene_root:
+	if not scene_root or not is_instance_valid(scene_root):
 		return
 	
 	print("Converting scene to responsive layout: ", scene_root.name)
@@ -201,12 +201,17 @@ static func convert_scene_to_responsive(scene_root: Control, mode: ConversionMod
 
 static func _convert_recursive(node: Node, mode: ConversionMode):
 	"""Recursively convert all Control nodes in a tree"""
+	if not is_instance_valid(node):
+		return
+		
 	if node is Control:
 		convert_absolute_to_responsive(node as Control, mode)
 	
-	# Process children
-	for child in node.get_children():
-		_convert_recursive(child, mode)
+	# Process children safely
+	var children = node.get_children()
+	for child in children:
+		if is_instance_valid(child):
+			_convert_recursive(child, mode)
 
 # Layout optimization functions
 static func optimize_container_structure(control: Control):
