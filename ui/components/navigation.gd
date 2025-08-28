@@ -85,9 +85,14 @@ func _on_roster_pressed():
 func _on_quests_pressed():
 	"""Handle quests button press"""
 	print("Navigation: Quests button pressed")
+	print("Navigation: GuildManager reference: ", GuildManager)
+	print("Navigation: Current room: ", GuildManager.get_current_room() if GuildManager else "null")
 	if GuildManager:
+		print("Navigation: About to call GuildManager.enter_room('Quests')")
 		GuildManager.enter_room("Quests")
 		print("Navigation: Called GuildManager.enter_room('Quests')")
+	else:
+		print("Navigation: GuildManager is null!")
 
 func _on_recruitment_pressed():
 	"""Handle recruitment button press"""
@@ -116,44 +121,54 @@ func set_current_room(room_name: String):
 	set_current_tab(tab_name)
 
 func update_button_visibility():
-	"""Update button appearance based on current tab - all buttons visible, selected button flattened"""
+	"""Update button appearance based on current tab - all buttons visible, selected button flattened and disabled"""
 	# Reset all buttons to normal state
 	if main_hall_button:
 		main_hall_button.visible = true
 		main_hall_button.flat = false
+		main_hall_button.disabled = false
 	if roster_button:
 		roster_button.visible = true
 		roster_button.flat = false
+		roster_button.disabled = false
 	if quests_button:
 		quests_button.visible = true
 		quests_button.flat = false
+		quests_button.disabled = false
 	if recruitment_button:
 		recruitment_button.visible = true
 		recruitment_button.flat = false
+		recruitment_button.disabled = false
 	if town_map_button:
 		town_map_button.visible = true
 		town_map_button.flat = false
+		town_map_button.disabled = false
 	
 	# Update dynamic buttons
 	update_dynamic_button_visibility()
 	
-	# Set the current tab button to flattened (pressed appearance)
+	# Set the current tab button to flattened and disabled (pressed appearance)
 	match current_tab:
 		"main_hall", "mainhall":
 			if main_hall_button:
 				main_hall_button.flat = true
+				main_hall_button.disabled = true
 		"roster":
 			if roster_button:
 				roster_button.flat = true
+				roster_button.disabled = true
 		"quests", "quest":
 			if quests_button:
 				quests_button.flat = true
+				quests_button.disabled = true
 		"recruitment", "recruit":
 			if recruitment_button:
 				recruitment_button.flat = true
+				recruitment_button.disabled = true
 		"town_map", "townmap":
 			if town_map_button:
 				town_map_button.flat = true
+				town_map_button.disabled = true
 
 # Utility functions for external control
 func show_all_buttons():
@@ -277,10 +292,12 @@ func update_dynamic_button_visibility():
 		if button:
 			button.visible = true
 			button.flat = false
+			button.disabled = false
 			
-			# Set current tab button to flattened
+			# Set current tab button to flattened and disabled
 			if current_tab == room_name.to_lower().replace(" ", "_"):
 				button.flat = true
+				button.disabled = true
 
 func remove_dynamic_button(room_name: String):
 	"""Remove a dynamic navigation button"""

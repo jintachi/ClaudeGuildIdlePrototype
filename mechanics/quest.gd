@@ -67,7 +67,7 @@ enum QuestRank {
 @export var start_time: float = 0.0
 @export var assigned_party: Array[Character] = []
 @export var success_rate: float = 0.0
-@export var individual_checks: Array[bool] = []
+@export var individual_checks: Array[bool] = [false]
 @export var active_quest_status = QuestStatus.NOTSTARTED
 @export var final_success_rate: float = 0.0  # Stored for when results are accepted
 
@@ -363,6 +363,12 @@ func start_quest(party: Array[Character]) -> bool:
 	for character in assigned_party:
 		character.set_status(Character.CharacterStatus.ON_QUEST)
 	
+	# Initialize individual_checks array with default values
+	individual_checks.clear()
+	individual_checks.append(false)  # Always have at least one default false value
+	for i in range(assigned_party.size()):
+		individual_checks.append(false)  # Default to false, will be set during completion
+	
 	self.active_quest_status = QuestStatus.INPROGRESS
 	start_time = Time.get_unix_time_from_system()
 	calculate_success_rate()
@@ -519,7 +525,13 @@ func complete_quest():
 	
 	# Perform individual success checks
 	individual_checks.clear()
+	individual_checks.append(false)  # Always have at least one default false value
 	var successful_members = 0
+	
+	# Ensure we have the right number of checks for the party size
+	if assigned_party.is_empty():
+		print("Quest: Warning - Attempting to complete quest with empty party")
+		return
 	
 	for character in assigned_party:
 		# Calculate individual success chance based on character's contribution
@@ -535,19 +547,19 @@ func complete_quest():
 		
 		
 	# Calculate final success rate and rewards
-	var final_success_rate = float(successful_members) / assigned_party.size()
+	var _final_success_rate = float(successful_members) / assigned_party.size()
 	
 	# Check for quest failure conditions
-	if not allow_partial_failure and final_success_rate < 1.0:
-		final_success_rate = 0.0  # Complete failure for no-partial quests
-	elif final_success_rate < 0.6:
-		final_success_rate = 0.0  # Less than 60% counts as failure
+	if not allow_partial_failure and _final_success_rate < 1.0:
+		_final_success_rate = 0.0  # Complete failure for no-partial quests
+	elif _final_success_rate < 0.6:
+		_final_success_rate = 0.0  # Less than 60% counts as failure
 		
 	# Store the final success rate for later use when accepting results
-	self.final_success_rate = final_success_rate
+	self.final_success_rate = _final_success_rate
 	
 	# Move to awaiting completion status instead of directly completing
-	if final_success_rate > .6 and allow_partial_failure :
+	if _final_success_rate > .6 and allow_partial_failure :
 		self.active_quest_status = QuestStatus.AWAITING_COMPLETION
 	else : 
 		self.active_quest_status = QuestStatus.AWAITING_COMPLETION  # Even failed quests await acceptance
@@ -566,6 +578,11 @@ func complete_quest():
 
 func accept_quest_results():
 	"""Accept quest results - apply rewards, injuries, and finalize quest status"""
+	print("AVAILABLE_QUESTS: quest.accept_quest_results() called")
+	print("AVAILABLE_QUESTS: Quest name: ", quest_name)
+	print("AVAILABLE_QUESTS: Party size: ", assigned_party.size())
+	print("AVAILABLE_QUESTS: Final success rate: ", final_success_rate)
+	
 	# Apply rewards and injuries based on the stored final success rate
 	apply_rewards(final_success_rate)
 	apply_injuries_on_failure(final_success_rate)
@@ -573,27 +590,39 @@ func accept_quest_results():
 	# Set final quest status
 	if final_success_rate > 0.6 and allow_partial_failure:
 		self.active_quest_status = QuestStatus.COMPLETED
+		print("AVAILABLE_QUESTS: Quest status set to COMPLETED")
 	else:
 		self.active_quest_status = QuestStatus.FAILED
+		print("AVAILABLE_QUESTS: Quest status set to FAILED")
 	
 	# Set characters to appropriate final status and emit notifications
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
-		var member_success = individual_checks[i]
+		var _member_success = false
+		if i < individual_checks.size():
+			_member_success = individual_checks[i]
+		else:
+			# Fallback for missing individual checks
+			_member_success = randf() < final_success_rate
+		print("AVAILABLE_QUESTS: Processing character: ", character.character_name)
+		print("AVAILABLE_QUESTS: Character current status: ", character.character_status)
 		
 		# Emit character injury notification if injured
 		if character.is_injured():
 			var injury_name = get_injury_name(character.injury_type)
 			SignalBus.character_injured_notification.emit(character.character_name, injury_name)
 			character.set_status(Character.CharacterStatus.AVAILABLE)  # Injured characters stay injured but available
+			print("AVAILABLE_QUESTS: Character injured, set to AVAILABLE: ", character.character_name)
 		else:
 			character.set_status(Character.CharacterStatus.AVAILABLE)  # Characters become available after quest completion
+			print("AVAILABLE_QUESTS: Character set to AVAILABLE: ", character.character_name)
 		
 		# Emit character level up notification if applicable
 		# Note: This will be handled by the character's add_experience method
 	
 	# Emit final completion signal for notifications
 	quest_finalized.emit(self)
+	print("AVAILABLE_QUESTS: quest_finalized signal emitted")
 
 func get_injury_name(injury_type: Character.InjuryType) -> String:
 	"""Get the display name for an injury type"""
@@ -640,9 +669,9 @@ func calculate_individual_success_chance(character: Character) -> float:
 	# Clamp between 5% and 95%
 	return max(0.05, min(0.95, final_chance))
 
-func apply_rewards(final_success_rate: float):
+func apply_rewards(_final_success_rate: float):
 	# Enhanced experience calculation with multiple factors
-	var total_quest_experience = calculate_enhanced_experience(final_success_rate)
+	var total_quest_experience = calculate_enhanced_experience(_final_success_rate)
 	var gold_per_member = int((gold_reward * 0.8) / assigned_party.size())  # 80% to party, 20% to guild
 	
 	# Calculate experience sharing based on party size vs minimum requirement
@@ -651,15 +680,17 @@ func apply_rewards(final_success_rate: float):
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
 		var member_success
-		if individual_checks.size() < 1 :
-			match final_success_rate :
-				100.0 : member_success = true
-				0 : member_success = false
-		else :
+		if individual_checks.size() <= i:
+			# Fallback for missing individual checks
+			match final_success_rate:
+				1.0: member_success = true
+				0.0: member_success = false
+				_: member_success = randf() < final_success_rate
+		else:
 			member_success = individual_checks[i]
 		
 		# Calculate individual experience with character-specific modifiers
-		var individual_exp = calculate_individual_experience(character, experience_per_member, member_success, final_success_rate)
+		var individual_exp = calculate_individual_experience(character, experience_per_member, member_success, _final_success_rate)
 		
 		# Record quest completion in character history
 		var rewards = {
@@ -692,12 +723,12 @@ func calculate_experience_sharing(total_quest_experience: int) -> int:
 	
 	return experience_per_member
 
-func calculate_enhanced_experience(final_success_rate: float) -> int:
+func calculate_enhanced_experience(_final_success_rate: float) -> int:
 	"""Calculate enhanced experience based on multiple factors"""
 	var base_exp = base_experience
 	
 	# Success rate multiplier (higher success = more XP)
-	var success_multiplier = 1.0 + (final_success_rate - 0.6) * 0.5  # 0.8x to 1.2x
+	var success_multiplier = 1.0 + (_final_success_rate - 0.6) * 0.5  # 0.8x to 1.2x
 	
 	# Quest type multiplier (different quest types give different XP)
 	var quest_type_multiplier = get_quest_type_experience_multiplier()
@@ -712,7 +743,7 @@ func calculate_enhanced_experience(final_success_rate: float) -> int:
 	
 	return enhanced_exp
 
-func calculate_individual_experience(character: Character, base_exp: int, member_success: bool, final_success_rate: float) -> int:
+func calculate_individual_experience(character: Character, base_exp: int, _member_success: bool, _final_success_rate: float) -> int:
 	"""Calculate individual character experience with personal modifiers"""
 	var individual_exp = base_exp
 	
@@ -756,27 +787,32 @@ func get_substat_relevance_bonus(character: Character) -> float:
 	
 	return 1.0
 
-func get_rest_bonus(character: Character) -> float:
+func get_rest_bonus(_character: Character) -> float:
 	"""Get bonus XP for characters who haven't quested recently"""
 	# TODO: Implement rest bonus system after Inn system is added
 	# This will give bonus XP to characters who haven't been on quests recently
 	# For now, return 1.0 (no bonus)
 	return 1.0
 
-func apply_injuries_on_failure(final_success_rate: float):
-	if final_success_rate >= 0.5:
+func apply_injuries_on_failure(_final_success_rate: float):
+	if _final_success_rate >= 0.5:
 		return  # No injuries on success
 	
-	var injury_chance = 0.1 + (0.5 * (1.0 - final_success_rate))  # 30-70% chance based on failure severity
+	var injury_chance = 0.1 + (0.5 * (1.0 - _final_success_rate))  # 30-70% chance based on failure severity
 	
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
-		var member_failed = not individual_checks[i]
+		var member_failed = false
+		if i < individual_checks.size():
+			member_failed = not individual_checks[i]
+		else:
+			# Fallback for missing individual checks
+			member_failed = randf() >= final_success_rate
 		
 		if member_failed and randf() < injury_chance:
 			apply_random_injury(character)
 
-func apply_random_injury(character: Character):
+func apply_random_injury(_character: Character):
 	var injury_types = [
 		Character.InjuryType.PHYSICAL_WOUND,
 		Character.InjuryType.MENTAL_TRAUMA,
@@ -789,10 +825,10 @@ func apply_random_injury(character: Character):
 	var base_duration = get_base_injury_duration(injury_type)
 	var rank_multiplier = 1.0 + (quest_rank * 0.1)  # Higher rank quests = longer injuries
 	
-	character.apply_injury(injury_type, base_duration * rank_multiplier)
+	_character.apply_injury(injury_type, base_duration * rank_multiplier)
 	
 	# Emit injury notification signal
-	SignalBus.character_injured.emit(character)
+	SignalBus.character_injured.emit(_character)
 
 func capture_completion_injuries():
 	"""Capture the injury state of all party members at quest completion time"""
@@ -924,6 +960,20 @@ func get_requirements_text() -> String:
 		req_text.append("%s Skill: %d+" % [get_substat_name_for_quest_type().capitalize(), min_substat_requirement])
 	
 	return ", ".join(req_text) if not req_text.is_empty() else "No special requirements"
+
+func validate_individual_checks():
+	"""Validate that individual_checks array size matches assigned party size"""
+	if individual_checks.size() != assigned_party.size():
+		print("Quest: Warning - individual_checks size (%d) doesn't match assigned_party size (%d), fixing..." % [individual_checks.size(), assigned_party.size()])
+		# Resize individual_checks to match assigned_party size
+		while individual_checks.size() < assigned_party.size():
+			individual_checks.append(false)  # Default to false
+		while individual_checks.size() > assigned_party.size():
+			individual_checks.pop_back()  # Remove excess entries
+	
+	# Ensure we always have at least one element
+	if individual_checks.is_empty():
+		individual_checks.append(false)
 
 func get_rewards_text() -> String:
 	var rewards_text = []

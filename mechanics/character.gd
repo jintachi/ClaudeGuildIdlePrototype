@@ -39,7 +39,7 @@ enum CharacterStatus {
 #region Base Stats
 @export var character_name: String
 @export var character_class: CharacterClass
-@export var quality: Quality
+@export var quality: Quality = Quality.ONE_STAR
 @export var rank: Rank = Rank.F
 @export var level: int = 1
 @export var experience: int = 0
@@ -448,13 +448,13 @@ func record_quest_completion(quest_name: String, success: bool, rewards: Diction
 	else:
 		quests_failed += 1
 
-func record_injury(injury_type: InjuryType, duration: float):
+func record_injury(_injury_type: InjuryType, _duration: float):
 	"""Record injury in character history"""
 	total_injuries_sustained += 1
 	
 	var injury_record = {
-		"injury_type": injury_type,
-		"duration": duration,
+		"injury_type": _injury_type,
+		"duration": _duration,
 		"timestamp": Time.get_unix_time_from_system()
 	}
 	

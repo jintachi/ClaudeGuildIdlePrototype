@@ -197,7 +197,8 @@ func create_injury_recovery_bar(character: Character) -> Control:
 	recovery_container.add_child(time_label)
 	
 	# Recovery progress bar
-	var progress_bar = ProgressBar.new()
+	var progress_bar_scene = preload("res://ui/components/NineSliceProgressBar.tscn")
+	var progress_bar = progress_bar_scene.instantiate()
 	progress_bar.name = "RecoveryProgressBar"
 	progress_bar.max_value = 100
 	var injury_duration = character.injury_duration
@@ -207,7 +208,9 @@ func create_injury_recovery_bar(character: Character) -> Control:
 		progress_percentage = ((injury_duration - time_remaining) / injury_duration) * 100.0
 	
 	progress_bar.value = progress_percentage
-	progress_bar.custom_minimum_size = Vector2(150, 15)
+	progress_bar.custom_minimum_size = Vector2(150, 22)
+	progress_bar.use_nine_slice = true
+	progress_bar.segment_width = 8
 	recovery_container.add_child(progress_bar)
 	
 	# Set the script for the container

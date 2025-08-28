@@ -26,6 +26,7 @@ InputManager="*res://mechanics/Singletons/input_manager.gd"
 UIScalingManager="*res://mechanics/Singletons/ui_scaling_manager.gd"
 NotificationManager="*res://ui/Notifications.tscn"
 CustomRoomCreator="*res://scenes/rooms/custom_rooms/CustomRoomCreator.gd"
+DataAccessLayer="*res://mechanics/Singletons/data_access_layer.gd"
 
 [display]
 

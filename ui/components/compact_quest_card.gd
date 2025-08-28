@@ -57,6 +57,10 @@ func populate_with_quest(quest_data: Quest):
 	
 	# Set rewards
 	rewards_label.text = get_compact_rewards_text(quest_data)
+	
+	# Set assigned party if quest is active or awaiting completion
+	if quest_data.assigned_party.size() > 0:
+		set_active_party_roster(quest_data)
 
 func set_success_rate(success_rate: float):
 	"""Set the success rate display (for when party is selected)"""
@@ -73,7 +77,7 @@ func set_selected(selected: bool):
 	"""Set the visual state for selection"""
 	if selected:
 		add_theme_stylebox_override("normal", get_theme_stylebox("pressed", "Button"))
-		print("DEBUG: I've been selected: " + str(self._quest))
+		print("AVAILABLE_QUESTS: Quest card selected: " + str(self._quest.quest_name if self._quest else "null"))
 	else:
 		remove_theme_stylebox_override("normal")
 		#set_selected(false)

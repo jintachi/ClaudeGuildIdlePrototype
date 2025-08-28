@@ -1,8 +1,6 @@
 class_name QuestsRoom
 extends BaseRoom
 
-
-
 # Quests-specific UI elements
 @export var available_quests_list: VBoxContainer
 @export var quest_details_panel: VBoxContainer
@@ -16,23 +14,84 @@ extends BaseRoom
 # Quest inventory panel
 var quest_inventory_panel: QuestInventoryPanel = null
 
-
 # Quest and party state
 var current_selected_quest_card: CompactQuestCard = null
 var current_party: Array[Character] = []
+
+# Local data cache
+var local_quest_cards: Array[CompactQuestCard]
+var local_available_characters: Array[Character]
 
 func _init():
 	room_name = "Quests"
 	room_description = "Accept and manage quests"
 	is_unlocked = true
 
+func _ready():
+	"""Called when the room is ready"""
+	super._ready()
+	
+	print("QuestsRoom: _ready() called - Room instance: ", self)
+	print("QuestsRoom: available_quests_list children: ", available_quests_list.get_child_count() if available_quests_list else "null")
+	print("QuestsRoom: local_quest_cards size: ", local_quest_cards.size())
+	print("QuestsRoom: local_available_characters size: ", local_available_characters.size())
+	
+	# Check if this is a reused room instance by looking for existing UI setup
+	if available_quests_list and available_quests_list.get_child_count() > 0:
+		print("QuestsRoom: Room instance reused (UI has children), refreshing data")
+		call_deferred("on_room_entered")
+	elif local_quest_cards.size() > 0 or local_available_characters.size() > 0:
+		print("QuestsRoom: Room instance reused (local data exists), refreshing data")
+		call_deferred("on_room_entered")
+
 func setup_room_specific_ui():
 	"""Setup quests-specific UI connections"""
+	print("=== SETUP ROOM SPECIFIC UI ===")
+	
+	# Only refresh data if this is a new room instance (no existing data)
+	if local_quest_cards.size() == 0 and local_available_characters.size() == 0:
+		print("QuestsRoom: New room instance, refreshing data...")
+		call_deferred("on_room_entered")
+	else:
+		print("QuestsRoom: Reused room instance, data already exists")
+	
+	print("Step 0a: available_quests_list export variable is null: ", available_quests_list == null)
+	if available_quests_list:
+		print("Step 0a1: available_quests_list name: ", available_quests_list.name)
+		print("Step 0a2: available_quests_list class: ", available_quests_list.get_class())
+	
+	print("Step 0b: guild_roster_grid export variable is null: ", guild_roster_grid == null)
+	if guild_roster_grid:
+		print("Step 0b1: guild_roster_grid name: ", guild_roster_grid.name)
+		print("Step 0b2: guild_roster_grid class: ", guild_roster_grid.get_class())
+	
+	# Find UI containers by name if export variables are not assigned
+	if not available_quests_list:
+		print("Step 0c: ERROR - available_quests_list is null, trying fallback lookup")
+		available_quests_list = find_child_by_name_recursive("AvailableQuestsVBox")
+		print("Step 0d: Fallback lookup result: ", available_quests_list != null)
+		if available_quests_list:
+			print("Step 0e: available_quests_list name: ", available_quests_list.name)
+			print("Step 0f: available_quests_list class: ", available_quests_list.get_class())
+		else:
+			print("Step 0e: ERROR - Could not find AvailableQuestsVBox even with fallback")
+	
+	if not guild_roster_grid:
+		print("Step 0g: ERROR - guild_roster_grid is null, trying fallback lookup")
+		guild_roster_grid = find_child_by_name_recursive("GuildRosterGrid")
+		print("Step 0h: Fallback lookup result: ", guild_roster_grid != null)
+		if guild_roster_grid:
+			print("Step 0i: guild_roster_grid name: ", guild_roster_grid.name)
+			print("Step 0j: guild_roster_grid class: ", guild_roster_grid.get_class())
+		else:
+			print("Step 0i: ERROR - Could not find GuildRosterGrid even with fallback")
+	
+	print("Step 0k: DataAccessLayer signals will be connected in on_room_entered()")
+	# Signal connections are now handled in on_room_entered() to prevent duplicates
+	
 	# Connect to guild manager signals for quest updates
 	if GuildManager:
-		GuildManager.quest_started.connect(_on_quest_started)
 		GuildManager.quest_completed.connect(_on_quest_completed)
-		GuildManager.quest_card_moved.connect(_on_quest_card_moved)
 		SignalBus.quest_card_selected.connect(_on_quest_card_selected)
 	
 	# Connect to character status change signals
@@ -45,61 +104,149 @@ func setup_room_specific_ui():
 	if quest_inventory_button:
 		quest_inventory_button.pressed.connect(_on_quest_inventory_button_pressed)
 
+func find_child_by_name_recursive(target_name: String) -> Node:
+	"""Find a child node by name recursively"""
+	print("  Searching for '", target_name, "' in node '", name, "' (", get_class(), ")")
+	
+	if name == target_name:
+		print("  FOUND: '", target_name, "' at current node")
+		return self
+	
+	for child in get_children():
+		print("  Checking child: '", child.name, "' (", child.get_class(), ")")
+		var result = child.find_child_by_name_recursive(target_name)
+		if result:
+			print("  FOUND: '", target_name, "' in child '", child.name, "'")
+			return result
+	
+	print("  NOT FOUND: '", target_name, "' in node '", name, "'")
+	return null
+
 func on_room_entered():
 	"""Called when entering the quests room"""
+	print("=== QUESTS ROOM ENTERED ===")
+	
+	# Ensure signal connections are established before requesting data
+	print("Step 1: Ensuring DataAccessLayer signal connections")
+	if DataAccessLayer:
+		# Check if signals are connected
+		var quest_connections = DataAccessLayer.available_quest_cards_received.get_connections()
+		var char_connections = DataAccessLayer.available_characters_received.get_connections()
+		print("Step 1a: Quest signal connections: ", quest_connections.size())
+		print("Step 1b: Character signal connections: ", char_connections.size())
+		
+		# Safely disconnect and reconnect to prevent duplicates
+		print("Step 1c: Safely disconnecting quest signal")
+		if quest_connections.size() > 0:
+			DataAccessLayer.available_quest_cards_received.disconnect(_on_available_quest_cards_received)
+		print("Step 1d: Connecting quest signal")
+		DataAccessLayer.available_quest_cards_received.connect(_on_available_quest_cards_received)
+		
+		print("Step 1e: Safely disconnecting character signal")
+		if char_connections.size() > 0:
+			DataAccessLayer.available_characters_received.disconnect(_on_available_characters_received)
+		print("Step 1f: Connecting character signal")
+		DataAccessLayer.available_characters_received.connect(_on_available_characters_received)
+	else:
+		print("Step 1a: ERROR - DataAccessLayer is null!")
+	
+	print("Step 2: Emitting request_available_quest_cards signal")
+	# Request data through signals instead of direct access
+	SignalBus.request_available_quest_cards.emit()
+	print("Step 3: Emitting request_available_characters signal")
+	SignalBus.request_available_characters.emit()
+	
+	print("Step 4: Calling update_room_display()")
 	update_room_display()
 
 func on_room_exited():
 	"""Called when exiting the quests room"""
-	# Remove quest cards from UI but don't destroy them
-	for child in available_quests_list.get_children():
-		if child is CompactQuestCard:
-			available_quests_list.remove_child(child)
+	print("QuestsRoom: Room exited - clearing UI")
+	## Remove quest cards from UI but don't destroy them
+	#for child in available_quests_list.get_children():
+		#if child is CompactQuestCard:
+			#available_quests_list.remove_child(child)
 	
 	# Clear selection
 	current_selected_quest_card = null
 	current_party.clear()
+	print("QuestsRoom: Room exit complete - local_quest_cards size: ", local_quest_cards.size())
 
 func update_room_display():
 	"""Update the quests display"""
-	print("we're updating the quest display")
+	print("Step 4: update_room_display() called")
+	print("Step 4a: current_selected_quest_card is null: ", current_selected_quest_card == null)
+	print("Step 4b: local_quest_cards size: ", local_quest_cards.size())
+	
 	update_quests_display()
 	
-	# Clear quest details if no quest is selected
-	if not current_selected_quest_card and quest_details_panel:
-		for child in quest_details_panel.get_children():
-			child.queue_free()
+	# If no quest is selected but we have quest cards, select the first one
+	if not current_selected_quest_card and not local_quest_cards.is_empty():
+		current_selected_quest_card = local_quest_cards[0]
+		print("Step 4c: Auto-selected first quest card: ", current_selected_quest_card)
 		
-		# Add placeholder text
-		var placeholder = Label.new()
-		placeholder.text = "Select a quest to view details"
-		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		placeholder.add_theme_color_override("font_color", Color.GRAY)
+		# Update the quest details display for the selected card
+		update_quest_details_display(current_selected_quest_card)
+		
+		## grab our available characters, and select the first one
+		#var temp_pty = DataAccessLayer.get_available_characters()
+		#
+		#if temp_pty.size() != 0 :
+			#current_party.append(temp_pty[0])
+		update_party_selection_display()
+		#else :
+			#return
+	# Clear quest details if no quest is selected and no quest cards available
+	elif not current_selected_quest_card and quest_details_panel:
+		UIUtilities.clear_container(quest_details_panel)
+		
+		# Add placeholder text using UIUtilities
+		var placeholder = UIUtilities.create_placeholder_label("Select a quest to view details")
 		quest_details_panel.add_child(placeholder)
 
 func update_quests_display():
 	"""Update the quests display with all available quests"""
-	print("DEBUG: update_quests_display() called")
+	print("Step 5: update_quests_display() called")
+	print("Step 5a: available_quests_list is null: ", available_quests_list == null)
+	print("Step 5b: local_quest_cards size: ", local_quest_cards.size())
 	
-	var quest_cards = GuildManager.get_available_quest_cards()
-	print("DEBUG: Got " + str(quest_cards.size()) + " quest cards from GuildManager")
+	# Check if container is available
+	if not available_quests_list:
+		print("Step 5c: ERROR - available_quests_list is null, cannot update display")
+		return
 	
-	for quest_card in quest_cards:
-		
-		if not available_quests_list.get_children().has(quest_card) :
-			print("DEBUG: Adding quest card to UI: " + str(quest_card))
+	print("Step 5d: available_quests_list found, clearing existing quest cards")
+	# Clear existing quest cards
+	print("Step 5e: Current children in available_quests_list: ", available_quests_list.get_child_count())
+	for child in available_quests_list.get_children():
+		if child is CompactQuestCard:
+			print("Step 5f: Removing quest card: ", child)
+			available_quests_list.remove_child(child)
+	
+	print("Step 5g: Adding quest cards from local cache")
+	# Add quest cards from local cache
+	
+	
+	
+	for i in range(local_quest_cards.size()):
+		var quest_card = local_quest_cards[i]
+		print("Step 5h: Processing quest card ", i, ": ", quest_card)
+		if quest_card:
+			print("Step 5i: Adding quest card to UI: ", quest_card)
 			available_quests_list.add_child(quest_card)
-			print("DEBUG: Added quest card to UI: " + str(quest_card))
-		else : print("DEBUG: Card already added to list, skipping~")
+			print("Step 5j: Added quest card to UI. available_quests_list now has ", available_quests_list.get_child_count(), " children")
+		else:
+			print("Step 5k: Quest card is null, skipping")
 	
 	# Wait a frame for the panels to be added to the scene tree
 	await get_tree().process_frame
 	
+	# Update visual states for all quest panels
 	if current_selected_quest_card:
 		update_quest_panel_states(current_selected_quest_card)
-	else : current_selected_quest_card = GuildManager.get_available_quest_cards()[0]
-	
+	elif current_selected_quest_card == null :
+		current_selected_quest_card = available_quests_list.get_child(0)
+		update_quest_panel_states(current_selected_quest_card)
 
 func update_quest_details_display(card:CompactQuestCard):
 	"""Update the detailed quest view in the middle panel"""
@@ -264,6 +411,49 @@ func create_requirement_item(text: String) -> Label:
 	label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
 	return label
 
+# Signal handlers for data updates
+func _on_available_quest_cards_received(quest_cards: Array):
+	"""Handle available quest cards data received from data access layer"""
+	print("=== SIGNAL HANDLER CALLED ===")
+	print("Step 6: _on_available_quest_cards_received() called")
+	print("Step 6a: Received quest_cards size: ", quest_cards.size())
+	print("Step 6a1: Quest cards received after quest completion/update")
+	
+	# Debug: Print quest names to see what we're getting
+	for i in range(quest_cards.size()):
+		var card = quest_cards[i]
+		if card and card.has_method("get_quest"):
+			var quest = card.get_quest()
+			print("Step 6a2: Quest ", i, ": ", quest.quest_name if quest else "null")
+	
+	# Prevent duplicate processing
+	if local_quest_cards.size() == quest_cards.size():
+		print("Step 6a1: Skipping duplicate data (same size)")
+		return
+	
+	for i in range(quest_cards.size()):
+		var card = quest_cards[i]
+		print("Step 6b: Quest card ", i, ": ", card)
+		if card and card.has_method("get_quest"):
+			var quest = card.get_quest()
+			print("Step 6c: Quest name: ", quest.quest_name if quest else "null")
+	
+	print("Step 6d: Storing quest cards in local_quest_cards")
+	local_quest_cards = quest_cards
+	print("Step 6e: local_quest_cards size after assignment: ", local_quest_cards.size())
+	
+	print("Step 6f: Calling update_quests_display()")
+	update_quests_display()
+
+func _on_available_characters_received(characters: Array[Character]):
+	"""Handle available characters data received from data access layer"""
+	local_available_characters = characters
+	update_party_selection_display()
+
+func update_roster_display():
+	"""Update the roster display for party selection"""
+	update_party_selection_display()
+
 func update_quest_panel_states(selected_card: CompactQuestCard):
 	"""Update visual states of all quest panels"""
 	# Find all quest panels and update their states
@@ -288,7 +478,7 @@ func update_quest_panel_states(selected_card: CompactQuestCard):
 
 func _on_quest_card_selected(card: CompactQuestCard):
 	"""Handle when a quest card is selected"""
-	print("DEBUG: _on_quest_card_selected() called with card: " + str(card))
+	print("AVAILABLE_QUESTS: Quest card selected in quests room: " + str(card.get_quest().quest_name if card and card.get_quest() else "null"))
 	
 	if card:
 		print("Quest Card Selected: " + str(card))
@@ -297,7 +487,7 @@ func _on_quest_card_selected(card: CompactQuestCard):
 		current_selected_quest_card = card
 		
 		# Update visual states for all quest cards
-		for quest_card in GuildManager.get_available_quest_cards():
+		for quest_card in local_quest_cards:
 			quest_card.set_selected(quest_card == card)
 		
 		# Update displays
@@ -305,36 +495,40 @@ func _on_quest_card_selected(card: CompactQuestCard):
 		update_party_selection_display()
 
 	else:
-		print("DEBUG: No quest card provided")
+		print("AVAILABLE_QUESTS: No quest card provided")
 
 func reset_quest_tab_to_default():
 	"""Reset the quest tab to its default state with no quest selected"""
 	# Clear current selections
-	current_selected_quest_card = GuildManager.get_available_quest_cards()[0]
 	current_party.clear()
+	
+	# Set first quest as selected if available
+	if not local_quest_cards.is_empty():
+		current_selected_quest_card = local_quest_cards[0]
+		# Update displays for the selected quest
+		update_quest_details_display(current_selected_quest_card)
+		update_party_selection_display()
+	else:
+		current_selected_quest_card = null
+		# Clear quest info display
+		if quest_info_label:
+			quest_info_label.text = "No quests available"
 		
-	# Clear quest info display
-	if quest_info_label:
-		quest_info_label.text = "Select a quest to view details"
-	
-	# Reset stats comparison table to show "Select a quest first"
-	if stats_comparison_table and stats_comparison_table.has_method("clear_data"):
-		stats_comparison_table.clear_data()
-	
-	# Clear party list
-	for child in guild_roster_grid.get_children():
-		child.queue_free()
+		# Reset stats comparison table to show "Select a quest first"
+		if stats_comparison_table and stats_comparison_table.has_method("clear_data"):
+			stats_comparison_table.clear_data()
+		
+		# Clear party list using UIUtilities
+		UIUtilities.clear_container(guild_roster_grid)
 
 func update_party_selection_display():
 	"""Update the party selection display"""
 	if not current_selected_quest_card:
 		return
-	
-	# Make single call to get available characters
-	var available_chars = GuildManager.get_available_characters()
-	
+		
 	# Update the grid display and stats comparison
-	update_available_characters_display(available_chars)
+	update_available_characters_display(local_available_characters)
+	
 	update_stats_comparison_table()
 	update_start_quest_button_state()
 	
@@ -343,39 +537,42 @@ func update_party_selection_display():
 
 func update_stats_comparison_table():
 	"""Update the stats comparison table with quest requirements and current party stats"""
-	if not stats_comparison_table or not current_selected_quest_card:
+	if current_selected_quest_card == null:
 		return
 	
 	# Get quest requirements
 	var quest_requirements = get_quest_stat_requirements()
-	
-	# Get current party stats
-	var party_stats = get_current_party_total_stats()
-	
+
 	# Update the table
 	if stats_comparison_table.has_method("update_quest_requirements"):
 		stats_comparison_table.update_quest_requirements(quest_requirements)
+	
+	# leave if the current party is empty
+	if current_party.size() == 0 :
+		return
+	# Get current party stats
+	var party_stats = get_current_party_total_stats()
 	if stats_comparison_table.has_method("update_party_stats"):
 		stats_comparison_table.update_party_stats(party_stats)
 
 func update_quest_success_chances():
 	"""Update success chance displays for all quest panels"""
-	if not current_selected_quest_card:
+	if not current_selected_quest_card or current_party.size() == 0:
 		return
 		
 	# Update success chances for all quest cards
 	for child in available_quests_list.get_children():
 		if child.has_method("set_success_rate"):
-			var quest_card = child
-			var quest = quest_card.get_quest()
+			var _quest_card = child
+			var quest = _quest_card.get_quest()
 			
 			if quest == current_selected_quest_card.get_quest():
 				# Calculate success chance for selected quest with current party
 				var success_chance = quest.get_suggested_success_chance(current_party)
-				quest_card.set_success_rate(success_chance)
+				_quest_card.set_success_rate(success_chance)
 			else:
 				# Hide success rate for unselected quests
-				quest_card.set_success_rate(-1)
+				_quest_card.set_success_rate(-1)
 
 func get_quest_stat_requirements() -> Dictionary:
 	"""Extract stat requirements from the current quest"""
@@ -496,14 +693,22 @@ func get_current_party_total_stats() -> Dictionary:
 
 func update_available_characters_display(available_chars: Array):
 	"""Update the available characters display"""
-	# Clear existing panels
-	for child in guild_roster_grid.get_children():
-		child.queue_free()
+	# Clear existing panels using UIUtilities
+	UIUtilities.clear_container(guild_roster_grid)
 	
-	# Create new panels for each available character
+	# Create new panels for each available character using UIUtilities
 	for character in available_chars:
-		var char_panel = create_party_selection_panel(character)
+		var char_panel = UIUtilities.create_character_panel(character, "party_selection")
 		guild_roster_grid.add_child(char_panel)
+		
+		# Connect click handler to the panel
+		char_panel.gui_input.connect(func(event): _on_character_panel_input(event, character))
+		
+		# Store character reference
+		char_panel.set_meta("character", character)
+		
+		# Update visual state
+		update_party_selection_panel_state(char_panel, character)
 
 func update_start_quest_button_state():
 	"""Update the start quest button state based on current party and quest"""
@@ -519,42 +724,7 @@ func update_start_quest_button_state():
 	if quest_inventory_button:
 		quest_inventory_button.disabled = current_selected_quest_card == null
 
-func create_party_selection_panel(character: Character) -> Control:
-	"""Create a party selection panel for a character"""
-	# Create a panel for the character in the grid - icon only design
-	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(64, 64)
-	
-	# Make panel clickable for selection
-	var button = Button.new()
-	button.flat = true
-	button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	button.pressed.connect(func(): toggle_character_in_party(character))
-	panel.add_child(button)
-	
-	# Add character portrait
-	var portrait = TextureRect.new()
-	portrait.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	
-	# Load character portrait based on class and gender
-	var portrait_path = character.portrait_path
-	if ResourceLoader.exists(portrait_path):
-		portrait.texture = load(portrait_path)
-	else:
-		# Use a default portrait or placeholder
-		portrait.modulate = Color.GRAY
-	
-	button.add_child(portrait)
-	
-	# Store character reference
-	panel.set_meta("character", character)
-	
-	# Update visual state
-	update_party_selection_panel_state(panel, character)
-	
-	return panel
+# This function has been replaced by UIUtilities.create_character_panel(character, "party_selection")
 
 func toggle_character_in_party(character: Character):
 	"""Toggle a character in/out of the current party"""
@@ -629,12 +799,6 @@ func get_character_status(character: Character) -> String:
 		_:
 			return "available"
 
-# Signal handlers
-func _on_quest_started(quest: Quest):
-	"""Handle when a quest is started"""
-	# Refresh quest display
-	update_room_display()
-
 func _on_character_status_changed(character: Character):
 	"""Handle when a character's status changes - update only the specific character panel"""
 	# Find and update the specific character panel without redrawing the entire scene
@@ -647,35 +811,36 @@ func _on_character_status_changed(character: Character):
 
 func _on_quest_completed(quest: Quest):
 	"""Handle when a quest is completed"""
-	# Refresh quest display
-	update_room_display()
-
-func _on_quest_card_moved(quest: Quest, from_state: String, to_state: String):
-	"""Handle when a quest card is moved between states"""
-	# If a quest card is moved from available to active, remove it from this room's display
-	if from_state == "available":
-		# Find and remove the quest card from available quests list
-		for child in available_quests_list.get_children():
-			if child is CompactQuestCard and child.get_quest() == quest:
-				available_quests_list.remove_child(child)
-				break
-		
-		# Clear selection if the moved quest was selected
-		if current_selected_quest_card and current_selected_quest_card.get_quest() == quest:
-			current_selected_quest_card = null
-			reset_quest_tab_to_default()
-	
-	# If a new replacement quest was added, we'll get that through update_room_display
+	print("QuestsRoom: Quest completed: ", quest.quest_name)
+	# Request fresh data
+	# SignalBus.request_available_quest_cards.emit()
+	# SignalBus.request_available_characters.emit()
 
 func _on_start_quest_button_pressed():
 	"""Handle start quest button press"""
+	print("AVAILABLE_QUESTS: Quest Started button pressed")
 	if current_selected_quest_card and not current_party.is_empty():
+		print("AVAILABLE_QUESTS: Starting quest: ", current_selected_quest_card.get_quest().quest_name)
+		print("AVAILABLE_QUESTS: Party size: ", current_party.size())
+		# This should be handled through a signal, but for now use direct call
 		var quest_result = GuildManager.start_quest(current_selected_quest_card, current_party)
 		if quest_result.success:
-			# Reset to default state after starting quest
-			reset_quest_tab_to_default()
-			# Update the display to show replacement quest
+			print("AVAILABLE_QUESTS: Quest started successfully")
+			# Clear the current party selection
+			current_party.clear()
+			# Request fresh data to get any new quests that might have been generated
+			SignalBus.request_available_quest_cards.emit()
+			SignalBus.request_available_characters.emit()
+			
 			update_room_display()
+			
+			# reselect the first quest on the list
+			current_selected_quest_card = local_quest_cards[0]
+			
+		else:
+			print("AVAILABLE_QUESTS: Failed to start quest: ", quest_result.message)
+	else:
+		print("AVAILABLE_QUESTS: Cannot start quest - no quest selected or no party")
 
 func _on_quest_inventory_button_pressed():
 	"""Handle quest inventory button press"""
@@ -692,6 +857,8 @@ func _on_quest_inventory_button_pressed():
 	
 	# Setup the panel for the current quest
 	var quest = current_selected_quest_card.get_quest()
+	# Request inventory data through signal (this would need a new signal)
+	# For now, use direct access but this should be refactored
 	var inventory = GuildManager.get_inventory()
 	quest_inventory_panel.setup_for_quest(quest, inventory)
 	quest_inventory_panel.visible = true
@@ -717,3 +884,8 @@ func load_room_state():
 	"""Load quests room state"""
 	# Restore quest selection and party if available
 	pass  # TODO: Implement if needed
+
+func _on_character_panel_input(event: InputEvent, character: Character):
+	"""Handle input events on character panels"""
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		toggle_character_in_party(character)

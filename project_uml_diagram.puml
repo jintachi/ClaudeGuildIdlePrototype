@@ -1,0 +1,368 @@
+@startuml Claude Guild Idle Prototype - Class Diagram
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam classFontStyle bold
+skinparam packageFontSize 14
+skinparam packageFontStyle bold
+
+package "Core Game Mechanics" {
+    class Character {
+        +character_name: String
+        +character_class: CharacterClass
+        +quality: Quality
+        +rank: Rank
+        +level: int
+        +experience: int
+        +health: int
+        +defense: int
+        +mana: int
+        +spell_power: int
+        +attack_power: int
+        +movement_speed: int
+        +luck: int
+        +character_status: CharacterStatus
+        +injury_type: InjuryType
+        +personal_gold: int
+        +training_potential: int
+        +portrait_path: String
+        --
+        +CharacterClass: enum {TANK, HEALER, SUPPORT, ATTACKER}
+        +Quality: enum {ONE_STAR, TWO_STAR, THREE_STAR}
+        +Rank: enum {F, E, D, C, B, A, S, SS, SSS}
+        +InjuryType: enum {NONE, PHYSICAL_WOUND, MENTAL_TRAUMA, CURSED_AFFLICTION, EXHAUSTION, POISON}
+        +CharacterStatus: enum {AVAILABLE, ON_QUEST, WAITING_FOR_RESULTS, WAITING_TO_PROGRESS}
+        --
+        +gain_experience(amount: int)
+        +level_up()
+        +heal_injury()
+        +can_promote(): bool
+        +promote()
+    }
+
+    class Quest {
+        +quest_name: String
+        +quest_type: QuestType
+        +quest_rank: QuestRank
+        +description: String
+        +duration: float
+        +difficulty_modifier: float
+        +min_party_size: int
+        +max_party_size: int
+        +required_tank: bool
+        +required_healer: bool
+        +base_experience: int
+        +gold_reward: int
+        +influence_reward: int
+        +assigned_party: Array[Character]
+        +success_rate: float
+        +active_quest_status: QuestStatus
+        --
+        +QuestType: enum {GATHERING, HUNTING_TRAPPING, DIPLOMACY, CARAVAN_GUARDING, ESCORTING, STEALTH, ODD_JOBS, EMERGENCY}
+        +QuestStatus: enum {NOTSTARTED, INPROGRESS, AWAITING_COMPLETION, COMPLETED, FAILED}
+        +QuestRank: enum {F, E, D, C, B, A, S, SS, SSS}
+        --
+        +generate_random_quest()
+        +calculate_success_rate(party: Array[Character]): float
+        +start_quest(party: Array[Character])
+        +complete_quest()
+        +get_rank_name(): String
+    }
+
+    class InventoryItem {
+        +item_id: String
+        +item_name: String
+        +item_description: String
+        +item_type: String
+        +base_value: int
+        +quantity: int
+        +max_stack_size: int
+        +equipment_slot: String
+        +stat_bonuses: Dictionary
+        +rarity: Rarity
+        --
+        +Rarity: enum {COMMON, UNCOMMON, RARE, EPIC, LEGENDARY}
+        --
+        +can_stack_with(other_item: InventoryItem): bool
+        +duplicate(): InventoryItem
+        +get_rarity_color(): Color
+        +get_total_value(): int
+        +get_display_name(): String
+    }
+
+    class Inventory {
+        +total_slots: int
+        +filled_slots: int
+        +items: Array[InventoryItem]
+        +room_item_filters: Dictionary
+        --
+        +add_item(item: InventoryItem): bool
+        +remove_item(slot_index: int, quantity: int): InventoryItem
+        +move_item(from_slot: int, to_slot: int): bool
+        +get_items_for_room(room_name: String): Array[InventoryItem]
+    }
+}
+
+package "Singleton Managers" {
+    class GuildManager {
+        +influence: int
+        +gold: int
+        +building_materials: int
+        +armor_pieces: int
+        +weapons: int
+        +food: int
+        +roster: Array[Character]
+        +max_roster_size: int
+        +available_recruits: Array[Character]
+        +available_quest_cards: Array[CompactQuestCard]
+        +active_quest_cards: Array[CompactQuestCard]
+        +awaiting_quest_cards: Array[CompactQuestCard]
+        +current_room: String
+        +available_rooms: Array[String]
+        +unlocked_rooms: Array[String]
+        +inventory: Inventory
+        --
+        +character_recruited(character: Character)
+        +quest_started(quest: Quest)
+        +quest_completed(quest: Quest)
+        +room_changed(from_room: String, to_room: String)
+        +quest_cards_updated()
+        --
+        +add_character_to_roster(character: Character)
+        +remove_character_from_roster(character: Character)
+        +start_quest(quest: Quest, party: Array[Character])
+        +complete_quest(quest: Quest)
+        +travel_to_room(room_name: String)
+        +return_to_main_hall()
+        +save_game()
+        +load_game()
+    }
+
+    class SignalBus {
+        --
+        +character_recruited(character: Character)
+        +character_promoted(character: Character)
+        +character_injured(character: Character)
+        +quest_started(quest: Quest)
+        +quest_completed(quest: Quest)
+        +quest_card_selected(card: CompactQuestCard)
+        +room_unlocked(room_name: String)
+        +game_saved()
+        +game_loaded()
+        +ui_scaling_changed(scale_factor: float)
+    }
+}
+
+package "Room System" {
+    abstract class BaseRoom {
+        +room_name: String
+        +room_description: String
+        +room_icon: Texture2D
+        +is_unlocked: bool
+        +unlock_requirement: String
+        +room_container: Control
+        +back_button: Button
+        +room_title_label: Label
+        +is_active: bool
+        --
+        +room_entered(room_name: String)
+        +room_exited(room_name: String)
+        --
+        +setup_base_room()
+        +setup_room_specific_ui()
+        +enter_room()
+        +exit_room()
+        +on_room_entered()
+        +on_room_exited()
+        +update_room_display()
+        +can_enter_room(): bool
+        +apply_responsive_layout()
+    }
+
+    class MainHallRoom {
+        +active_quests_panel: VBoxContainer
+        +awaiting_completion_panel: VBoxContainer
+        +promotion_panel: VBoxContainer
+        +active_quest_panels: Dictionary
+        +awaiting_quest_panels: Dictionary
+        +completed_quest_panels: Dictionary
+        --
+        +setup_room_specific_ui()
+        +update_active_quests_display()
+        +update_awaiting_completion_display()
+        +update_promotion_display()
+        +_on_quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_state: String)
+    }
+
+    class QuestsRoom {
+        +available_quests_panel: VBoxContainer
+        +party_selection_panel: VBoxContainer
+        +selected_quest: Quest
+        +selected_party: Array[Character]
+        --
+        +setup_room_specific_ui()
+        +update_available_quests_display()
+        +_on_quest_card_selected(card: CompactQuestCard)
+        +_on_party_member_selected(character: Character)
+        +start_selected_quest()
+    }
+
+    class RosterRoom {
+        +roster_panel: VBoxContainer
+        +character_inspection_panel: Panel
+        +selected_character: Character
+        --
+        +setup_room_specific_ui()
+        +update_roster_display()
+        +_on_character_selected(character: Character)
+        +_on_promote_character(character: Character)
+        +_on_heal_character(character: Character)
+    }
+
+    class RecruitmentRoom {
+        +available_recruits_panel: VBoxContainer
+        +recruit_preview_panel: Panel
+        +selected_recruit: Character
+        --
+        +setup_room_specific_ui()
+        +update_recruits_display()
+        +_on_recruit_selected(character: Character)
+        +_on_recruit_character(character: Character)
+        +refresh_recruits()
+    }
+
+    class TrainingRoom {
+        +training_panel: VBoxContainer
+        +selected_character: Character
+        +training_options: Array
+        --
+        +setup_room_specific_ui()
+        +update_training_display()
+        +_on_character_selected(character: Character)
+        +_on_training_selected(training_type: String)
+        +apply_training(character: Character, training_type: String)
+    }
+}
+
+package "UI Components" {
+    class CompactQuestCard {
+        +rank_label: Label
+        +title_label: Label
+        +duration_label: Label
+        +party_label: Label
+        +success_label: Label
+        +assigned_members: Label
+        +requirements_label: Label
+        +rewards_label: Label
+        +_quest: Quest
+        --
+        +populate_with_quest(quest_data: Quest)
+        +set_success_rate(success_rate: float)
+        +set_selected(selected: bool)
+        +get_quest(): Quest
+        +_on_pressed()
+        +get_rank_color(rank: Quest.QuestRank): Color
+    }
+
+    class QuestCompletionPanel {
+        +quest: Quest
+        +results_container: VBoxContainer
+        +rewards_container: VBoxContainer
+        +accept_button: Button
+        --
+        +show_quest_results(quest: Quest)
+        +_on_accept_button_pressed()
+        +_on_reject_button_pressed()
+    }
+
+    class StatsComparisonTable {
+        +quest: Quest
+        +party: Array[Character]
+        +stats_container: VBoxContainer
+        --
+        +update_display(quest: Quest, party: Array[Character])
+        +calculate_party_stats(): Dictionary
+        +check_requirements(): Dictionary
+    }
+
+    class InventoryUI {
+        +inventory: Inventory
+        +item_slots: Array[Control]
+        +selected_slot: int
+        --
+        +update_display()
+        +_on_item_clicked(slot_index: int)
+        +_on_item_dragged(from_slot: int, to_slot: int)
+        +show_item_tooltip(item: InventoryItem)
+    }
+
+    class ExperienceBar {
+        +character: Character
+        +progress_bar: ProgressBar
+        +level_label: Label
+        +experience_label: Label
+        --
+        +update_display(character: Character)
+        +_on_experience_gained(amount: int)
+    }
+}
+
+package "Utility Systems" {
+    class ResponsiveLayout {
+        --
+        +ConversionMode: enum {PRESERVE_PROPORTIONS, SNAP_TO_EDGES, SMART_GRID, CONTAINER_AWARE}
+        --
+        +convert_absolute_to_responsive(node: Control, mode: ConversionMode)
+        +convert_scene_to_responsive(scene_root: Node, mode: ConversionMode)
+        +optimize_container_structure(container: Control)
+    }
+
+    class UIUtilities {
+        --
+        +create_progress_bar(min_value: float, max_value: float, current_value: float): ProgressBar
+        +create_tooltip(text: String): Control
+        +animate_value_change(label: Label, start_value: int, end_value: int, duration: float)
+        +fade_in(node: Control, duration: float)
+        +fade_out(node: Control, duration: float)
+    }
+}
+
+' Relationships
+GuildManager ||--o{ Character : "manages roster"
+GuildManager ||--o{ Quest : "manages quests"
+GuildManager ||--o{ CompactQuestCard : "manages quest cards"
+GuildManager ||--|| Inventory : "has inventory"
+GuildManager ||--o{ BaseRoom : "manages rooms"
+
+BaseRoom <|-- MainHallRoom
+BaseRoom <|-- QuestsRoom
+BaseRoom <|-- RosterRoom
+BaseRoom <|-- RecruitmentRoom
+BaseRoom <|-- TrainingRoom
+
+Quest ||--o{ Character : "assigned party"
+Quest ||--|| CompactQuestCard : "displayed as"
+
+Inventory ||--o{ InventoryItem : "contains items"
+
+CompactQuestCard ||--|| Quest : "displays"
+QuestCompletionPanel ||--|| Quest : "shows results"
+StatsComparisonTable ||--|| Quest : "compares stats"
+StatsComparisonTable ||--o{ Character : "compares party"
+
+ExperienceBar ||--|| Character : "displays experience"
+InventoryUI ||--|| Inventory : "displays inventory"
+
+SignalBus ..> GuildManager : "signals"
+SignalBus ..> BaseRoom : "signals"
+SignalBus ..> CompactQuestCard : "signals"
+
+ResponsiveLayout ..> BaseRoom : "applies layout"
+UIUtilities ..> CompactQuestCard : "provides utilities"
+UIUtilities ..> QuestCompletionPanel : "provides utilities"
+UIUtilities ..> StatsComparisonTable : "provides utilities"
+UIUtilities ..> InventoryUI : "provides utilities"
+UIUtilities ..> ExperienceBar : "provides utilities"
+
+@enduml
