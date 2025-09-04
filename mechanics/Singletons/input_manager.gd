@@ -4,6 +4,7 @@ extends Node
 ## Centralized input handling and keybinding management system
 
 # Signals
+@warning_ignore("unused_signal")
 signal map_key_pressed
 
 # Default keybindings

@@ -1,0 +1,106 @@
+[gd_scene load_steps=3 format=3 uid="uid://bq8x7k2m3n4p5"]
+
+[ext_resource type="Script" uid="uid://cuovplbktt63k" path="res://ui/components/item_tooltip.gd" id="1_0x8k2"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="ItemTooltip" type="Panel"]
+theme = ExtResource("2_theme")
+script = ExtResource("1_0x8k2")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeaderContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ItemIcon" type="TextureRect" parent="VBoxContainer/HeaderContainer"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+stretch_mode = 5
+
+[node name="TitleContainer" type="VBoxContainer" parent="VBoxContainer/HeaderContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemName" type="Label" parent="VBoxContainer/HeaderContainer/TitleContainer"]
+layout_mode = 2
+text = "Item Name"
+autowrap_mode = 2
+
+[node name="ItemType" type="Label" parent="VBoxContainer/HeaderContainer/TitleContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "Type"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Description" type="RichTextLabel" parent="VBoxContainer/DescriptionContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="StatsContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+text = "Stats:"
+
+[node name="StatsList" type="RichTextLabel" parent="VBoxContainer/StatsContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="RequirementsContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="RequirementsLabel" type="Label" parent="VBoxContainer/RequirementsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+text = "Requirements:"
+
+[node name="RequirementsList" type="RichTextLabel" parent="VBoxContainer/RequirementsContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="FooterContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ValueLabel" type="Label" parent="VBoxContainer/FooterContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 10
+text = "Value: 0"
+
+[node name="Spacer" type="Control" parent="VBoxContainer/FooterContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChargesLabel" type="Label" parent="VBoxContainer/FooterContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 10

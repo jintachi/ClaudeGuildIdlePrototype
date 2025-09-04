@@ -70,9 +70,13 @@ func create_character_panel(character: Character) -> Control:
 	
 	# Store character reference for later identification
 	panel_button.set_meta("character", character)
+	panel_button.set_meta("context", "roster")
 	
 	# Connect the click handler
 	panel_button.pressed.connect(func(): select_adventurer(character))
+	
+	# Connect right-click handler for context menu
+	panel_button.gui_input.connect(_on_character_panel_gui_input.bind(panel_button))
 	
 	# Create a panel inside the button for styling
 	var inner_panel = Panel.new()
@@ -361,3 +365,12 @@ func load_room_state():
 	"""Load roster room state"""
 	# Restore selected character if available
 	pass  # TODO: Implement if needed
+
+func _on_character_panel_gui_input(event: InputEvent, panel_button: Control):
+	"""Handle GUI input for character panels (right-click context menu)"""
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			var character = panel_button.get_meta("character")
+			
+			if character and ContextMenuManager:
+				ContextMenuManager.show_character_context_menu(character, event.global_position)

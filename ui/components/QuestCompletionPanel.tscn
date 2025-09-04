@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bqx8v2n3k4m5p"]
+[gd_scene load_steps=3 format=3 uid="uid://bqx8v2n3k4m5p"]
 
 [ext_resource type="Script" uid="uid://3btua4e8ayve" path="res://ui/components/quest_completion_panel.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
 [node name="QuestCompletionPanel" type="Panel" node_paths=PackedStringArray("text_edit", "accept_button", "header_label")]
 anchors_preset = 15
@@ -10,6 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 text_edit = NodePath("VBoxContainer/ScrollContainer/TextEdit")
 accept_button = NodePath("VBoxContainer/AcceptButton")

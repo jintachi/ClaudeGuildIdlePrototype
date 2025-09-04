@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bc4f6h8j0k2m"]
 
-[ext_resource type="Script" uid="uid://el7p9q1s3t5v" path="res://scenes/rooms/blacksmiths_guild_room.gd" id="1_blacksmiths"]
+[ext_resource type="Script" uid="uid://isqxf3js47ne" path="res://scenes/rooms/blacksmiths_guild_room.gd" id="1_blacksmiths"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
 [node name="BlacksmithsGuildRoom" type="Control" node_paths=PackedStringArray("crafting_panel", "repair_panel", "materials_panel", "forge_status")]

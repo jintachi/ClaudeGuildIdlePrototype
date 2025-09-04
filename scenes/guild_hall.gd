@@ -173,7 +173,7 @@ func update_resource_display():
 		return
 	
 	var resources = GuildManager.get_guild_status_summary().resources
-	var inventory = GuildManager.get_inventory()
+	var inventory = InventoryManager.inventory if InventoryManager else null
 	
 	var inventory_text = ""
 	if inventory:
@@ -213,11 +213,11 @@ func update_room_display():
 	print("GuildHall: Custom room creator found: ", custom_room_creator != null)
 	if custom_room_creator and custom_room_creator.is_custom_room(current_room):
 		print("GuildHall: Room is a custom room, creating custom instance")
-		var room_instance = custom_room_creator.create_custom_room(current_room)
-		if room_instance:
-			room_container.add_child(room_instance)
-			if room_instance is BaseRoom:
-				room_instance.enter_room()
+		var custom_room_instance = custom_room_creator.create_custom_room(current_room)
+		if custom_room_instance:
+			room_container.add_child(custom_room_instance)
+			if custom_room_instance is BaseRoom:
+				custom_room_instance.enter_room()
 		else:
 			print("Failed to create custom room: ", current_room)
 		return
@@ -493,30 +493,52 @@ func _show_new_game_confirmation():
 
 func _on_inventory_button_pressed():
 	"""Handle inventory button press"""
-	if not GuildManager or not GuildManager.get_inventory_ui():
+	print("DEBUG: Inventory button pressed!")
+	if not InventoryManager:
+		print("ERROR: InventoryManager is null")
 		return
 	
-	var inventory_ui = GuildManager.get_inventory_ui()
+	var inventory_ui = InventoryManager.get_inventory_ui()
+	if not inventory_ui or not is_instance_valid(inventory_ui):
+		print("ERROR: Inventory UI is null or invalid")
+		return
+	
+	print("DEBUG: Inventory UI is valid, proceeding...")
+	
 	var current_room = GuildManager.get_current_room()
 	
 	# Check if inventory is already visible
 	if inventory_ui.visible:
+		print("DEBUG: Inventory is visible, hiding it")
 		inventory_ui.visible = false
 		return
 	
+	print("DEBUG: Inventory is not visible, showing it")
+	
 	# Check if we're in a room that already displays inventory
-	var room_instance = get_current_room_instance()
-	if room_instance and room_instance.has_method("has_inventory_display"):
-		if room_instance.has_inventory_display():
+	var current_room_instance = get_current_room_instance()
+	if current_room_instance and current_room_instance.has_method("has_inventory_display"):
+		if current_room_instance.has_inventory_display():
 			return  # Don't show inventory if room already has it
 	
 	# Show inventory for current room
+	print("DEBUG: Calling display_inventory for room: ", current_room)
 	inventory_ui.display_inventory(current_room)
-	inventory_ui.visible = true
 	
-	# Add inventory UI to scene if not already added
-	if not inventory_ui.get_parent():
-		add_child(inventory_ui)
+	# Ensure the inventory UI is properly positioned and sized
+	inventory_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inventory_ui.anchor_left = 0.0
+	inventory_ui.anchor_top = 0.0
+	inventory_ui.anchor_right = 1.0
+	inventory_ui.anchor_bottom = 1.0
+	inventory_ui.offset_left = 0
+	inventory_ui.offset_top = 0
+	inventory_ui.offset_right = 0
+	inventory_ui.offset_bottom = 0
+	
+	print("DEBUG: Setting inventory visible to true")
+	inventory_ui.visible = true
+	print("DEBUG: Inventory should now be visible. Final size: ", inventory_ui.size, " Position: ", inventory_ui.position)
 
 func get_current_room_instance() -> Node:
 	"""Get the current room instance"""

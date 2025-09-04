@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://bd56rrikpgok6"]
+
+[ext_resource type="Script" path="res://ui/debug_ui_layer.gd" id="1"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="DebugUILayer" type="Node"]
+theme = ExtResource("2_theme")
+script = ExtResource("1")

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bu52goisl5ura"]
+[gd_scene load_steps=3 format=3 uid="uid://bu52goisl5ura"]
 
 [ext_resource type="Script" uid="uid://dse5shd7lfd4e" path="res://ui/components/NineSliceProgressBar.gd" id="1_nine_slice"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
 [node name="NineSliceProgressBar" type="ProgressBar"]
 custom_minimum_size = Vector2(200, 22)
@@ -11,6 +12,8 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
+mouse_filter = 2
+theme = ExtResource("2_theme")
 value = 75.0
 show_percentage = false
 script = ExtResource("1_nine_slice")

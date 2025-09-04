@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bvn8x7y2q3m4n"]
+[gd_scene load_steps=3 format=3 uid="uid://bvn8x7y2q3m4n"]
 
 [ext_resource type="Script" uid="uid://cd8wku00bg4jb" path="res://scenes/rooms/training_room.gd" id="1_abc12"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
 [node name="TrainingRoom" type="Control" node_paths=PackedStringArray("character_grid", "course_list", "selected_character_panel", "course_details_panel", "reroll_button", "start_training_button", "room_container")]
 layout_mode = 3
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_abc12")
 character_grid = NodePath("MainContainer/ContentContainer/LeftPanel/ScrollContainer/CharacterGrid")
 course_list = NodePath("MainContainer/ContentContainer/MiddlePanel/ScrollContainer/CourseList")

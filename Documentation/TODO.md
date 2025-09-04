@@ -275,3 +275,59 @@
 - [ ] Add art assets for quest panels
 - [ ] Implement hover states for quest panels
 - [ ] Add sound effects for quest selection
+
+## Inventory System Redesign (Idle Game Focus)
+
+### Character Equipment System
+- [ ] **Add equipment slots to Character class** - Add weapon, armor, and accessory slots to character data structure
+- [ ] **Update character serialization** - Ensure equipment data is properly saved and loaded
+- [ ] **Create right-click menu system** - Implement context menu for character interactions (equipment, training, etc.)
+- [ ] **Equipment assignment UI** - Create popup/interface for manually assigning equipment to characters
+- [ ] **Equipment stat bonuses** - Implement multiplicative [x] and additive [+] modifiers for equipment
+- [ ] **Tooltip system** - Add comprehensive tooltip system to theme.tres with proper styling and fonts
+
+### Quest System Integration
+- [ ] **Quest reward system overhaul** - Update quests to reward equipment, materials, and consumables
+- [ ] **Equipment rewards** - Add guaranteed equipment on rare quests, 2-5% bonus chance on regular quests
+- [ ] **Material rewards** - Implement quest-type specific materials (hunting→monster parts, escort→trade documents)
+- [ ] **Quest items** - Add guaranteed quest items from main story, items that unlock bonus missions
+- [ ] **Update CompactQuestCard** - Modify quest cards to display new reward types
+- [ ] **Update Quest class** - Enhance quest data structure for new reward system
+
+### Consumable System
+- [ ] **Consumable charges system** - Implement 1-use, multi-use, and infinite use consumables
+- [ ] **Field item slots** - Create unlockable slots for quest consumables (first guild hall upgrade)
+- [ ] **Auto-consume slots** - Add automatic consumable assignment at quest board
+- [ ] **Quest-specific consumables** - Create consumables that enhance specific quest types
+- [ ] **Consumable return system** - Items with charges return after quest completion
+
+### Material Processing
+- [ ] **Raw materials system** - Implement monster parts, ore, wood, fibers, etc.
+- [ ] **Material processing** - Create guild-based processing (ore→ingots at Blacksmith's Guild)
+- [ ] **Sub-stat bonuses** - Materials enhance quest success rates and provide item reward bonuses
+- [ ] **Crafting system** - Materials used to create equipment and building components
+
+### Inventory Management
+- [ ] **Tabbed inventory UI** - Create All Items, Crafting, Trading, Contracts, Consumables, Key Items tabs
+- [ ] **Item stacking** - Implement 999-item stacking with charge display
+- [ ] **Specialized storage** - Crafting Warehouse and other storage upgrades
+- [ ] **Search and sorting** - Newest, Base Value, Name sorting with search bar
+- [ ] **Key items** - Separate tab for items that don't take inventory space
+- [ ] **Inventory capacity checks** - Handle quest completion when inventory is full
+
+### Economy & Trading
+- [ ] **Vendor system** - Excess item sales at Merchant's Guild with dynamic pricing
+- [ ] **Auction/Market room** - New room for rare item auctions (150-250% base value)
+- [ ] **Item value system** - Add @export var value: int = 0 to all items
+- [ ] **Dynamic pricing** - More sales = lower prices, cap at 15% of base value
+
+### Unlock Progression
+- [ ] **Field item slots** - First guild hall upgrade requiring Blacksmith's Guild and Merchant's Guild
+- [ ] **Storage upgrades** - Specialized storage unlocks for different item types
+- [ ] **Auto-consume system** - Unlockable automation for quest consumables
+- [ ] **Auction system** - High-level unlock for rare item sales
+
+### Main Story & Content
+- [ ] **Main story quests** - Create main story line with guaranteed quest item rewards
+- [ ] **Bonus mission unlocks** - Quest items that unlock special missions with better rewards
+- [ ] **Character class unlocks** - Facility upgrades unlock new character classes for recruitment

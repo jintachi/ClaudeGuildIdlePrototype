@@ -1,7 +1,7 @@
 extends Node
 
 # Import the RoomTemplate class
-const RoomTemplate = preload("res://scenes/rooms/custom_rooms/RoomTemplate.gd")
+const ROOM_TEMPLATE = preload("res://scenes/rooms/custom_rooms/RoomTemplate.gd")
 
 # Custom room creation system
 signal custom_room_discovered(room_name: String, room_path: String)
@@ -38,7 +38,7 @@ func discover_custom_room_templates():
 			# Try to load the room template
 			if ResourceLoader.exists(room_path):
 				var room_template = load(room_path)
-				if room_template is RoomTemplate:
+				if room_template is ROOM_TEMPLATE:
 					custom_room_templates[room_name] = room_template
 					custom_room_paths[room_name] = room_path
 					custom_room_discovered.emit(room_name, room_path)
@@ -66,7 +66,7 @@ func create_custom_room(room_name: String) -> BaseRoom:
 	
 	return null
 
-func get_custom_room_template(room_name: String) -> RoomTemplate:
+func get_custom_room_template(room_name: String) -> ROOM_TEMPLATE:
 	"""Get a custom room template by name"""
 	return custom_room_templates.get(room_name, null)
 
@@ -103,7 +103,7 @@ func create_room_from_template(template_path: String, room_name: String) -> Base
 		return null
 	
 	var room_template = load(template_path)
-	if room_template is RoomTemplate:
+	if room_template is ROOM_TEMPLATE:
 		# Temporarily override the room name
 		var original_name = room_template.room_name
 		room_template.room_name = room_name

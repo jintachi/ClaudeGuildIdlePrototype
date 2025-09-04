@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bq8yay203m4n6"]
+
+[ext_resource type="Script" path="res://ui/components/SimpleContextMenu.gd" id="1_0x8k2"]
+
+[node name="SimpleContextMenu" type="VBoxContainer"]
+custom_minimum_size = Vector2(150, 50)
+script = ExtResource("1_0x8k2")

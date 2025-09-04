@@ -82,6 +82,58 @@ enum CharacterStatus {
 @export var portrait_path: String = ""
 #endregion
 
+#region Equipment System
+# Equipment slots for characters
+@export var equipment_slots: Dictionary = {
+	"head": null,
+	"shoulder": null,
+	"back": null,
+	"chest": null,
+	"hands": null,
+	"legs": null,
+	"feet": null,
+	"mainhand": null,
+	"offhand": null,
+	"accessory": null
+}
+
+# Equipment bonuses (calculated from equipped items)
+var equipment_bonuses: Dictionary = {
+	"health": 0,
+	"defense": 0,
+	"mana": 0,
+	"spell_power": 0,
+	"attack_power": 0,
+	"movement_speed": 0,
+	"luck": 0,
+	"gathering": 0,
+	"hunting_trapping": 0,
+	"diplomacy": 0,
+	"caravan_guarding": 0,
+	"escorting": 0,
+	"stealth": 0,
+	"odd_jobs": 0
+}
+
+# Equipment multipliers (multiplicative bonuses)
+var equipment_multipliers: Dictionary = {
+	"health": 1.0,
+	"defense": 1.0,
+	"mana": 1.0,
+	"spell_power": 1.0,
+	"attack_power": 1.0,
+	"movement_speed": 1.0,
+	"luck": 1.0,
+	"gathering": 1.0,
+	"hunting_trapping": 1.0,
+	"diplomacy": 1.0,
+	"caravan_guarding": 1.0,
+	"escorting": 1.0,
+	"stealth": 1.0,
+	"odd_jobs": 1.0
+}
+#endregion
+
 #region Promotion Tracking
 @export var promotion_quest_available: bool = false
 @export var promotion_quest_completed: bool = false
@@ -251,8 +303,8 @@ func level_up():
 	luck += stat_gains.luck
 	
 	# Emit signal for level up notification
-	if SignalBus:
-		SignalBus.character_leveled_up.emit(self, stat_gains)
+	# Note: SignalBus access will be handled by the calling code
+	# SignalBus.character_leveled_up.emit(self, stat_gains)
 	
 	check_promotion_eligibility()
 
@@ -597,7 +649,7 @@ func get_recruitment_cost() -> Dictionary:
 	}
 
 func get_upkeep_cost() -> int:
-	return 1 + (rank / 3)  # Food cost increases with rank
+	return 1 + (rank / 3.0)  # Food cost increases with rank
 
 func can_go_on_quest() -> bool:
 	return character_status == CharacterStatus.AVAILABLE and not is_injured()
@@ -640,7 +692,8 @@ func is_waiting_to_progress() -> bool:
 func set_status(new_status: CharacterStatus):
 	character_status = new_status
 	# Emit signal to notify UI of status change
-	SignalBus.character_status_changed.emit(self)
+	# Note: SignalBus access will be handled by the calling code
+	# SignalBus.character_status_changed.emit(self)
 	
 func get_class_icon() -> String:
 	match get_class_name() :
@@ -718,4 +771,133 @@ func on_quality_upgrade():
 	max_training_potential = calculate_max_potential()
 	# Add the difference to current potential
 	training_potential += (max_training_potential - old_max)
+#endregion
+
+#region Equipment Management
+func equip_item(item: InventoryItem, slot: String) -> bool:
+	"""Equip an item to a specific slot. Returns true if successful."""
+	if not item or not equipment_slots.has(slot):
+		return false
+	
+	# Check if item can be equipped in this slot
+	if item.equipment_slot != slot:
+		return false
+	
+	# Check if character meets item requirements
+	if not item.meets_requirements(self):
+		return false
+	
+	# Handle two-handed weapons (disable offhand)
+	if slot == "mainhand" and item.has_tag("two_handed"):
+		unequip_item("offhand")
+	
+	# Unequip existing item if any
+	unequip_item(slot)
+	
+	# Equip the new item
+	equipment_slots[slot] = item
+	recalculate_equipment_bonuses()
+	return true
+
+func unequip_item(slot: String) -> InventoryItem:
+	"""Unequip an item from a specific slot. Returns the unequipped item."""
+	if not equipment_slots.has(slot) or equipment_slots[slot] == null:
+		return null
+	
+	var item = equipment_slots[slot]
+	equipment_slots[slot] = null
+	recalculate_equipment_bonuses()
+	return item
+
+func get_equipped_item(slot: String) -> InventoryItem:
+	"""Get the item equipped in a specific slot."""
+	if not equipment_slots.has(slot):
+		return null
+	return equipment_slots[slot]
+
+func is_slot_available(slot: String) -> bool:
+	"""Check if a slot is available for equipping."""
+	if not equipment_slots.has(slot):
+		return false
+	
+	# Check if offhand is disabled due to two-handed weapon
+	if slot == "offhand":
+		var mainhand_item = get_equipped_item("mainhand")
+		if mainhand_item and mainhand_item.has_tag("two_handed"):
+			return false
+	
+	return equipment_slots[slot] == null
+
+func recalculate_equipment_bonuses():
+	"""Recalculate all equipment bonuses and multipliers."""
+	# Reset all bonuses
+	for stat in equipment_bonuses:
+		equipment_bonuses[stat] = 0
+	
+	for stat in equipment_multipliers:
+		equipment_multipliers[stat] = 1.0
+	
+	# Calculate bonuses from equipped items
+	for slot in equipment_slots:
+		var item = equipment_slots[slot]
+		if item:
+			# Add additive bonuses
+			for stat in item.stat_bonuses:
+				if equipment_bonuses.has(stat):
+					equipment_bonuses[stat] += item.stat_bonuses[stat]
+			
+			# Add multiplicative bonuses
+			if item.has_meta("multipliers"):
+				var multipliers = item.get_meta("multipliers")
+				for stat in multipliers:
+					if equipment_multipliers.has(stat):
+						equipment_multipliers[stat] *= multipliers[stat]
+
+func get_effective_stat(stat_name: String) -> float:
+	"""Get the effective stat value including equipment bonuses."""
+	var base_stat = 0
+	
+	# Get base stat value
+	match stat_name:
+		"health": base_stat = health
+		"defense": base_stat = defense
+		"mana": base_stat = mana
+		"spell_power": base_stat = spell_power
+		"attack_power": base_stat = attack_power
+		"movement_speed": base_stat = movement_speed
+		"luck": base_stat = luck
+		"gathering": base_stat = gathering
+		"hunting_trapping": base_stat = hunting_trapping
+		"diplomacy": base_stat = diplomacy
+		"caravan_guarding": base_stat = caravan_guarding
+		"escorting": base_stat = escorting
+		"stealth": base_stat = stealth
+		"odd_jobs": base_stat = odd_jobs
+	
+	# Apply equipment bonuses and multipliers
+	var bonus = equipment_bonuses.get(stat_name, 0)
+	var multiplier = equipment_multipliers.get(stat_name, 1.0)
+	
+	return (base_stat + bonus) * multiplier
+
+func get_equipment_summary() -> Dictionary:
+	"""Get a summary of all equipped items."""
+	var summary = {}
+	for slot in equipment_slots:
+		var item = equipment_slots[slot]
+		summary[slot] = {
+			"item": item,
+			"name": item.item_name if item else "Empty",
+			"icon": item.icon_path if item else ""
+		}
+	return summary
+
+func get_total_equipment_value() -> int:
+	"""Get the total value of all equipped items."""
+	var total_value = 0
+	for slot in equipment_slots:
+		var item = equipment_slots[slot]
+		if item:
+			total_value += item.get_enhanced_value()
+	return total_value
 #endregion

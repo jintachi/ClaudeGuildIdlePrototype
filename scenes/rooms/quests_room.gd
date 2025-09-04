@@ -701,7 +701,7 @@ func update_available_characters_display(available_chars: Array):
 		var char_panel = UIUtilities.create_character_panel(character, "party_selection")
 		guild_roster_grid.add_child(char_panel)
 		
-		# Connect click handler to the panel
+		# Connect click handler to the panel (left-click for party selection)
 		char_panel.gui_input.connect(func(event): _on_character_panel_input(event, character))
 		
 		# Store character reference
@@ -857,10 +857,12 @@ func _on_quest_inventory_button_pressed():
 	
 	# Setup the panel for the current quest
 	var quest = current_selected_quest_card.get_quest()
-	# Request inventory data through signal (this would need a new signal)
-	# For now, use direct access but this should be refactored
-	var inventory = GuildManager.get_inventory()
-	quest_inventory_panel.setup_for_quest(quest, inventory)
+	# Use the new InventoryManager system
+	if InventoryManager:
+		var inventory = InventoryManager.inventory
+		quest_inventory_panel.setup_for_quest(quest, inventory)
+	else:
+		print("ERROR: InventoryManager not available")
 	quest_inventory_panel.visible = true
 
 func _on_quest_items_confirmed(items: Array[InventoryItem], total_cost: int):
@@ -887,5 +889,11 @@ func load_room_state():
 
 func _on_character_panel_input(event: InputEvent, character: Character):
 	"""Handle input events on character panels"""
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		toggle_character_in_party(character)
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			# Left-click: toggle character in party
+			toggle_character_in_party(character)
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			# Right-click: show context menu
+			if ContextMenuManager:
+				ContextMenuManager.show_character_context_menu(character, event.global_position)

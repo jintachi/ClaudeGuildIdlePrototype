@@ -45,7 +45,7 @@ func populate_with_quest(quest_data: Quest):
 	title_label.text = quest_data.quest_name
 	
 	# Set duration
-	var minutes = int(quest_data.duration / 60)
+	var minutes = int(quest_data.duration / 60.0)
 	var seconds = int(quest_data.duration) % 60
 	duration_label.text = "⏱️ %02d:%02d" % [minutes, seconds]
 	

@@ -3,9 +3,16 @@ extends RefCounted
 
 #region Character Panel Creation
 static func create_character_panel(character: Character, context: String = "default") -> Panel:
-	"""Create a character panel for display"""
+	"""Create a character panel for display with right-click support"""
 	var panel = Panel.new()
 	panel.custom_minimum_size = Vector2(200, 120)
+	
+	# Store character reference and context for right-click handling
+	panel.set_meta("character", character)
+	panel.set_meta("context", context)
+	
+	# Enable right-click detection
+	panel.gui_input.connect(_on_character_panel_gui_input.bind(panel))
 	
 	var hbox = HBoxContainer.new()
 	panel.add_child(hbox)
@@ -48,6 +55,25 @@ static func create_character_panel(character: Character, context: String = "defa
 	vbox.add_child(stats_label)
 	
 	return panel
+
+static func _on_character_panel_gui_input(event: InputEvent, panel: Panel):
+	"""Handle GUI input for character panels (right-click context menu)"""
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			var character = panel.get_meta("character")
+			var context = panel.get_meta("context")
+			
+			if character and ContextMenuManager:
+				# Show context menu based on the context
+				match context:
+					"roster":
+						ContextMenuManager.show_character_context_menu(character, event.global_position)
+					"party_selection":
+						ContextMenuManager.show_character_context_menu(character, event.global_position)
+					"recruitment":
+						ContextMenuManager.show_character_context_menu(character, event.global_position)
+					_:
+						ContextMenuManager.show_character_context_menu(character, event.global_position)
 
 static func create_roster_character_panel(character: Character) -> Panel:
 	"""Create a character panel specifically for roster display"""

@@ -90,7 +90,7 @@ static func get_region_names() -> Array:
 	return regions.keys()
 
 # Create a StyleBoxTexture with atlas texture
-static func create_stylebox_with_atlas(region_name: String, border_width: int = 0, corner_radius: int = 0) -> StyleBoxTexture:
+static func create_stylebox_with_atlas(region_name: String, border_width: int = 0, _corner_radius: int = 0) -> StyleBoxTexture:
 	var style = StyleBoxTexture.new()
 	
 	# Set the atlas texture

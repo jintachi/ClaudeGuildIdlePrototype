@@ -165,7 +165,7 @@ func create_active_panel_from_card(quest_card:CompactQuestCard) -> VBoxContainer
 	return panel_vbox
 	
 
-func update_active_quest_progress(delta: float):
+func update_active_quest_progress(_delta: float):
 	"""Update progress bars for active quests smoothly"""
 	var quests_to_remove = []
 	
@@ -291,7 +291,7 @@ func update_awaiting_completion_display():
 		else:
 			print("AVAILABLE_QUESTS: Quest card is not valid")
 
-func update_awaiting_completion_times(delta: float):
+func update_awaiting_completion_times(_delta: float):
 	"""Update time displays for awaiting completion quests smoothly"""
 	var quests_to_remove = []
 	

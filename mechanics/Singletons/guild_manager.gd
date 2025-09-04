@@ -65,7 +65,7 @@ var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitm
 var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
 var cached_room_instances: Dictionary = {}  # Cache room instances to preserve state
 
-# Inventory System
+# Inventory System (Legacy - will be replaced by InventoryManager)
 var inventory: Inventory
 var inventory_ui: InventoryUI
 
@@ -99,8 +99,11 @@ func initialize_guild():
 	if available_recruits.is_empty():
 		generate_recruits()
 	
-	# Initialize inventory system
+	# Initialize inventory system (legacy)
 	initialize_inventory()
+	
+	# Initialize new inventory manager
+	initialize_new_inventory_system()
 	
 	# Refresh quest cards to ensure they display correct data
 	refresh_quest_cards()
@@ -322,7 +325,7 @@ func find_quest_card_by_quest(quest: Quest, card_array: Array):
 			return card
 	return null
 
-func update_quest_timers(delta: float):
+func update_quest_timers(_delta: float):
 	if current_room == "Main Hall":
 		var completed_this_frame = []
 		
@@ -372,7 +375,6 @@ func accept_quest_results(quest_card: CompactQuestCard):
 	
 	# Store quest info before destroying the card
 	var quest = quest_card.get_quest()
-	var quest_name = quest.quest_name
 	var quest_rank = quest.quest_rank
 	
 	# Remove quest card from awaiting and clean it up
@@ -509,7 +511,7 @@ func get_characters_needing_promotion() -> Array[Character]:
 func check_for_transformations():
 	# Check if we meet requirements for transformation unlocks
 	var current_roster_size = roster.size()
-	var high_rank_count = roster.filter(func(c): return c.rank >= Character.Rank.D).size()
+	var _high_rank_count = roster.filter(func(c): return c.rank >= Character.Rank.D).size()
 	
 	# First transformation: Roster expansion
 	if not "roster_expansion_1" in transformations_unlocked:
@@ -592,6 +594,7 @@ func save_game():
 		"max_roster_size": max_roster_size,
 		"available_recruits": serialize_characters(available_recruits),
 		"available_quest_cards": serialize_quests(available_quest_cards),
+		"inventory_data": get_node("/root/InventoryManager").save_inventory_data() if has_node("/root/InventoryManager") else {},
 		"active_quest_cards": serialize_quests(active_quest_cards),
 		"awaiting_quest_cards": serialize_quests(awaiting_quest_cards),
 		"completed_quests": serialize_quests(completed_quests),
@@ -729,6 +732,10 @@ func load_game_from_slot(slot: int):
 	
 	# Load roster and other data
 	max_roster_size = save_data.get("max_roster_size", 5)
+	
+	# Load inventory data
+	if save_data.has("inventory_data") and has_node("/root/InventoryManager"):
+		get_node("/root/InventoryManager").load_inventory_data(save_data["inventory_data"])
 	roster = deserialize_characters(save_data.get("roster", []))
 	available_recruits = deserialize_characters(save_data.get("available_recruits", []))
 	
@@ -860,8 +867,33 @@ func character_to_dict(character: Character) -> Dictionary:
 		"injury_start_time": character.injury_start_time,
 		"personal_gold": character.personal_gold,
 		"promotion_quest_available": character.promotion_quest_available,
-		"promotion_quest_completed": character.promotion_quest_completed
+		"promotion_quest_completed": character.promotion_quest_completed,
+		"equipment_slots": serialize_equipment_slots(character.equipment_slots)
 	}
+
+func serialize_equipment_slots(equipment_slots: Dictionary) -> Dictionary:
+	"""Serialize equipment slots to save data"""
+	var serialized_slots = {}
+	for slot_name in equipment_slots:
+		var item = equipment_slots[slot_name]
+		if item:
+			serialized_slots[slot_name] = item.save_data()
+		else:
+			serialized_slots[slot_name] = null
+	return serialized_slots
+
+func deserialize_equipment_slots(data: Dictionary) -> Dictionary:
+	"""Deserialize equipment slots from save data"""
+	var equipment_slots = {}
+	for slot_name in data:
+		var item_data = data[slot_name]
+		if item_data:
+			var item = InventoryItem.new()
+			item.load_data(item_data)
+			equipment_slots[slot_name] = item
+		else:
+			equipment_slots[slot_name] = null
+	return equipment_slots
 
 func dict_to_character(data: Dictionary) -> Character:
 	var character = Character.new()
@@ -892,6 +924,12 @@ func dict_to_character(data: Dictionary) -> Character:
 	character.personal_gold = data.get("personal_gold", 0)
 	character.promotion_quest_available = data.get("promotion_quest_available", false)
 	character.promotion_quest_completed = data.get("promotion_quest_completed", false)
+	
+	# Load equipment data
+	if data.has("equipment_slots"):
+		character.equipment_slots = deserialize_equipment_slots(data["equipment_slots"])
+		character.recalculate_equipment_bonuses()
+	
 	return character
 
 func quest_to_dict(quest_card: CompactQuestCard) -> Dictionary:
@@ -1556,29 +1594,40 @@ func add_test_items():
 	leather_armor.stat_bonuses = {"defense": 8}
 	inventory.add_item(leather_armor)
 
-func display_inventory(current_room: String) -> Control:
+func display_inventory(_current_room: String) -> Control:
 	"""Display inventory for a specific room. Returns the UI element."""
 	if inventory_ui:
-		return inventory_ui.display_inventory(current_room)
+		return inventory_ui.display_inventory(_current_room)
 	return null
 
 func get_inventory() -> Inventory:
-	"""Get the inventory instance"""
+	"""Get the inventory instance - DEPRECATED: Use InventoryManager.inventory instead"""
+	push_warning("GuildManager.get_inventory() is deprecated. Use InventoryManager.inventory instead.")
 	return inventory
 
 func get_inventory_ui() -> InventoryUI:
-	"""Get the inventory UI instance"""
+	"""Get the inventory UI instance - DEPRECATED: Use InventoryManager.get_inventory_ui() instead"""
+	push_warning("GuildManager.get_inventory_ui() is deprecated. Use InventoryManager.get_inventory_ui() instead.")
 	return inventory_ui
 
 func add_item_to_inventory(item: InventoryItem) -> bool:
-	"""Add an item to the inventory"""
+	"""Add an item to the inventory - DEPRECATED: Use InventoryManager.add_item_direct() instead"""
+	push_warning("GuildManager.add_item_to_inventory() is deprecated. Use InventoryManager.add_item_direct() instead.")
 	if inventory:
 		return inventory.add_item(item)
 	return false
 
 func remove_item_from_inventory(slot_index: int, quantity: int = 1) -> InventoryItem:
-	"""Remove an item from the inventory"""
+	"""Remove an item from the inventory - DEPRECATED: Use InventoryManager.remove_item() instead"""
+	push_warning("GuildManager.remove_item_from_inventory() is deprecated. Use InventoryManager.remove_item() instead.")
 	if inventory:
 		return inventory.remove_item(slot_index, quantity)
 	return null
+
+func initialize_new_inventory_system():
+	"""Initialize the new InventoryManager system"""
+	# The InventoryManager singleton will be auto-loaded
+	# It will handle its own signal connections in its _ready() function
+	print("GuildManager: InventoryManager system initialized")
+
 #endregion 

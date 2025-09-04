@@ -228,21 +228,21 @@ func _on_request_recruit_refresh():
 # Note: GuildManager response signal handlers removed - we now access data directly
 
 # GuildManager signal handlers for cache invalidation
-func _on_character_recruited(character: Character):
+func _on_character_recruited(_character: Character):
 	"""Invalidate character-related caches when a character is recruited"""
 	_cached_roster.clear()
 	_cached_available_characters.clear()
 
-func _on_quest_started(quest: Quest):
+func _on_quest_started(_quest: Quest):
 	"""Invalidate quest-related caches when a quest starts"""
 	_cached_quest_cards.clear()
 
-func _on_quest_completed(quest: Quest):
+func _on_quest_completed(_quest: Quest):
 	"""Invalidate quest-related caches when a quest completes"""
 	print("DataAccessLayer: Quest completed, clearing quest cache")
 	_on_request_available_quest_cards()
 
-func _on_quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_state: String):
+func _on_quest_card_moved(_quest_card: CompactQuestCard, _from_state: String, _to_state: String):
 	"""Invalidate quest-related caches when quest cards move"""
 	#_cached_quest_cards.clear()
 	_on_request_available_quest_cards()
@@ -282,11 +282,11 @@ func _is_cache_expired() -> bool:
 	return (current_time - _cache_timestamp) > _cache_duration
 
 # Utility methods for common data operations
-func get_character_by_name(name: String) -> Character:
+func get_character_by_name(character_name: String) -> Character:
 	"""Get a character by name from the roster"""
 	var roster = get_roster()
 	for character in roster:
-		if character.character_name == name:
+		if character.character_name == character_name:
 			return character
 	return null
 
@@ -308,11 +308,11 @@ func get_characters_by_status(status: Character.CharacterStatus) -> Array[Charac
 			filtered_characters.append(character)
 	return filtered_characters
 
-func get_quest_by_name(name: String) -> Quest:
+func get_quest_by_name(quest_name: String) -> Quest:
 	"""Get a quest by name from available quests"""
 	var quest_cards = get_available_quest_cards()
 	for quest_card in quest_cards:
-		if quest_card.get_quest().quest_name == name:
+		if quest_card.get_quest().quest_name == quest_name:
 			return quest_card.get_quest()
 	return null
 

@@ -52,10 +52,10 @@ static func _convert_proportional(control: Control, parent_size: Vector2):
 	var size = control.size
 	
 	# Calculate proportional anchors
-	var anchor_left = pos.x / parent_size.x
-	var anchor_top = pos.y / parent_size.y
-	var anchor_right = (pos.x + size.x) / parent_size.x
-	var anchor_bottom = (pos.y + size.y) / parent_size.y
+	var anchor_left = float(pos.x) / float(parent_size.x)
+	var anchor_top = float(pos.y) / float(parent_size.y)
+	var anchor_right = float(pos.x + size.x) / float(parent_size.x)
+	var anchor_bottom = float(pos.y + size.y) / float(parent_size.y)
 	
 	# Apply anchoring
 	control.set_anchors_preset(Control.PRESET_FULL_RECT, false)
@@ -124,8 +124,8 @@ static func _convert_smart_grid(control: Control, parent_size: Vector2):
 	# Divide parent into a 12x12 grid for smart positioning
 	var grid_cols = 12
 	var grid_rows = 12
-	var col_width = parent_size.x / grid_cols
-	var row_height = parent_size.y / grid_rows
+	var col_width = float(parent_size.x) / float(grid_cols)
+	var row_height = float(parent_size.y) / float(grid_rows)
 	
 	# Find which grid cells this element occupies
 	var start_col = int(pos.x / col_width)
@@ -247,7 +247,7 @@ static func _check_horizontal_alignment(controls: Array) -> bool:
 	var avg_y = 0.0
 	for control in controls:
 		avg_y += control.position.y
-	avg_y /= controls.size()
+	avg_y /= float(controls.size())
 	
 	var tolerance = 20.0  # pixels
 	for control in controls:
@@ -264,7 +264,7 @@ static func _check_vertical_alignment(controls: Array) -> bool:
 	var avg_x = 0.0
 	for control in controls:
 		avg_x += control.position.x
-	avg_x /= controls.size()
+	avg_x /= float(controls.size())
 	
 	var tolerance = 20.0  # pixels
 	for control in controls:

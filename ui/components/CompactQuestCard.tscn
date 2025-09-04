@@ -1,12 +1,14 @@
-[gd_scene load_steps=2 format=3 uid="uid://cel4cu6gapfm0"]
+[gd_scene load_steps=3 format=3 uid="uid://cel4cu6gapfm0"]
 
 [ext_resource type="Script" uid="uid://crw8itlqugtqd" path="res://ui/components/compact_quest_card.gd" id="1_0xqxq"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
 
 [node name="CompactQuestCard" type="Button"]
 custom_minimum_size = Vector2(300, 120)
 size_flags_horizontal = 3
 size_flags_vertical = 3
 flat = true
+theme = ExtResource("2_theme")
 script = ExtResource("1_0xqxq")
 
 [node name="InnerPanel" type="Panel" parent="."]

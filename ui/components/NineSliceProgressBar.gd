@@ -1,7 +1,7 @@
 extends ProgressBar
 class_name NineSliceProgressBar
 
-const UIAtlas = preload("res://ui/systems/UIAtlas.gd")
+const UI_ATLAS = preload("res://ui/systems/UIAtlas.gd")
 
 @export var use_nine_slice: bool = true
 @export var segment_width: int = 8  # Width of start/end segments
@@ -14,28 +14,28 @@ var fill_middle: AtlasTexture
 var fill_end: AtlasTexture
 
 func _ready():
-	UIAtlas.initialize()
+	UI_ATLAS.initialize()
 	_setup_textures()
 	_apply_styling()
 
 func _setup_textures():
 	# Get the 9-slice textures
-	background_start = UIAtlas.get_atlas_texture("progress_bar_bg_start")
-	background_middle = UIAtlas.get_atlas_texture("progress_bar_bg_middle")
-	background_end = UIAtlas.get_atlas_texture("progress_bar_bg_end")
+	background_start = UI_ATLAS.get_atlas_texture("progress_bar_bg_start")
+	background_middle = UI_ATLAS.get_atlas_texture("progress_bar_bg_middle")
+	background_end = UI_ATLAS.get_atlas_texture("progress_bar_bg_end")
 	
-	fill_start = UIAtlas.get_atlas_texture("progress_bar_fill_start")
-	fill_middle = UIAtlas.get_atlas_texture("progress_bar_fill_middle")
-	fill_end = UIAtlas.get_atlas_texture("progress_bar_fill_end")
+	fill_start = UI_ATLAS.get_atlas_texture("progress_bar_fill_start")
+	fill_middle = UI_ATLAS.get_atlas_texture("progress_bar_fill_middle")
+	fill_end = UI_ATLAS.get_atlas_texture("progress_bar_fill_end")
 
 func _apply_styling():
 	if not use_nine_slice:
 		# Use simple styling for non-nine-slice mode
-		var bg_style = UIAtlas.create_stylebox_with_atlas("progress_bar_bg", 0, 0)
-		var fill_style = UIAtlas.create_stylebox_with_atlas("progress_bar_fill", 0, 0)
+		var simple_bg_style = UI_ATLAS.create_stylebox_with_atlas("progress_bar_bg", 0, 0)
+		var simple_fill_style = UI_ATLAS.create_stylebox_with_atlas("progress_bar_fill", 0, 0)
 		
-		add_theme_stylebox_override("background", bg_style)
-		add_theme_stylebox_override("fill", fill_style)
+		add_theme_stylebox_override("background", simple_bg_style)
+		add_theme_stylebox_override("fill", simple_fill_style)
 		return
 	
 	# Create 9-slice background style
