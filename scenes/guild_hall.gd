@@ -25,7 +25,13 @@ extends Control
 # Current state
 var current_scale_factor: float = 1.0
 
+# Cached resources
+var responsive_layout_script: GDScript
+
 func _ready():
+	# Load cached resources
+	responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	
 	# Setup viewport scaling first
 	setup_viewport_scaling()
 	
@@ -34,6 +40,18 @@ func _ready():
 	
 	# Initialize scale button states
 	update_scale_button_states(get_tree().root.content_scale_factor)
+	
+	# Connect to game_ready signal to initialize game-dependent systems
+	if has_node("/root/SignalBus"):
+		get_node("/root/SignalBus").game_ready.connect(_on_game_ready)
+	
+	# Emit game_ready signal now that Guild Hall is loaded and connected
+	if GuildManager:
+		GuildManager.emit_game_ready()
+
+func _on_game_ready():
+	"""Called when the game is fully initialized and ready"""
+	print("Guild Hall: Game is ready, initializing game-dependent systems")
 	
 	# Ensure recruits are generated
 	if GuildManager.available_recruits.is_empty():
@@ -65,8 +83,7 @@ func setup_viewport_scaling():
 
 func apply_responsive_layout():
 	"""Apply responsive layout to the guild hall"""
-	# Load ResponsiveLayout class if available
-	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	# Use cached ResponsiveLayout class if available
 	if responsive_layout_script:
 		# Apply to the main guild hall
 		responsive_layout_script.convert_scene_to_responsive(self, responsive_layout_script.ConversionMode.SMART_GRID)
@@ -86,7 +103,6 @@ func apply_responsive_layout_to_room(room_instance: Node):
 	if not room_instance or not is_instance_valid(room_instance):
 		return
 		
-	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
 	if responsive_layout_script and room_instance is Control:
 		responsive_layout_script.convert_scene_to_responsive(room_instance, responsive_layout_script.ConversionMode.SMART_GRID)
 
@@ -143,11 +159,12 @@ func setup_signal_connections():
 		GuildManager.room_unlocked.connect(_on_room_unlocked)
 	
 	# Connect to signal bus
-	if SignalBus:
-		SignalBus.quest_started.connect(_on_quest_started)
-		SignalBus.character_promoted.connect(_on_character_promoted)
-		SignalBus.ui_scale_changed.connect(_on_ui_scale_changed)
-		SignalBus.map_key_pressed.connect(_on_map_key_pressed)
+	if has_node("/root/SignalBus"):
+		var signal_bus = get_node("/root/SignalBus")
+		signal_bus.quest_started.connect(_on_quest_started)
+		signal_bus.character_promoted.connect(_on_character_promoted)
+		signal_bus.ui_scale_changed.connect(_on_ui_scale_changed)
+		signal_bus.map_key_pressed.connect(_on_map_key_pressed)
 	
 	# Connect to custom room manager signals
 	if get_node_or_null("/root/CustomRoomCreator"):
@@ -494,51 +511,17 @@ func _show_new_game_confirmation():
 func _on_inventory_button_pressed():
 	"""Handle inventory button press"""
 	print("DEBUG: Inventory button pressed!")
-	if not InventoryManager:
-		print("ERROR: InventoryManager is null")
-		return
-	
-	var inventory_ui = InventoryManager.get_inventory_ui()
-	if not inventory_ui or not is_instance_valid(inventory_ui):
-		print("ERROR: Inventory UI is null or invalid")
-		return
-	
-	print("DEBUG: Inventory UI is valid, proceeding...")
 	
 	var current_room = GuildManager.get_current_room()
 	
-	# Check if inventory is already visible
-	if inventory_ui.visible:
-		print("DEBUG: Inventory is visible, hiding it")
-		inventory_ui.visible = false
+	# Check if we're in the Warehouse room - it has built-in inventory
+	if current_room == "Warehouse":
+		print("DEBUG: Already in Warehouse room with built-in inventory")
 		return
 	
-	print("DEBUG: Inventory is not visible, showing it")
-	
-	# Check if we're in a room that already displays inventory
-	var current_room_instance = get_current_room_instance()
-	if current_room_instance and current_room_instance.has_method("has_inventory_display"):
-		if current_room_instance.has_inventory_display():
-			return  # Don't show inventory if room already has it
-	
-	# Show inventory for current room
-	print("DEBUG: Calling display_inventory for room: ", current_room)
-	inventory_ui.display_inventory(current_room)
-	
-	# Ensure the inventory UI is properly positioned and sized
-	inventory_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
-	inventory_ui.anchor_left = 0.0
-	inventory_ui.anchor_top = 0.0
-	inventory_ui.anchor_right = 1.0
-	inventory_ui.anchor_bottom = 1.0
-	inventory_ui.offset_left = 0
-	inventory_ui.offset_top = 0
-	inventory_ui.offset_right = 0
-	inventory_ui.offset_bottom = 0
-	
-	print("DEBUG: Setting inventory visible to true")
-	inventory_ui.visible = true
-	print("DEBUG: Inventory should now be visible. Final size: ", inventory_ui.size, " Position: ", inventory_ui.position)
+	# For other rooms, navigate to Warehouse room
+	print("DEBUG: Navigating to Warehouse room")
+	GuildManager.enter_room("Warehouse")
 
 func get_current_room_instance() -> Node:
 	"""Get the current room instance"""

@@ -56,13 +56,21 @@ func remove_item(slot_index: int, quantity: int = 1) -> InventoryItem:
 		items[slot_index] = null
 		update_filled_slots()
 		return item
-	else:
-		# Remove partial stack
-		var removed_item = item.duplicate()
-		removed_item.quantity = quantity
-		item.quantity -= quantity
-		update_filled_slots()
-		return removed_item
+	
+	# Remove partial stack
+	var removed_item = item.duplicate()
+	removed_item.quantity = quantity
+	item.quantity -= quantity
+	update_filled_slots()
+	return removed_item
+
+func remove_item_by_reference(item: InventoryItem, quantity: int = 1) -> bool:
+	"""Remove an item by reference. Returns true if successful."""
+	for i in range(items.size()):
+		if items[i] == item:
+			remove_item(i, quantity)
+			return true
+	return false
 
 func move_item(from_slot: int, to_slot: int) -> bool:
 	"""Move an item from one slot to another. Returns true if successful."""
@@ -151,14 +159,13 @@ func get_usage_color() -> Color:
 	
 	if free_percentage > 60.0:
 		return Color.WHITE
-	elif free_percentage > 15.0:
+	if free_percentage > 15.0:
 		return Color.YELLOW
-	else:
-		return Color.RED
+	return Color.RED
 
 func save_data() -> Dictionary:
 	"""Save inventory data for persistence"""
-	var _save_data = {
+	var save_data_dict = {
 		"total_slots": total_slots,
 		"filled_slots": filled_slots,
 		"items": []
@@ -166,11 +173,11 @@ func save_data() -> Dictionary:
 	
 	for item in items:
 		if item != null:
-			_save_data["items"].append(item.save_data())
+			save_data_dict["items"].append(item.save_data())
 		else:
-			_save_data["items"].append(null)
+			save_data_dict["items"].append(null)
 	
-	return _save_data
+	return save_data_dict
 
 func load_data(data: Dictionary):
 	"""Load inventory data from persistence"""

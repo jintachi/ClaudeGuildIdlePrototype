@@ -6,7 +6,8 @@ func _ready():
 	print("=== UI Layer System Debug ===")
 	
 	# Wait a frame for autoloads to initialize
-	await get_tree().process_frame
+	if get_tree():
+		await get_tree().process_frame
 	
 	# Test 1: Check if UILayerManager is available
 	print("Test 1: Checking UILayerManager availability...")

@@ -239,7 +239,8 @@ func update_quests_display():
 			print("Step 5k: Quest card is null, skipping")
 	
 	# Wait a frame for the panels to be added to the scene tree
-	await get_tree().process_frame
+	if get_tree():
+		await get_tree().process_frame
 	
 	# Update visual states for all quest panels
 	if current_selected_quest_card:

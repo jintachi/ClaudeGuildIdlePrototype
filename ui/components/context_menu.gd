@@ -45,7 +45,8 @@ func show_menu(items: Array[Dictionary], menu_position: Vector2):
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	print("ContextMenu called - mouse_filter set to: ", mouse_filter)
 
-	await get_tree().process_frame
+	if get_tree():
+		await get_tree().process_frame
 
 	print("ContextMenu.show_menu called with ", items.size(), " items")
 	menu_items = items
@@ -209,11 +210,11 @@ static func create_item_context_menu(item: InventoryItem) -> Array[Dictionary]:
 			"data": {"item": item}
 		})
 	
-	# Equip item (for equipment)
+	# Equip item (for equipment) - show "Equip To..." option
 	if item.item_type == "equipment":
 		items.append({
-			"id": "equip",
-			"text": "Equip Item",
+			"id": "equip_to",
+			"text": "Equip To...",
 			"data": {"item": item}
 		})
 	
@@ -230,6 +231,14 @@ static func create_item_context_menu(item: InventoryItem) -> Array[Dictionary]:
 		items.append({
 			"id": "drop",
 			"text": "Drop Item",
+			"data": {"item": item}
+		})
+	
+	# View details (for quest items and valuables)
+	if item.item_type in ["quest_items", "valuables"]:
+		items.append({
+			"id": "view_details",
+			"text": "View Details",
 			"data": {"item": item}
 		})
 	

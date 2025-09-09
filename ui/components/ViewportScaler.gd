@@ -173,12 +173,7 @@ func update_child_fonts_only(node: Node):
 	for child in node.get_children():
 		update_child_fonts_only(child)
 
-func update_children_scaling():
-	"""Update scaling properties of child elements (DEPRECATED - use fonts_only to avoid multiplication)"""
-	# This function is kept for compatibility but should not be used
-	# when the ViewportScaler already applies transform scaling
-	for child in get_children():
-		update_child_scaling_safe(child)
+# update_children_scaling function removed - use fonts_only mode instead to avoid multiplication
 
 func update_child_scaling_safe(node: Node):
 	"""Safe scaling for child nodes that checks for existing scaling"""

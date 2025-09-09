@@ -28,7 +28,7 @@ The UML diagram is organized into several logical packages:
 - **CompactQuestCard**: Quest display component
 - **QuestCompletionPanel**: Quest results display
 - **StatsComparisonTable**: Party vs quest requirements comparison
-- **InventoryUI**: Inventory management interface
+- **WarehouseRoom**: Warehouse room with built-in inventory management interface
 - **ExperienceBar**: Character experience display
 
 ### 5. Utility Systems

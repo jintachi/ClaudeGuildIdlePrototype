@@ -56,7 +56,8 @@ func setup_table_structure():
 		return
 	
 	# Wait a frame for cleanup
-	await get_tree().process_frame
+	if get_tree():
+		await get_tree().process_frame
 	
 	# Ensure the container is scrollable
 	if not stats_container.get_parent() is ScrollContainer:
