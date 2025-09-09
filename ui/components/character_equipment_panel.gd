@@ -58,10 +58,7 @@ func create_equipment_slots():
 		container.add_child(slot_instance)
 		equipment_slots[slot_def.name] = slot_instance
 
-func collect_equipment_slots():
-	"""Collect all equipment slot references (legacy function - now handled by create_equipment_slots)"""
-	# This function is now handled by create_equipment_slots()
-	pass
+# collect_equipment_slots function removed - functionality moved to create_equipment_slots
 
 func connect_slot_signals():
 	"""Connect signals for all equipment slots"""

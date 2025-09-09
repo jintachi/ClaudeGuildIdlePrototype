@@ -10,16 +10,10 @@ signal item_added(item: InventoryItem, slot_index: int)
 signal item_removed(item: InventoryItem, slot_index: int)
 signal item_moved(item: InventoryItem, from_slot: int, to_slot: int)
 signal inventory_upgraded(new_capacity: int)
-signal room_inventory_context_changed(room_name: String)
+# room_inventory_context_changed signal removed - no longer needed
 @warning_ignore_restore("unused_signal")
 
-# Core inventory data
-var inventory: Inventory
-var inventory_ui: InventoryUI
-
-# Room-specific inventory contexts
-var room_contexts: Dictionary = {}
-var current_room_context: String = ""
+# No longer need to preload warehouse inventory scene - it's built into WarehouseRoom
 
 # Inventory configuration
 @export var default_capacity: int = 20
@@ -27,38 +21,39 @@ var current_room_context: String = ""
 @export var upgrade_cost_base: int = 100
 @export var upgrade_cost_multiplier: float = 1.5
 
+# Core inventory data
+var inventory: Inventory
+
+# inventory_ui removed - inventory display is now handled by WarehouseRoom
+
+
 # Item database for centralized item definitions
 var item_database: Dictionary = {}
+
 
 func _ready():
 	"""Initialize the inventory manager"""
 	initialize_item_database()
-	initialize_inventory()
-	initialize_room_contexts()
+	
+	# Connect to game_ready signal to initialize game-dependent systems
+	if SignalBus:
+		SignalBus.game_ready.connect(_on_game_ready)
 	
 	# Connect to GuildManager signals if available
 	if GuildManager and not GuildManager.room_changed.is_connected(_on_room_changed):
 		GuildManager.room_changed.connect(_on_room_changed)
+
+func _on_game_ready():
+	"""Called when the game is fully initialized and ready"""
+	print("InventoryManager: Game is ready, initializing inventory systems")
+	initialize_inventory()
 
 func initialize_inventory():
 	"""Initialize the main inventory system"""
 	inventory = Inventory.new()
 	inventory.total_slots = default_capacity
 	
-	# Create inventory UI instance
-	var inventory_scene = preload("res://ui/components/Inventory.tscn")
-	if inventory_scene:
-		inventory_ui = inventory_scene.instantiate()
-		inventory_ui.inventory = inventory
-		inventory_ui.visible = false
-		
-		# Add to current scene for now to test visibility
-		var current_scene = get_tree().current_scene
-		if current_scene:
-			current_scene.add_child(inventory_ui)
-			print("DEBUG: Inventory UI created and added to current scene. Size: ", inventory_ui.size, " Position: ", inventory_ui.position)
-		else:
-			print("ERROR: No current scene to add inventory UI to")
+	# Inventory display is now handled by WarehouseRoom
 	
 	# Add some test items for development
 	add_test_items()
@@ -164,50 +159,7 @@ func initialize_item_database():
 		"base_charges": 1
 	}
 
-func initialize_room_contexts():
-	"""Initialize room-specific inventory contexts"""
-	room_contexts = {
-		"Main Hall": {
-			"allowed_types": ["all"],
-			"quick_actions": ["use", "equip", "drop"],
-			"display_mode": "grid"
-		},
-		"Roster": {
-			"allowed_types": ["equipment", "consumables"],
-			"quick_actions": ["equip", "use"],
-			"display_mode": "compact"
-		},
-		"Quests": {
-			"allowed_types": ["quest_items", "consumables", "quest-specific-items"],
-			"quick_actions": ["use"],
-			"display_mode": "list"
-		},
-		"Recruitment": {
-			"allowed_types": ["all"],
-			"quick_actions": ["gift"],
-			"display_mode": "grid"
-		},
-		"Training Room": {
-			"allowed_types": ["consumables", "materials"],
-			"quick_actions": ["use"],
-			"display_mode": "compact"
-		},
-		"Merchant's Guild": {
-			"allowed_types": ["all"],
-			"quick_actions": ["sell", "buy"],
-			"display_mode": "grid"
-		},
-		"Blacksmith's Guild": {
-			"allowed_types": ["equipment", "materials"],
-			"quick_actions": ["craft", "enhance"],
-			"display_mode": "grid"
-		},
-		"Healer's Guild": {
-			"allowed_types": ["consumables", "materials"],
-			"quick_actions": ["use", "craft"],
-			"display_mode": "compact"
-		}
-	}
+# Room context initialization no longer needed
 
 #region Core Inventory Operations
 
@@ -269,21 +221,7 @@ func get_item_at_slot(slot_index: int) -> InventoryItem:
 		return null
 	return inventory.items[slot_index]
 
-func get_items_for_room(room_name: String) -> Array[InventoryItem]:
-	"""Get items filtered for a specific room"""
-	if not inventory:
-		return []
-	
-	var context = room_contexts.get(room_name, room_contexts["Main Hall"])
-	var allowed_types = context.get("allowed_types", ["all"])
-	
-	var filtered_items: Array[InventoryItem] = []
-	for item in inventory.items:
-		if item != null:
-			if "all" in allowed_types or item.item_type in allowed_types:
-				filtered_items.append(item)
-	
-	return filtered_items
+# get_items_for_room function removed - room filtering no longer needed
 
 func get_items_by_tags(required_tags: Array[StringName]) -> Array[InventoryItem]:
 	"""Get items that have any of the required tags"""
@@ -311,28 +249,7 @@ func get_items_by_all_tags(required_tags: Array[StringName]) -> Array[InventoryI
 
 #endregion
 
-#region Room Context Management
-
-func set_room_context(room_name: String):
-	"""Set the current room context for inventory display"""
-	if current_room_context != room_name:
-		current_room_context = room_name
-		room_inventory_context_changed.emit(room_name)
-		
-		# Update UI if available
-		if inventory_ui:
-			inventory_ui.display_inventory(room_name)
-
-func get_room_context(room_name: String) -> Dictionary:
-	"""Get the inventory context for a specific room"""
-	return room_contexts.get(room_name, room_contexts["Main Hall"])
-
-func get_quick_actions_for_room(room_name: String) -> Array[String]:
-	"""Get available quick actions for a room"""
-	var context = get_room_context(room_name)
-	return context.get("quick_actions", [])
-
-#endregion
+# Room context management no longer needed - inventory is handled by WarehouseRoom
 
 #region Item Creation and Management
 
@@ -404,45 +321,19 @@ func upgrade_inventory() -> bool:
 	var cost = get_upgrade_cost()
 	GuildManager.spend_resources(cost)
 	
-	var _old_capacity = inventory.total_slots
+
 	inventory.upgrade_inventory()
 	
 	inventory_upgraded.emit(inventory.total_slots)
 	
-	# Update UI if available
-	if inventory_ui:
-		inventory_ui.create_inventory_slots()
-		inventory_ui.update_display()
 	
 	return true
 
 #endregion
 
 #region UI Integration
-
-func show_inventory(room_name: String = ""):
-	"""Show the inventory UI"""
-	if inventory_ui:
-		if room_name != "":
-			set_room_context(room_name)
-		print("DEBUG: Setting inventory UI visible to true. Size: ", inventory_ui.size, " Position: ", inventory_ui.position)
-		inventory_ui.visible = true
-		print("DEBUG: Inventory UI visible set to: ", inventory_ui.visible)
-	else:
-		print("ERROR: inventory_ui is null in show_inventory")
-
-func hide_inventory():
-	"""Hide the inventory UI"""
-	if inventory_ui:
-		inventory_ui.visible = false
-
-func get_inventory_ui() -> InventoryUI:
-	"""Get the inventory UI instance"""
-	if not inventory_ui or not is_instance_valid(inventory_ui):
-		print("WARNING: Inventory UI is null or invalid, reinitializing...")
-		initialize_inventory()
-	return inventory_ui
-
+# UI integration is now handled directly by WarehouseRoom
+# No separate inventory UI component needed
 #endregion
 
 #region Save/Load Integration
@@ -453,8 +344,7 @@ func save_inventory_data() -> Dictionary:
 		return {}
 	
 	return {
-		"inventory": inventory.save_data(),
-		"current_room_context": current_room_context
+		"inventory": inventory.save_data()
 	}
 
 func load_inventory_data(data: Dictionary):
@@ -465,13 +355,6 @@ func load_inventory_data(data: Dictionary):
 	if data.has("inventory"):
 		inventory.load_data(data["inventory"])
 	
-	if data.has("current_room_context"):
-		current_room_context = data["current_room_context"]
-	
-	# Update UI
-	if inventory_ui:
-		inventory_ui.create_inventory_slots()
-		inventory_ui.update_display()
 
 #endregion
 
@@ -495,8 +378,9 @@ func add_test_items():
 
 #region Signal Handlers
 
-func _on_room_changed(_from_room: String, to_room: String):
+func _on_room_changed(_from_room: String, _to_room: String):
 	"""Handle room changes from GuildManager"""
-	set_room_context(to_room)
+	
+	pass
 
 #endregion

@@ -11,6 +11,7 @@ extends Control
 @export var quests_button: Button
 @export var recruitment_button: Button
 @export var training_room_button: Button
+@export var warehouse_button: Button
 
 # External Guild buttons
 @export var merchants_guild_button: Button
@@ -52,6 +53,9 @@ func setup_button_connections():
 	
 	if training_room_button:
 		training_room_button.pressed.connect(_on_training_room_travel)
+	
+	if warehouse_button:
+		warehouse_button.pressed.connect(_on_warehouse_travel)
 	
 	# External Guild buttons
 	if merchants_guild_button:
@@ -106,6 +110,9 @@ func _open_map():
 	visible = true
 	is_map_open = true
 	
+	# Update button states based on room unlock status
+	update_room_button_states()
+	
 	# Don't pause the game - just show as overlay
 	# The z_index = 100 in the scene will keep it on top
 	
@@ -155,6 +162,10 @@ func _on_training_room_travel():
 	"""Travel to Training Room"""
 	_travel_to_room("Training Room")
 
+func _on_warehouse_travel():
+	"""Travel to Warehouse"""
+	_travel_to_room("Warehouse")
+
 func _on_merchants_guild_travel():
 	"""Travel to Merchant's Guild"""
 	_travel_to_room("Merchant's Guild")
@@ -166,6 +177,23 @@ func _on_blacksmiths_guild_travel():
 func _on_healers_guild_travel():
 	"""Travel to Healer's Guild"""
 	_travel_to_room("Healer's Guild")
+
+func update_room_button_states():
+	"""Update button states based on room unlock status"""
+	if not GuildManager:
+		return
+	
+	# Update warehouse button state
+	if warehouse_button:
+		var is_unlocked = GuildManager.is_room_unlocked("Warehouse")
+		warehouse_button.disabled = not is_unlocked
+		
+		if not is_unlocked:
+			warehouse_button.text = "Warehouse (Locked)"
+			warehouse_button.tooltip_text = "Complete 10 quests and have 1000 gold to unlock"
+		else:
+			warehouse_button.text = "Warehouse"
+			warehouse_button.tooltip_text = "Store and manage your guild's items"
 
 func _on_close_map():
 	"""Handle close button press"""

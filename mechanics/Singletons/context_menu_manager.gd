@@ -87,12 +87,10 @@ func show_character_context_menu(character: Character, position: Vector2):
 	# Show the context menu
 	show_context_menu(menu_items, position)
 
-func show_item_context_menu(_item: InventoryItem, _position: Vector2):
+func show_item_context_menu(item: InventoryItem, position: Vector2):
 	"""Show context menu for an inventory item"""
-	# TODO: Implement when ContextMenu class is available
-	# var items = ContextMenu.create_item_context_menu(item)
-	# show_context_menu(items, position)
-	print("Context menu for item not yet implemented")
+	var menu_items = ContextMenu.create_item_context_menu(item)
+	show_context_menu(menu_items, position)
 
 func show_context_menu(items: Array[Dictionary], position: Vector2):
 	"""Show a context menu with the given items at the specified position"""
@@ -244,12 +242,14 @@ func _on_menu_item_selected(item_id: String, data: Dictionary):
 			_handle_promotion_menu(data)
 		"use":
 			_handle_use_item_menu(data)
-		"equip":
-			_handle_equip_item_menu(data)
+		"equip_to":
+			_handle_equip_to_menu(data)
 		"sell":
 			_handle_sell_item_menu(data)
 		"drop":
 			_handle_drop_item_menu(data)
+		"view_details":
+			_handle_view_details_menu(data)
 
 func _on_menu_closed():
 	"""Handle menu closed"""
@@ -309,12 +309,13 @@ func _handle_use_item_menu(data: Dictionary):
 		# Use the item (placeholder)
 		print("Using item: ", item.item_name)
 
-func _handle_equip_item_menu(data: Dictionary):
-	"""Handle equip item menu selection"""
+func _handle_equip_to_menu(data: Dictionary):
+	"""Handle equip to menu selection"""
 	var item = data.get("item")
 	if item:
-		# Show equipment selection interface (placeholder)
-		print("Equipping item: ", item.item_name)
+		# Show character selection for equipment (placeholder)
+		print("Equip to character selection for: ", item.item_name)
+		# TODO: Implement character selection UI
 
 func _handle_sell_item_menu(data: Dictionary):
 	"""Handle sell item menu selection"""
@@ -329,6 +330,13 @@ func _handle_drop_item_menu(data: Dictionary):
 	if item:
 		# Drop the item (placeholder)
 		print("Dropping item: ", item.item_name)
+
+func _handle_view_details_menu(data: Dictionary):
+	"""Handle view details menu selection"""
+	var item = data.get("item")
+	if item:
+		# Show detailed item information (placeholder)
+		print("Viewing details for: ", item.item_name)
 
 #region Static Helper Functions
 static func show_character_menu(character: Character, position: Vector2):

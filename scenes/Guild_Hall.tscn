@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://ctr4p8jbhykl4"]
+[gd_scene load_steps=6 format=3 uid="uid://ctr4p8jbhykl4"]
 
 [ext_resource type="Script" uid="uid://c5wjl256wa053" path="res://scenes/guild_hall.gd" id="1"]
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_uu6xs"]
 [ext_resource type="PackedScene" uid="uid://bmk3h7t4c8xij" path="res://ui/components/Navigation.tscn" id="3_navigation"]
 [ext_resource type="PackedScene" uid="uid://bv807ia8vio2t" path="res://scenes/rooms/TownMap.tscn" id="4_townmap"]
+[ext_resource type="PackedScene" uid="uid://vsa4xf6pxod4" path="res://ui/DebugTool.tscn" id="5_debug"]
 
 [node name="Guild Hall" type="Control" node_paths=PackedStringArray("room_container", "navigation_panel", "resources_display", "inventory_button", "town_map", "scale_05_button", "scale_075_button", "scale_1_button", "scale_15_button", "scale_2_button", "scale_3_button", "save_button", "load_button", "new_game_button")]
 layout_mode = 3
@@ -128,3 +129,5 @@ text = "New Game"
 visible = false
 z_index = 100
 layout_mode = 1
+[node name="DebugTool" parent="." instance=ExtResource("5_debug")]
+

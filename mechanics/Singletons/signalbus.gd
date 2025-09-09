@@ -5,8 +5,10 @@ extends Node
 
 @warning_ignore_start("unused_signal")
 
-#region Main Menu Signals
-# Main menu signals removed - were unused
+#region Game State Signals
+signal game_ready()  # Emitted when game is fully initialized and ready to play
+signal game_loading_started()  # Emitted when game loading begins
+signal game_loading_completed()  # Emitted when game loading is finished
 #endregion
 
 #region Guild Hall Signals
@@ -18,7 +20,6 @@ signal room_unlocked(room_name:String)
 signal character_recruited(character: Character)
 signal character_promoted(character: Character)
 signal character_injured(character: Character)
-# signal character_healed(character: Character) - removed, was unused
 signal character_status_changed(character: Character)
 
 # Character data request signals
@@ -36,8 +37,6 @@ signal quest_completed(quest: Quest)
 signal quest_finalized(quest: Quest)
 signal quest_card_selected(card:CompactQuestCard)
 signal emergency_quest_available(requirements: Dictionary)
-# signal quest_failed(quest: Quest) - removed, was unused  
-# signal party_assembled(party: Array[Character]) - removed, was unused
 
 # Quest data request signals
 signal request_available_quest_cards
@@ -66,8 +65,6 @@ signal request_recruit_refresh
 #region Save/Load Signals
 signal game_saved
 signal game_loaded
-# signal save_file_cleared - removed, was unused
-# signal auto_save_triggered - removed, was unused
 #endregion
 
 #region UI Interaction Signals
@@ -87,15 +84,12 @@ signal settings_reset_to_defaults
 
 #region UI Scaling Signals
 signal ui_scaling_changed(scale_factor: float, ui_scale_factor: float)
-# signal scaling_mode_changed(mode: int) - removed, was unused
 signal ui_scale_changed
 #endregion
 
 #region Input Management Signals
 signal keybinding_changed(action_name: String, binding)
 signal keybindings_reset
-# signal action_executed(action_name: String) - removed, was unused
-signal scene_navigation_requested(from_scene: String, to_scene: String) #- removed, was unused
 signal map_key_pressed
 #endregion
 

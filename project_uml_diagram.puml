@@ -286,15 +286,24 @@ package "UI Components" {
         +check_requirements(): Dictionary
     }
 
-    class InventoryUI {
-        +inventory: Inventory
-        +item_slots: Array[Control]
-        +selected_slot: int
+    class WarehouseRoom {
+        +warehouse_stats_panel: VBoxContainer
+        +upgrade_button: Button
+        +capacity_label: Label
+        +usage_label: Label
+        +search_bar: LineEdit
+        +tab_container: TabContainer
+        +item_grid: GridContainer
+        +equipment_grid: GridContainer
+        +consumables_grid: GridContainer
+        +materials_grid: GridContainer
+        +key_items_grid: GridContainer
+        +valuables_grid: GridContainer
         --
-        +update_display()
-        +_on_item_clicked(slot_index: int)
-        +_on_item_dragged(from_slot: int, to_slot: int)
-        +show_item_tooltip(item: InventoryItem)
+        +setup_inventory_ui()
+        +update_inventory_display()
+        +create_item_slot(item: InventoryItem): Control
+        +_on_item_slot_gui_input(event: InputEvent, item: InventoryItem)
     }
 
     class ExperienceBar {
@@ -352,7 +361,7 @@ StatsComparisonTable ||--|| Quest : "compares stats"
 StatsComparisonTable ||--o{ Character : "compares party"
 
 ExperienceBar ||--|| Character : "displays experience"
-InventoryUI ||--|| Inventory : "displays inventory"
+WarehouseRoom ||--|| Inventory : "manages inventory"
 
 SignalBus ..> GuildManager : "signals"
 SignalBus ..> BaseRoom : "signals"
@@ -362,7 +371,7 @@ ResponsiveLayout ..> BaseRoom : "applies layout"
 UIUtilities ..> CompactQuestCard : "provides utilities"
 UIUtilities ..> QuestCompletionPanel : "provides utilities"
 UIUtilities ..> StatsComparisonTable : "provides utilities"
-UIUtilities ..> InventoryUI : "provides utilities"
+UIUtilities ..> WarehouseRoom : "provides utilities"
 UIUtilities ..> ExperienceBar : "provides utilities"
 
 @enduml

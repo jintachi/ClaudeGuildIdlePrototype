@@ -17,6 +17,10 @@ var active_quest_panels: Dictionary = {}  # quest_id -> panel
 var awaiting_quest_panels: Dictionary = {}  # quest_id -> panel
 var completed_quest_panels: Dictionary = {}  # quest_id -> panel
 
+# Guard to prevent multiple rapid calls
+var is_updating_awaiting_display: bool = false
+var is_updating_active_display: bool = false
+
 # Quest counter labels
 var available_quest_count_label: Label
 var active_quest_count_label: Label
@@ -106,8 +110,16 @@ func update_active_quests_display():
 	if not active_quests_panel or not GuildManager:
 		return
 	
+	# Guard against multiple rapid calls
+	if is_updating_active_display:
+		print("AVAILABLE_QUESTS: Already updating active display, skipping")
+		return
+	
+	is_updating_active_display = true
+	
 	# Clear existing displays and tracking
 	for child in active_quests_panel.get_children():
+		active_quests_panel.remove_child(child)
 		child.queue_free()
 	active_quest_panels.clear()
 	
@@ -124,7 +136,9 @@ func update_active_quests_display():
 			# Add the container to the panel
 			active_quests_panel.add_child(panel_container)
 			active_quest_panels[quest_card.get_quest()] = panel_container
-				
+	
+	# Reset the guard flag
+	is_updating_active_display = false
 
 func create_active_panel_from_card(quest_card:CompactQuestCard) -> VBoxContainer:
 	## MAIN PANEL ##
@@ -253,8 +267,16 @@ func update_awaiting_completion_display():
 		print("AVAILABLE_QUESTS: awaiting_completion_panel or GuildManager is null")
 		return
 	
+	# Guard against multiple rapid calls
+	if is_updating_awaiting_display:
+		print("AVAILABLE_QUESTS: Already updating awaiting display, skipping")
+		return
+	
+	is_updating_awaiting_display = true
+	
 	# Clear existing displays and tracking
 	for child in awaiting_completion_panel.get_children():
+		awaiting_completion_panel.remove_child(child)
 		child.queue_free()
 	awaiting_quest_panels.clear()
 	
@@ -290,6 +312,9 @@ func update_awaiting_completion_display():
 			awaiting_quest_panels[quest_card.get_quest()] = quest_container
 		else:
 			print("AVAILABLE_QUESTS: Quest card is not valid")
+	
+	# Reset the guard flag
+	is_updating_awaiting_display = false
 
 func update_awaiting_completion_times(_delta: float):
 	"""Update time displays for awaiting completion quests smoothly"""

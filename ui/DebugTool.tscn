@@ -1,0 +1,71 @@
+[gd_scene load_steps=2 format=3 uid="uid://vsa4xf6pxod4"]
+
+[ext_resource type="Script" uid="uid://bf3uh4bsa7wjt" path="res://ui/debug_tool.gd" id="1_script"]
+
+[node name="DebugTool" type="Control" node_paths=PackedStringArray("debug_panel", "stats_container", "close_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+debug_panel = NodePath("Panel")
+stats_container = NodePath("Panel/MainContainer/ScrollContainer/StatsContainer")
+close_button = NodePath("Panel/MainContainer/TitleBar/CloseButton")
+
+[node name="Panel" type="Panel" parent="."]
+modulate = Color(1, 1, 1, 0.95)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="MainContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="TitleBar" type="HBoxContainer" parent="Panel/MainContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/MainContainer/TitleBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Debug Tool - Game Stats Modifier"
+
+[node name="CloseButton" type="Button" parent="Panel/MainContainer/TitleBar"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+text = "X"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatsContainer" type="VBoxContainer" parent="Panel/MainContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Panel/MainContainer"]
+layout_mode = 2
+
+[node name="SaveButton" type="Button" parent="Panel/MainContainer/ButtonContainer"]
+layout_mode = 2
+text = "Save Game"
+
+[node name="LoadButton" type="Button" parent="Panel/MainContainer/ButtonContainer"]
+layout_mode = 2
+text = "Load Game"
+
+[node name="ResetButton" type="Button" parent="Panel/MainContainer/ButtonContainer"]
+layout_mode = 2
+text = "Reset to Defaults"

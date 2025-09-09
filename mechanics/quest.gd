@@ -28,6 +28,7 @@ enum QuestRank {
 
 #region Basic Quest Properties
 @export var quest_name: String
+@export var quest_id: String  # Unique internal identifier
 @export var quest_type: QuestType
 @export var quest_rank: QuestRank
 @export var description: String
@@ -208,7 +209,13 @@ func generate_quest_details():
 	var rank_name = get_rank_name()
 	var type_name = type_names.get(quest_type, "Unknown")
 	
+	# Generate display-friendly quest name (can be duplicated)
 	quest_name = rank_name + "-Rank " + type_name + " Mission"
+	
+	# Generate unique internal ID
+	var timestamp = Time.get_unix_time_from_system()
+	var random_id = randi() % 10000
+	quest_id = "quest_" + str(timestamp) + "_" + str(random_id)
 	
 	var descriptions = get_quest_descriptions()
 	description = descriptions[quest_type][randi() % descriptions[quest_type].size()]
@@ -890,7 +897,7 @@ func get_progress_percentage() -> float:
 		return min(100.0, (elapsed_time / duration) * 100.0)
 
 func get_party_display_info() -> Array:
-	var party_info = []
+	var party_info : Array[Dictionary] = []
 	for i in range(assigned_party.size()):
 		var character = assigned_party[i]
 		var status = "?"  # Unknown until completion
@@ -932,7 +939,7 @@ func get_type_name() -> String:
 		_: return "Unknown"
 
 func get_requirements_text() -> String:
-	var req_text = []
+	var req_text : Array[String] = []
 	
 	if min_party_size > 1:
 		req_text.append("Min %d members" % min_party_size)
@@ -976,7 +983,7 @@ func validate_individual_checks():
 		individual_checks.append(false)
 
 func get_rewards_text() -> String:
-	var rewards_text = []
+	var rewards_text : Array[String] = []
 	
 	rewards_text.append("%d XP" % base_experience)
 	rewards_text.append("%d Gold" % gold_reward)

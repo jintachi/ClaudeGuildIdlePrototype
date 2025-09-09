@@ -1,0 +1,171 @@
+[gd_scene load_steps=3 format=3 uid="uid://da00eos1nt4aa"]
+
+[ext_resource type="Script" uid="uid://bmkoiyffjqb7k" path="res://scenes/rooms/warehouse_room.gd" id="1_warehouse_room"]
+[ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2_theme"]
+
+[node name="WarehouseRoom" type="Control" node_paths=PackedStringArray("warehouse_stats_panel", "upgrade_button", "capacity_label", "usage_label", "search_bar", "tab_container", "item_grid", "equipment_grid", "consumables_grid", "materials_grid", "key_items_grid", "valuables_grid", "room_container", "back_button", "room_title_label")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_warehouse_room")
+warehouse_stats_panel = NodePath("MainContainer/ContentContainer/StatsPanel")
+upgrade_button = NodePath("MainContainer/ContentContainer/StatsPanel/UpgradeButton")
+capacity_label = NodePath("MainContainer/ContentContainer/StatsPanel/CapacityLabel")
+usage_label = NodePath("MainContainer/ContentContainer/StatsPanel/UsageLabel")
+search_bar = NodePath("MainContainer/ContentContainer/InventoryContainer/SearchContainer/SearchBar")
+tab_container = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer")
+item_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/All Items/ItemGrid")
+equipment_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/Equipment/EquipmentGrid")
+consumables_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/Consumables/ConsumablesGrid")
+materials_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/Materials/MaterialsGrid")
+key_items_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/Key Items/KeyItemsGrid")
+valuables_grid = NodePath("MainContainer/ContentContainer/InventoryContainer/TabContainer/Valuables/ValuablesGrid")
+room_container = NodePath("MainContainer")
+back_button = NodePath("MainContainer/Header/BackButton")
+room_title_label = NodePath("MainContainer/Header/TitleLabel")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+
+[node name="Header" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.1
+theme = ExtResource("2_theme")
+
+[node name="BackButton" type="Button" parent="MainContainer/Header"]
+layout_mode = 2
+text = "← Back"
+
+[node name="TitleLabel" type="Label" parent="MainContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("2_theme")
+text = "Warehouse"
+horizontal_alignment = 1
+
+[node name="ContentContainer" type="HBoxContainer" parent="MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StatsPanel" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_stretch_ratio = 0.2
+
+[node name="StatsTitle" type="Label" parent="MainContainer/ContentContainer/StatsPanel"]
+layout_mode = 2
+text = "Warehouse Stats"
+horizontal_alignment = 1
+
+[node name="CapacityLabel" type="Label" parent="MainContainer/ContentContainer/StatsPanel"]
+layout_mode = 2
+text = "Capacity: 0 / 50"
+horizontal_alignment = 1
+
+[node name="UsageLabel" type="Label" parent="MainContainer/ContentContainer/StatsPanel"]
+layout_mode = 2
+text = "Usage: 0.0%"
+horizontal_alignment = 1
+
+[node name="UpgradeButton" type="Button" parent="MainContainer/ContentContainer/StatsPanel"]
+layout_mode = 2
+text = "Upgrade Warehouse (500 gold)"
+
+[node name="InventoryContainer" type="VBoxContainer" parent="MainContainer/ContentContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SearchContainer" type="HBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer"]
+layout_mode = 2
+
+[node name="SearchBar" type="LineEdit" parent="MainContainer/ContentContainer/InventoryContainer/SearchContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Search items..."
+
+[node name="TabContainer" type="TabContainer" parent="MainContainer/ContentContainer/InventoryContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="All Items" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="ItemGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/All Items"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6
+
+[node name="Equipment" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="EquipmentGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/Equipment"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6
+
+[node name="Consumables" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="ConsumablesGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/Consumables"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6
+
+[node name="Materials" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="MaterialsGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/Materials"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6
+
+[node name="Key Items" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 4
+
+[node name="KeyItemsGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/Key Items"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6
+
+[node name="Valuables" type="VBoxContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 5
+
+[node name="ValuablesGrid" type="GridContainer" parent="MainContainer/ContentContainer/InventoryContainer/TabContainer/Valuables"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 6

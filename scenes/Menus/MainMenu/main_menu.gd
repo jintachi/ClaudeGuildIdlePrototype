@@ -48,7 +48,7 @@ func _initialize_new_game():
 	# This will reset all resources and create starter content
 	if GuildManager:
 		GuildManager.clear_save_file()  # Clear any existing save data
-		GuildManager.initialize_guild()  # Initialize new game
+		GuildManager.initialize_game()  # Initialize new game
 		print("New game initialized!")
 	else:
 		print("Warning: GuildManager not available")
@@ -88,6 +88,8 @@ func _load_game_from_slot(slot: int):
 	if GuildManager:
 		GuildManager.load_game_from_slot(slot)
 		print("Game loaded from slot ", slot)
+		# Initialize the game after loading
+		GuildManager.initialize_game()
 		# Load the Guild Hall scene
 		get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")
 	else:
@@ -98,7 +100,7 @@ func _initialize_new_game_in_slot(slot: int):
 	if GuildManager:
 		GuildManager.current_save_slot = slot
 		GuildManager.clear_save_file()  # Clear the selected slot
-		GuildManager.initialize_guild()  # Initialize new game
+		GuildManager.initialize_game()  # Initialize new game
 		print("New game initialized in slot ", slot)
 		# Load the Guild Hall scene
 		get_tree().change_scene_to_file("res://scenes/Guild_Hall.tscn")

@@ -1,6 +1,6 @@
 extends Node
 
-## TODO: Any instance of RAND should be removed, replace all RANDs with a single SEED that is generated when NEW GAME is pressed.  That SEED should be saved and used by everything inside the game that requires a RAND
+## Random number generation uses Godot's built-in RandomNumberGenerator with proper seeding
 @warning_ignore_start("unused_signal")
 signal character_recruited(character: Character)
 signal quest_started(quest: Quest)
@@ -43,7 +43,7 @@ var awaiting_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard i
 # Progression Tracking
 @export var total_quests_completed: int = 0
 @export var quests_completed_by_rank: Dictionary = {}
-@export var transformations_unlocked: Dictionary = {"Roster Size"=5,"Healer's Guild"=false,"Armory"=false,"Market"=false,"Training Ground's"=false,"Library"=false,"Workshop"=false}
+@export var transformations_unlocked: Dictionary = {"Roster Size": 5, "Healer's Guild": false, "Armory": false, "Market": false, "Training Ground's": false, "Library": false, "Workshop": false}
 
 # Save System
 @export var last_save_time: float = 0.0
@@ -61,30 +61,58 @@ var current_room: String = "Adventurer's Guild"
 var previous_room: String = ""
 var room_history: Array[String] = []
 var max_history_size: int = 10
-var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
+var available_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Warehouse", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
 var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitment", "Training Room", "Merchant's Guild", "Blacksmith's Guild", "Healer's Guild"]
 var cached_room_instances: Dictionary = {}  # Cache room instances to preserve state
 
-# Inventory System (Legacy - will be replaced by InventoryManager)
-var inventory: Inventory
-var inventory_ui: InventoryUI
+# Cached resources
+var quest_card_scene: PackedScene
+
+# Inventory System - Now handled by InventoryManager singleton
 
 func _ready():
 	print("GuildManager: _ready() called")
-	#load_game()
-	initialize_guild()
-	initialize_room_system()
-	print("GuildManager: _ready() completed")
+	# Load cached resources
+	quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
 	
+	# Connect to inventory changes to keep resources in sync
+	if has_node("/root/InventoryManager"):
+		var inventory_manager = get_node("/root/InventoryManager")
+		inventory_manager.inventory_changed.connect(_on_inventory_changed)
 	
-	# Initialize quest completion tracking
+	# Don't initialize anything yet - wait for game_ready signal
+	# Only initialize quest completion tracking structure
 	for rank in Quest.QuestRank.values():
 		quests_completed_by_rank[rank] = 0
+	print("GuildManager: _ready() completed - waiting for game initialization")
 
 func _process(delta):
-	update_quest_timers(delta)
-	update_recruitment_timer(delta)
-	update_auto_save(delta)
+	# Only process if game is initialized
+	if is_game_initialized:
+		update_quest_timers(delta)
+		update_recruitment_timer(delta)
+		update_auto_save(delta)
+
+# Game initialization state
+var is_game_initialized: bool = false
+
+func initialize_game():
+	"""Initialize the game - called when game is ready to start"""
+	print("GuildManager: initialize_game() called")
+	SignalBus.game_loading_started.emit()
+	
+	# Initialize all game systems
+	initialize_guild()
+	check_warehouse_unlock()
+	initialize_room_system()
+	
+	# Mark as initialized
+	is_game_initialized = true
+	
+	# Emit game ready signal
+	SignalBus.game_loading_completed.emit()
+	SignalBus.game_ready.emit()
+	print("GuildManager: Game initialization completed - game is ready!")
 	check_for_transformations()
 
 func initialize_guild():
@@ -99,11 +127,8 @@ func initialize_guild():
 	if available_recruits.is_empty():
 		generate_recruits()
 	
-	# Initialize inventory system (legacy)
-	initialize_inventory()
 	
-	# Initialize new inventory manager
-	initialize_new_inventory_system()
+	# Inventory system is now handled by InventoryManager singleton
 	
 	# Refresh quest cards to ensure they display correct data
 	refresh_quest_cards()
@@ -118,13 +143,18 @@ func generate_initial_quest_cards():
 		var quest_rank = Quest.QuestRank.F if i < 3 else Quest.QuestRank.D
 		var quest_type = Quest.QuestType.values()[randi() % (Quest.QuestType.values().size() - 1)]  # Exclude EMERGENCY
 		var quest = Quest.create_quest(quest_type, quest_rank)
-		available_quest_cards.append(create_quest_card(quest))
+		var quest_card = create_quest_card(quest)
+		
+		# Check for duplicates before adding
+		if not is_quest_card_duplicate(quest_card, available_quest_cards):
+			available_quest_cards.append(quest_card)
+		else:
+			print("GuildManager: Skipping duplicate quest in initial generation: ", quest.quest_name)
 
 
 func create_quest_card(quest: Quest):
 	"""Create a quest card for a given quest"""
 	print("GuildManager: create_quest_card() called for quest: ", quest.quest_name if quest else "null")
-	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
 	var quest_card = quest_card_scene.instantiate()
 	
 	# Check if the instantiated object is the correct type
@@ -327,7 +357,7 @@ func find_quest_card_by_quest(quest: Quest, card_array: Array):
 
 func update_quest_timers(_delta: float):
 	if current_room == "Main Hall":
-		var completed_this_frame = []
+		var completed_this_frame : Array[CompactQuestCard] = []
 		
 		for card in active_quest_cards:
 			if card == null : return
@@ -341,6 +371,12 @@ func update_quest_timers(_delta: float):
 func complete_quest(quest_card: CompactQuestCard):
 	print("AVAILABLE_QUESTS: Quest completed, moving from active to awaiting")
 	print("AVAILABLE_QUESTS: Quest name: ", quest_card.get_quest().quest_name)
+	
+	# Check if quest is already in awaiting array to prevent duplicates
+	if quest_card in awaiting_quest_cards:
+		print("GuildManager: Quest already in awaiting array, skipping duplicate")
+		return
+	
 	# Move quest card from active to awaiting
 	print("GuildManager: Moving quest from active to awaiting: ", quest_card.get_quest().quest_name)
 	print("GuildManager: Active quest cards before removal: ", active_quest_cards.size())
@@ -414,6 +450,9 @@ func accept_quest_results(quest_card: CompactQuestCard):
 	total_quests_completed += 1
 	quests_completed_by_rank[quest.quest_rank] = quests_completed_by_rank.get(quest.quest_rank, 0) + 1
 	
+	# Check for warehouse unlock after quest completion
+	check_warehouse_unlock()
+	
 	# Emit finalization signal for notifications
 	SignalBus.quest_finalized.emit(quest)
 	
@@ -423,6 +462,70 @@ func accept_quest_results(quest_card: CompactQuestCard):
 func remove_completed_quest(quest: Quest):
 	"""Remove a completed quest from the completed_quests list after rewards have been collected"""
 	completed_quests.erase(quest)
+
+func is_quest_card_duplicate(new_card: CompactQuestCard, existing_cards: Array[CompactQuestCard]) -> bool:
+	"""Check if a quest card is a duplicate of an existing one"""
+	if not new_card or not new_card.get_quest():
+		return false
+	
+	var new_quest = new_card.get_quest()
+	
+	for existing_card in existing_cards:
+		if is_instance_valid(existing_card) and existing_card.get_quest():
+			var existing_quest = existing_card.get_quest()
+			# Check if quests have the same unique ID
+			if new_quest.quest_id == existing_quest.quest_id and new_quest.quest_id != "":
+				return true
+	
+	return false
+
+func cleanup_duplicate_quests():
+	"""Remove duplicate quests from all quest arrays"""
+	print("GuildManager: Cleaning up duplicate quests...")
+	
+	# Clean up awaiting quest cards
+	var unique_awaiting : Array[CompactQuestCard]
+	var seen_quests = {}
+	for card in awaiting_quest_cards:
+		if is_instance_valid(card) and card.get_quest():
+			var quest = card.get_quest()
+			var quest_key = quest.quest_id if quest.quest_id != "" else quest.quest_name + "_" + str(quest.quest_type)
+			if not seen_quests.has(quest_key):
+				seen_quests[quest_key] = true
+				unique_awaiting.append(card)
+			else:
+				print("GuildManager: Removing duplicate awaiting quest: ", quest.quest_name)
+	awaiting_quest_cards = unique_awaiting
+	
+	# Clean up available quest cards
+	var unique_available : Array[CompactQuestCard] = []
+	seen_quests.clear()
+	for card in available_quest_cards:
+		if is_instance_valid(card) and card.get_quest():
+			var quest = card.get_quest()
+			var quest_key = quest.quest_id if quest.quest_id != "" else quest.quest_name + "_" + str(quest.quest_type)
+			if not seen_quests.has(quest_key):
+				seen_quests[quest_key] = true
+				unique_available.append(card)
+			else:
+				print("GuildManager: Removing duplicate available quest: ", quest.quest_name)
+	available_quest_cards = unique_available
+	
+	# Clean up active quest cards
+	var unique_active : Array[CompactQuestCard] = []
+	seen_quests.clear()
+	for card in active_quest_cards:
+		if is_instance_valid(card) and card.get_quest():
+			var quest = card.get_quest()
+			var quest_key = quest.quest_id if quest.quest_id != "" else quest.quest_name + "_" + str(quest.quest_type)
+			if not seen_quests.has(quest_key):
+				seen_quests[quest_key] = true
+				unique_active.append(card)
+			else:
+				print("GuildManager: Removing duplicate active quest: ", quest.quest_name)
+	active_quest_cards = unique_active
+	
+	print("GuildManager: Duplicate cleanup completed")
 
 func generate_replacement_quest_card(completed_rank: Quest.QuestRank):
 	print("GuildManager: generate_replacement_quest_card() called for rank: ", completed_rank)
@@ -445,11 +548,14 @@ func generate_replacement_quest_card(completed_rank: Quest.QuestRank):
 	if new_quest_card:
 		print("GuildManager: Quest card valid: ", is_instance_valid(new_quest_card))
 		print("GuildManager: Quest card has quest: ", new_quest_card.get_quest() != null)
-		print("GuildManager: Adding new quest card to available_quest_cards: ", new_quest_card.get_quest().quest_name)
-		available_quest_cards.append(new_quest_card)
-		print("GuildManager: Added quest card to available_quest_cards. Total available: ", available_quest_cards.size())
-		print("GuildManager: Available quest cards after append: ", available_quest_cards.size())
-		print("GuildManager: Available quest cards after generation: ", available_quest_cards.size())
+		
+		# Check for duplicates before adding
+		if not is_quest_card_duplicate(new_quest_card, available_quest_cards):
+			print("GuildManager: Adding new quest card to available_quest_cards: ", new_quest_card.get_quest().quest_name)
+			available_quest_cards.append(new_quest_card)
+			print("GuildManager: Added quest card to available_quest_cards. Total available: ", available_quest_cards.size())
+		else:
+			print("GuildManager: Skipping duplicate quest card: ", new_quest_card.get_quest().quest_name)
 	else:
 		print("GuildManager: Failed to create quest card!")
 
@@ -462,7 +568,7 @@ func update_recruitment_timer(delta: float):
 
 func rotate_recruits():
 	# Remove recruits who've stayed too long, add new ones
-	var recruits_to_remove = []
+	var recruits_to_remove : Array[Character] = []
 	for recruit in available_recruits:
 		if randf() < 0.3:  # 30% chance each recruit leaves
 			recruits_to_remove.append(recruit)
@@ -709,10 +815,14 @@ func delete_save_slot(slot: int):
 
 func load_game():
 	"""Load game from the current save slot"""
+	print("GuildManager: load_game() called")
 	load_game_from_slot(current_save_slot)
+	print("GuildManager: load_game() completed successfully")
 
 func load_game_from_slot(slot: int):
 	"""Load game from a specific save slot"""
+	print("GuildManager: load_game_from_slot() called for slot: ", slot)
+	
 	var all_saves = load_all_save_slots()
 	var slot_key = "slot_" + str(slot)
 	
@@ -721,6 +831,7 @@ func load_game_from_slot(slot: int):
 		return
 	
 	var save_data = all_saves[slot_key]
+	print("GuildManager: Save data loaded successfully for slot: ", slot)
 	
 	# Load resources
 	influence = save_data.get("influence", 100)
@@ -741,14 +852,23 @@ func load_game_from_slot(slot: int):
 	
 	print("GuildManager: Loading available quest cards...")
 	available_quest_cards = deserialize_quests(save_data.get("available_quest_cards", []))
+	print("GuildManager: Available quest cards loaded: ", available_quest_cards.size())
+	
 	print("GuildManager: Loading active quest cards...")
 	active_quest_cards = deserialize_quests(save_data.get("active_quest_cards", []))
+	print("GuildManager: Active quest cards loaded: ", active_quest_cards.size())
+	
 	print("GuildManager: Loading awaiting quest cards...")
 	awaiting_quest_cards = deserialize_quests(save_data.get("awaiting_quest_cards", []))
+	print("GuildManager: Awaiting quest cards loaded: ", awaiting_quest_cards.size())
+	
 	print("GuildManager: Loading completed quests...")
 	completed_quests = deserialize_quests(save_data.get("completed_quests", []))
+	print("GuildManager: Completed quests loaded: ", completed_quests.size())
+	
 	print("GuildManager: Loading emergency quests...")
 	emergency_quests = deserialize_quests(save_data.get("emergency_quests", []))
+	print("GuildManager: Emergency quests loaded: ", emergency_quests.size())
 	total_quests_completed = save_data.get("total_quests_completed", 0)
 	quests_completed_by_rank = save_data.get("quests_completed_by_rank", {})
 	transformations_unlocked = save_data.get("transformations_unlocked", ["none"])
@@ -760,8 +880,14 @@ func load_game_from_slot(slot: int):
 	# Handle offline progress for time-based systems
 	handle_offline_progress(save_data.get("timestamp", Time.get_unix_time_from_system()))
 	
+	# Update resources from inventory materials
+	update_resources_from_inventory()
+	
 	# Refresh quest cards to ensure they display correctly
 	refresh_quest_cards()
+	
+	# Clean up any duplicate quests that might exist in save files
+	cleanup_duplicate_quests()
 	
 	# Log final counts after loading
 	print("GuildManager: Final counts after loading:")
@@ -773,6 +899,10 @@ func load_game_from_slot(slot: int):
 	
 	# Emit signal to notify UI that game data has been loaded
 	game_data_loaded.emit()
+	
+	# Set the active room to Main Hall after loading is complete
+	print("GuildManager: Setting active room to Main Hall after loading")
+	enter_room("Main Hall")
 
 func handle_offline_progress(last_save_timestamp: float):
 	var current_time = Time.get_unix_time_from_system()
@@ -781,10 +911,10 @@ func handle_offline_progress(last_save_timestamp: float):
 	if offline_seconds <= 0:
 		return
 	
-	# Update quest progress for active quests
-	var completed_offline = []
-	if awaiting_quest_cards:
-		for card in awaiting_quest_cards:
+	# Update quest progress for active quests only
+	var completed_offline : Array[CompactQuestCard] = []
+	if active_quest_cards:
+		for card in active_quest_cards:
 			if is_instance_valid(card) and card.get_quest():
 				var quest = card.get_quest()
 				quest.start_time -= offline_seconds  # Simulate time passage
@@ -819,7 +949,6 @@ func serialize_quests(quests: Array[CompactQuestCard]) -> Array:
 	for quest in quests:
 		if is_instance_valid(quest) and quest.get_quest():
 			serialized.append(quest_to_dict(quest))
-			print("GuildManager: Serialized quest: ", quest.get_quest().quest_name)
 		else:
 			print("GuildManager: Skipping invalid quest card")
 	print("GuildManager: serialize_quests() returning ", serialized.size(), " serialized quests")
@@ -828,14 +957,21 @@ func serialize_quests(quests: Array[CompactQuestCard]) -> Array:
 func deserialize_quests(data: Array) -> Array[CompactQuestCard]:
 	print("GuildManager: deserialize_quests() called with ", data.size(), " quests")
 	var quest_cards : Array[CompactQuestCard] = []
+	
+	if not data or data.is_empty():
+		print("GuildManager: No quest data to deserialize")
+		return quest_cards
+	
 	for i in range(data.size()):
 		var quest_card_data = data[i]
 		print("GuildManager: Deserializing quest ", i, " of ", data.size())
 		var quest_card = dict_to_quest(quest_card_data)
 		if quest_card:
 			quest_cards.append(quest_card)
+			print("GuildManager: Successfully deserialized quest ", i)
 		else:
-			print("GuildManager: Failed to deserialize quest ", i)
+			print("GuildManager: Failed to deserialize quest ", i, " - quest_card is null")
+	
 	print("GuildManager: deserialize_quests() returning ", quest_cards.size(), " quest cards")
 	return quest_cards
 
@@ -934,15 +1070,17 @@ func dict_to_character(data: Dictionary) -> Character:
 
 func quest_to_dict(quest_card: CompactQuestCard) -> Dictionary:
 	var quest = quest_card.get_quest()
-	print("GuildManager: Serializing quest: " + quest.quest_name + " with assigned party size: " + str(quest.assigned_party.size()))
+	# Reduced verbosity - only print for debugging if needed
+	# print("GuildManager: Serializing quest: " + quest.quest_name + " with assigned party size: " + str(quest.assigned_party.size()))
 	
 	# Ensure individual_checks is properly formatted for JSON serialization
-	var individual_checks_serializable = []
+	var individual_checks_serializable : Array[bool] = []
 	for check in quest.individual_checks:
 		individual_checks_serializable.append(bool(check))
 	
 	return {
 		"quest_name": quest.quest_name,
+		"quest_id": quest.quest_id,
 		"quest_type": quest.quest_type,
 		"quest_rank": quest.quest_rank,
 		"description": quest.description,
@@ -1003,9 +1141,25 @@ func fix_character_references(serialized_characters: Array) -> Array[Character]:
 	return fixed_party
 
 func dict_to_quest(data: Dictionary) -> CompactQuestCard:
-	var quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
+	print("GuildManager: dict_to_quest() called with data: ", data.get("quest_name", "Unknown"))
+	
+	if not data or data.is_empty():
+		print("GuildManager: Empty or null data in dict_to_quest")
+		return null
+	
+	if not quest_card_scene:
+		print("GuildManager: Quest card scene not loaded")
+		return null
+	
 	var compact = quest_card_scene.instantiate()
+	if not compact:
+		print("GuildManager: Failed to instantiate CompactQuestCard")
+		return null
+	
 	var quest = Quest.new()
+	if not quest:
+		print("GuildManager: Failed to create Quest instance")
+		return null
 	
 	
 	# Initialize the individual_checks array properly with a default false value
@@ -1014,7 +1168,8 @@ func dict_to_quest(data: Dictionary) -> CompactQuestCard:
 	# Add error handling for missing or invalid data
 	if not data.has("quest_name"):
 		print("GuildManager: Error - Quest data missing quest_name")
-		return compact
+		return null
+	
 	var assigned_party_size = data.get("assigned_party", []).size()
 	print("GuildManager: Deserializing quest: " + data.get("quest_name", "") + " with assigned party size: " + str(assigned_party_size))
 	if assigned_party_size > 0:
@@ -1022,6 +1177,12 @@ func dict_to_quest(data: Dictionary) -> CompactQuestCard:
 		print("GuildManager: Quest status: " + str(data.get("active_quest_status", 0)))
 		print("GuildManager: Assigned party data: " + str(data.get("assigned_party", [])))
 	quest.quest_name = data.get("quest_name", "")
+	quest.quest_id = data.get("quest_id", "")
+	# Generate quest_id for backward compatibility if it doesn't exist
+	if quest.quest_id == "":
+		var timestamp = Time.get_unix_time_from_system()
+		var random_id = randi() % 10000
+		quest.quest_id = "quest_" + str(timestamp) + "_" + str(random_id)
 	quest.quest_type = data.get("quest_type", Quest.QuestType.GATHERING)
 	quest.quest_rank = data.get("quest_rank", Quest.QuestRank.F)
 	quest.description = data.get("description", "")
@@ -1139,7 +1300,38 @@ func make_characters_available():
 	"""Make all characters with 'waiting to progress' or 'waiting for results' status available again"""
 	for character in roster:
 		if character.character_status == Character.CharacterStatus.WAITING_TO_PROGRESS or character.character_status == Character.CharacterStatus.WAITING_FOR_RESULTS:
-			character.set_status(Character.CharacterStatus.AVAILABLE) 
+			character.set_status(Character.CharacterStatus.AVAILABLE)
+
+func update_resources_from_inventory():
+	"""Update guild resources based on materials in inventory"""
+	if not has_node("/root/InventoryManager"):
+		print("GuildManager: InventoryManager not found, skipping resource update")
+		return
+	
+	var inventory_manager = get_node("/root/InventoryManager")
+	if not inventory_manager.inventory:
+		print("GuildManager: Inventory not initialized, skipping resource update")
+		return
+	
+	var inventory = inventory_manager.inventory
+	var building_materials_count = 0
+	
+	# Count building materials from inventory
+	for item in inventory.items:
+		if item != null and item.item_type == "materials":
+			# Check if this is a building material by looking at tags or item_id
+			if item.has_tag("crafting") or item.item_id in ["iron_ore", "wood", "stone", "clay", "brick"]:
+				building_materials_count += item.quantity
+	
+	# Update building materials resource
+	building_materials = building_materials_count
+	
+	print("GuildManager: Updated building materials from inventory:")
+	print("  - Building materials: ", building_materials)
+
+func _on_inventory_changed():
+	"""Handle inventory changes to keep resources in sync"""
+	update_resources_from_inventory() 
 
 #region UI Business Logic
 # These methods handle UI-related business logic that was previously in guild_hall.gd
@@ -1215,7 +1407,7 @@ func calculate_cost(recruit_cost:Dictionary) -> Dictionary:
 
 func get_available_rooms() -> Array[Dictionary]:
 	"""Get list of available rooms based on guild state"""
-	var rooms = []
+	var rooms : Array[Dictionary] = []
 	
 	# Always available
 	rooms.append({
@@ -1301,7 +1493,7 @@ func get_ui_notification_data() -> Dictionary:
 
 func get_low_resources_warnings() -> Array[String]:
 	"""Get warnings for low resources"""
-	var warnings = []
+	var warnings : Array[String] = []
 	
 	if gold < 10:
 		warnings.append("Low gold: %d" % gold)
@@ -1314,7 +1506,7 @@ func get_low_resources_warnings() -> Array[String]:
 
 func get_injured_characters() -> Array[Character]:
 	"""Get list of injured characters"""
-	var injured = []
+	var injured : Array[Character] = []
 	for character in roster:
 		if character.is_injured():
 			injured.append(character)
@@ -1479,6 +1671,28 @@ func unlock_room(room_name: String):
 		room_unlocked.emit(room_name)
 		print("Room unlocked: ", room_name)
 
+func get_completed_quest_count() -> int:
+	"""Get the number of completed quests"""
+	return completed_quests.size()
+
+func check_warehouse_unlock():
+	"""Check if warehouse should be unlocked"""
+	if is_room_unlocked("Warehouse"):
+		return  # Already unlocked
+	
+	# Check unlock requirements
+	var guild_status = get_guild_status_summary()
+	var completed_quest_count = get_completed_quest_count()
+	
+	# Require 10 completed quests and 1000 gold
+	if completed_quest_count >= 10 and guild_status.resources.gold >= 1000:
+		unlock_room("Warehouse")
+		print("Warehouse unlocked! Requirements met: %d quests, %d gold" % [completed_quest_count, guild_status.resources.gold])
+		
+		# Show notification
+		# TODO: Add notification system integration
+		print("Warehouse unlocked! You can now store and manage your guild's items.")
+
 func is_room_unlocked(room_name: String) -> bool:
 	"""Check if a room is unlocked"""
 	return unlocked_rooms.has(room_name)
@@ -1521,6 +1735,8 @@ func create_room_instance(room_name: String):
 			room_scene_path = "res://scenes/rooms/RecruitmentRoom.tscn"
 		"Training Room":
 			room_scene_path = "res://scenes/rooms/TrainingRoom.tscn"
+		"Warehouse":
+			room_scene_path = "res://scenes/rooms/WarehouseRoom.tscn"
 		"Merchant's Guild":
 			room_scene_path = "res://scenes/rooms/MerchantsGuildRoom.tscn"
 		"Blacksmith's Guild":
@@ -1547,87 +1763,6 @@ func clear_room_cache():
 #endregion 
 
 #region Inventory System
-func initialize_inventory():
-	"""Initialize the inventory system"""
-	inventory = Inventory.new()
-	
-	# Create inventory UI instance
-	var inventory_scene = preload("res://ui/components/Inventory.tscn")
-	inventory_ui = inventory_scene.instantiate()
-	inventory_ui.inventory = inventory
-	inventory_ui.visible = false
-	
-	# Add some test items
-	add_test_items()
-
-func add_test_items():
-	"""Add some test items to the inventory"""
-	var health_potion = InventoryItem.new("health_potion", "Health Potion", "Restores 50 HP", "consumables")
-	health_potion.base_value = 25
-	health_potion.quantity = 3
-	inventory.add_item(health_potion)
-	
-	var mana_potion = InventoryItem.new("mana_potion", "Mana Potion", "Restores 30 MP", "consumables")
-	mana_potion.base_value = 20
-	mana_potion.quantity = 2
-	inventory.add_item(mana_potion)
-	
-	var antidote = InventoryItem.new("antidote", "Antidote", "Cures poison", "consumables")
-	antidote.base_value = 15
-	antidote.quantity = 1
-	inventory.add_item(antidote)
-	
-	var promotion_scroll = InventoryItem.new("promotion_scroll", "Promotion Scroll", "Required for rank-up quests", "quest-specific-items")
-	promotion_scroll.base_value = 50
-	promotion_scroll.quantity = 1
-	inventory.add_item(promotion_scroll)
-	
-	var iron_sword = InventoryItem.new("iron_sword", "Iron Sword", "A basic iron sword", "equipment")
-	iron_sword.base_value = 100
-	iron_sword.equipment_slot = "weapon"
-	iron_sword.stat_bonuses = {"attack_power": 10}
-	inventory.add_item(iron_sword)
-	
-	var leather_armor = InventoryItem.new("leather_armor", "Leather Armor", "Basic leather armor", "equipment")
-	leather_armor.base_value = 75
-	leather_armor.equipment_slot = "armor"
-	leather_armor.stat_bonuses = {"defense": 8}
-	inventory.add_item(leather_armor)
-
-func display_inventory(_current_room: String) -> Control:
-	"""Display inventory for a specific room. Returns the UI element."""
-	if inventory_ui:
-		return inventory_ui.display_inventory(_current_room)
-	return null
-
-func get_inventory() -> Inventory:
-	"""Get the inventory instance - DEPRECATED: Use InventoryManager.inventory instead"""
-	push_warning("GuildManager.get_inventory() is deprecated. Use InventoryManager.inventory instead.")
-	return inventory
-
-func get_inventory_ui() -> InventoryUI:
-	"""Get the inventory UI instance - DEPRECATED: Use InventoryManager.get_inventory_ui() instead"""
-	push_warning("GuildManager.get_inventory_ui() is deprecated. Use InventoryManager.get_inventory_ui() instead.")
-	return inventory_ui
-
-func add_item_to_inventory(item: InventoryItem) -> bool:
-	"""Add an item to the inventory - DEPRECATED: Use InventoryManager.add_item_direct() instead"""
-	push_warning("GuildManager.add_item_to_inventory() is deprecated. Use InventoryManager.add_item_direct() instead.")
-	if inventory:
-		return inventory.add_item(item)
-	return false
-
-func remove_item_from_inventory(slot_index: int, quantity: int = 1) -> InventoryItem:
-	"""Remove an item from the inventory - DEPRECATED: Use InventoryManager.remove_item() instead"""
-	push_warning("GuildManager.remove_item_from_inventory() is deprecated. Use InventoryManager.remove_item() instead.")
-	if inventory:
-		return inventory.remove_item(slot_index, quantity)
-	return null
-
-func initialize_new_inventory_system():
-	"""Initialize the new InventoryManager system"""
-	# The InventoryManager singleton will be auto-loaded
-	# It will handle its own signal connections in its _ready() function
-	print("GuildManager: InventoryManager system initialized")
-
+# Inventory system is now handled by the InventoryManager singleton
+# All inventory operations should go through InventoryManager
 #endregion 

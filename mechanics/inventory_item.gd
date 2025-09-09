@@ -359,11 +359,15 @@ func load_data(data: Dictionary):
 	is_droppable = data.get("is_droppable", true)
 	is_sellable = data.get("is_sellable", true)
 	vendor_price_multiplier = data.get("vendor_price_multiplier", 0.5)
-	crafting_materials = data.get("crafting_materials", [])
+	var temp_crafting_materials = data.get("crafting_materials", [])
+	for material in temp_crafting_materials:
+		crafting_materials.append(material)
 	enhancement_level = data.get("enhancement_level", 0)
 	max_enhancement_level = data.get("max_enhancement_level", 10)
 	enhancement_bonuses = data.get("enhancement_bonuses", {})
-	tags = data.get("tags", [])
+	var temp_tags = data.get("tags", [])
+	for tag in temp_tags:
+		tags.append(tag)
 	value = data.get("value", 0)
 	base_charges = data.get("base_charges", 1)
 	current_charges = data.get("current_charges", 1)

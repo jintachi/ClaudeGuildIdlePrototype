@@ -195,24 +195,7 @@ func set_button_flat(button_name: String, is_flat: bool = true):
 			if town_map_button:
 				town_map_button.flat = is_flat
 
-func hide_button(button_name: String):
-	"""Hide a specific button by name (legacy function - use set_button_flat instead)"""
-	match button_name.to_lower():
-		"main_hall", "mainhall":
-			if main_hall_button:
-				main_hall_button.visible = false
-		"roster":
-			if roster_button:
-				roster_button.visible = false
-		"quests":
-			if quests_button:
-				quests_button.visible = false
-		"recruitment":
-			if recruitment_button:
-				recruitment_button.visible = false
-		"town_map", "townmap":
-			if town_map_button:
-				town_map_button.visible = false
+# hide_button function removed - use set_button_flat instead for better control
 
 func get_button_count() -> int:
 	"""Get the number of visible buttons"""

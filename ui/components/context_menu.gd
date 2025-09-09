@@ -209,11 +209,11 @@ static func create_item_context_menu(item: InventoryItem) -> Array[Dictionary]:
 			"data": {"item": item}
 		})
 	
-	# Equip item (for equipment)
+	# Equip item (for equipment) - show "Equip To..." option
 	if item.item_type == "equipment":
 		items.append({
-			"id": "equip",
-			"text": "Equip Item",
+			"id": "equip_to",
+			"text": "Equip To...",
 			"data": {"item": item}
 		})
 	
@@ -230,6 +230,14 @@ static func create_item_context_menu(item: InventoryItem) -> Array[Dictionary]:
 		items.append({
 			"id": "drop",
 			"text": "Drop Item",
+			"data": {"item": item}
+		})
+	
+	# View details (for quest items and valuables)
+	if item.item_type in ["quest_items", "valuables"]:
+		items.append({
+			"id": "view_details",
+			"text": "View Details",
 			"data": {"item": item}
 		})
 	
