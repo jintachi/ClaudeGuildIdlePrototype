@@ -25,7 +25,13 @@ extends Control
 # Current state
 var current_scale_factor: float = 1.0
 
+# Cached resources
+var responsive_layout_script: GDScript
+
 func _ready():
+	# Load cached resources
+	responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	
 	# Setup viewport scaling first
 	setup_viewport_scaling()
 	
@@ -38,6 +44,10 @@ func _ready():
 	# Connect to game_ready signal to initialize game-dependent systems
 	if has_node("/root/SignalBus"):
 		get_node("/root/SignalBus").game_ready.connect(_on_game_ready)
+	
+	# Emit game_ready signal now that Guild Hall is loaded and connected
+	if GuildManager:
+		GuildManager.emit_game_ready()
 
 func _on_game_ready():
 	"""Called when the game is fully initialized and ready"""
@@ -73,8 +83,7 @@ func setup_viewport_scaling():
 
 func apply_responsive_layout():
 	"""Apply responsive layout to the guild hall"""
-	# Load ResponsiveLayout class if available
-	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
+	# Use cached ResponsiveLayout class if available
 	if responsive_layout_script:
 		# Apply to the main guild hall
 		responsive_layout_script.convert_scene_to_responsive(self, responsive_layout_script.ConversionMode.SMART_GRID)
@@ -94,7 +103,6 @@ func apply_responsive_layout_to_room(room_instance: Node):
 	if not room_instance or not is_instance_valid(room_instance):
 		return
 		
-	var responsive_layout_script = load("res://ui/systems/ResponsiveLayout.gd")
 	if responsive_layout_script and room_instance is Control:
 		responsive_layout_script.convert_scene_to_responsive(room_instance, responsive_layout_script.ConversionMode.SMART_GRID)
 

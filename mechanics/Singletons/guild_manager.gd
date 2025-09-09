@@ -23,8 +23,6 @@ signal quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_sta
 @export var weapons: int = 0
 @export var food: int = 20
 
-# Guild State
-var cur_scene : StringName # holder for the scene name
 @export var roster: Array[Character] = []
 @export var max_roster_size: int = 5
 @export var available_recruits: Array[Character] = []
@@ -35,10 +33,6 @@ var cur_scene : StringName # holder for the scene name
 @export var completed_quests: Array[CompactQuestCard] = []
 @export var emergency_quests: Array[CompactQuestCard] = []
 
-# Quest Card Management
-var available_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
-var active_quest_cards: Array[CompactQuestCard]    # Array of CompactQuestCard instances
-var awaiting_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
 
 # Progression Tracking
 @export var total_quests_completed: int = 0
@@ -56,8 +50,15 @@ var awaiting_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard i
 @export var max_available_recruits: int = 3
 @export var recruit_stay_duration: float = 600.0  # 10 minutes
 
+# Guild State
+var cur_scene : StringName # holder for the scene name
+# Quest Card Management
+var available_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
+var active_quest_cards: Array[CompactQuestCard]    # Array of CompactQuestCard instances
+var awaiting_quest_cards: Array[CompactQuestCard]  # Array of CompactQuestCard instances
+
 # Room Management System
-var current_room: String = "Adventurer's Guild"
+var current_room: String = "Main Hall"
 var previous_room: String = ""
 var room_history: Array[String] = []
 var max_history_size: int = 10
@@ -66,25 +67,11 @@ var unlocked_rooms: Array[String] = ["Main Hall", "Roster", "Quests", "Recruitme
 var cached_room_instances: Dictionary = {}  # Cache room instances to preserve state
 
 # Cached resources
-var quest_card_scene: PackedScene
+var quest_card_scene: PackedScene = load("res://ui/components/CompactQuestCard.tscn")
 
-# Inventory System - Now handled by InventoryManager singleton
+# Game initialization state
+var is_game_initialized: bool = false
 
-func _ready():
-	print("GuildManager: _ready() called")
-	# Load cached resources
-	quest_card_scene = load("res://ui/components/CompactQuestCard.tscn")
-	
-	# Connect to inventory changes to keep resources in sync
-	if has_node("/root/InventoryManager"):
-		var inventory_manager = get_node("/root/InventoryManager")
-		inventory_manager.inventory_changed.connect(_on_inventory_changed)
-	
-	# Don't initialize anything yet - wait for game_ready signal
-	# Only initialize quest completion tracking structure
-	for rank in Quest.QuestRank.values():
-		quests_completed_by_rank[rank] = 0
-	print("GuildManager: _ready() completed - waiting for game initialization")
 
 func _process(delta):
 	# Only process if game is initialized
@@ -93,27 +80,37 @@ func _process(delta):
 		update_recruitment_timer(delta)
 		update_auto_save(delta)
 
-# Game initialization state
-var is_game_initialized: bool = false
 
 func initialize_game():
 	"""Initialize the game - called when game is ready to start"""
 	print("GuildManager: initialize_game() called")
+	
+	for rank in Quest.QuestRank.values():
+		quests_completed_by_rank[rank] = 0
+	
+	# Connect to inventory changes to keep resources in sync
+	if has_node("/root/InventoryManager"):
+		var inventory_manager = get_node("/root/InventoryManager")
+		inventory_manager.inventory_changed.connect(_on_inventory_changed)
+
 	SignalBus.game_loading_started.emit()
 	
+
 	# Initialize all game systems
 	initialize_guild()
-	check_warehouse_unlock()
+	
 	initialize_room_system()
 	
 	# Mark as initialized
 	is_game_initialized = true
 	
-	# Emit game ready signal
-	SignalBus.game_loading_completed.emit()
+	print("GuildManager: Game initialization completed - ready for scene transition")
+	
+
+func emit_game_ready():
+	"""Emit the game_ready signal after the Guild Hall scene is loaded"""
 	SignalBus.game_ready.emit()
-	print("GuildManager: Game initialization completed - game is ready!")
-	check_for_transformations()
+	print("GuildManager: Game ready signal emitted!")
 
 func initialize_guild():
 	if roster.is_empty():
@@ -330,11 +327,7 @@ func start_quest(quest_card: CompactQuestCard, party: Array[Character]) -> Dicti
 		
 		print("AVAILABLE_QUESTS: Available quest cards after removal: ", available_quest_cards.size())
 		
-		# Generate a replacement quest to maintain quest availability
-		print("AVAILABLE_QUESTS: Generating replacement quest")
-		generate_replacement_quest_card(quest_card.get_quest().quest_rank)
-		
-		print("AVAILABLE_QUESTS: Available quest cards after replacement generation: ", available_quest_cards.size())
+		# No longer generating replacement quests automatically
 		
 		quest_card.set_active_party_roster(quest_card.get_quest())
 		print("AVAILABLE_QUESTS: Available quest cards before save_game(): ", available_quest_cards.size())
@@ -392,9 +385,7 @@ func complete_quest(quest_card: CompactQuestCard):
 	if quest_card.get_parent():
 		quest_card.get_parent().remove_child(quest_card)
 	
-	# Generate replacement quest BEFORE saving
-	print("AVAILABLE_QUESTS: Generating replacement quest when quest completes")
-	generate_replacement_quest_card(quest_card.get_quest().quest_rank)
+	# No longer generating replacement quests automatically
 	
 	# Emit signal for awaiting completion
 	quest_completed.emit(quest_card.get_quest())
@@ -429,8 +420,12 @@ func accept_quest_results(quest_card: CompactQuestCard):
 	print("AVAILABLE_QUESTS: Calling quest.accept_quest_results()")
 	quest.accept_quest_results()
 	
-	# Emit signal (replacement quest already generated in complete_quest)
+	# Emit signal for quest completion
 	quest_card_moved.emit(null, "awaiting", "completed")
+	
+	# Generate a replacement quest when accepting results
+	print("AVAILABLE_QUESTS: Generating replacement quest when accepting results")
+	generate_replacement_quest_card(quest.quest_rank)
 	
 	# Add guild rewards (20% of gold goes to guild)
 	var guild_gold = int(quest.gold_reward * 0.2)
@@ -449,12 +444,13 @@ func accept_quest_results(quest_card: CompactQuestCard):
 	# Update progression tracking
 	total_quests_completed += 1
 	quests_completed_by_rank[quest.quest_rank] = quests_completed_by_rank.get(quest.quest_rank, 0) + 1
-	
-	# Check for warehouse unlock after quest completion
-	check_warehouse_unlock()
+
 	
 	# Emit finalization signal for notifications
 	SignalBus.quest_finalized.emit(quest)
+	
+	# Emit signal to trigger UI updates (resources changed)
+	quest_completed.emit(quest)
 	
 	# Save game after accepting results
 	save_game()
@@ -1674,24 +1670,6 @@ func unlock_room(room_name: String):
 func get_completed_quest_count() -> int:
 	"""Get the number of completed quests"""
 	return completed_quests.size()
-
-func check_warehouse_unlock():
-	"""Check if warehouse should be unlocked"""
-	if is_room_unlocked("Warehouse"):
-		return  # Already unlocked
-	
-	# Check unlock requirements
-	var guild_status = get_guild_status_summary()
-	var completed_quest_count = get_completed_quest_count()
-	
-	# Require 10 completed quests and 1000 gold
-	if completed_quest_count >= 10 and guild_status.resources.gold >= 1000:
-		unlock_room("Warehouse")
-		print("Warehouse unlocked! Requirements met: %d quests, %d gold" % [completed_quest_count, guild_status.resources.gold])
-		
-		# Show notification
-		# TODO: Add notification system integration
-		print("Warehouse unlocked! You can now store and manage your guild's items.")
 
 func is_room_unlocked(room_name: String) -> bool:
 	"""Check if a room is unlocked"""

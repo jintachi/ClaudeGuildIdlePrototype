@@ -1,5 +1,5 @@
-extends Button
 class_name CompactQuestCard
+extends Button
 
 @export var rank_label: Label
 @export var title_label: Label
