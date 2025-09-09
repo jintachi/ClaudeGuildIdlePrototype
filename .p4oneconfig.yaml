@@ -1,4 +1,0 @@
-ignore:
-    items:
-        - .p4config
-    pattern_matching: p4oneignore

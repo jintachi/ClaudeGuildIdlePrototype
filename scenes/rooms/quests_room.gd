@@ -229,11 +229,11 @@ func update_quests_display():
 	
 	
 	for i in range(local_quest_cards.size()):
-		var quest_card = local_quest_cards[i]
-		print("Step 5h: Processing quest card ", i, ": ", quest_card)
-		if quest_card:
-			print("Step 5i: Adding quest card to UI: ", quest_card)
-			available_quests_list.add_child(quest_card)
+		var internal_quest_card = local_quest_cards[i]
+		print("Step 5h: Processing quest card ", i, ": ", internal_quest_card)
+		if internal_quest_card:
+			print("Step 5i: Adding quest card to UI: ", internal_quest_card)
+			available_quests_list.add_child(internal_quest_card)
 			print("Step 5j: Added quest card to UI. available_quests_list now has ", available_quests_list.get_child_count(), " children")
 		else:
 			print("Step 5k: Quest card is null, skipping")
@@ -526,8 +526,12 @@ func update_party_selection_display():
 	if not current_selected_quest_card:
 		return
 		
-	# Update the grid display and stats comparison
-	update_available_characters_display(local_available_characters)
+	# Only recreate panels if the grid is empty (first time or after clearing)
+	if guild_roster_grid.get_child_count() == 0:
+		update_available_characters_display(local_available_characters)
+	else:
+		# Just update the visual states of existing panels
+		update_party_selection_panel_states()
 	
 	update_stats_comparison_table()
 	update_start_quest_button_state()
@@ -563,16 +567,16 @@ func update_quest_success_chances():
 	# Update success chances for all quest cards
 	for child in available_quests_list.get_children():
 		if child.has_method("set_success_rate"):
-			var _quest_card = child
-			var quest = _quest_card.get_quest()
+			var internal_quest_card = child
+			var quest = internal_quest_card.get_quest()
 			
 			if quest == current_selected_quest_card.get_quest():
 				# Calculate success chance for selected quest with current party
 				var success_chance = quest.get_suggested_success_chance(current_party)
-				_quest_card.set_success_rate(success_chance)
+				internal_quest_card.set_success_rate(success_chance)
 			else:
 				# Hide success rate for unselected quests
-				_quest_card.set_success_rate(-1)
+				internal_quest_card.set_success_rate(-1)
 
 func get_quest_stat_requirements() -> Dictionary:
 	"""Extract stat requirements from the current quest"""
@@ -628,8 +632,22 @@ func get_current_party_total_stats() -> Dictionary:
 	var total_stats = {}
 	
 	# Initialize all stats to 0
-	var stat_keys = ["health", "defense", "mana", "spell_power", "attack_power", "movement_speed", "luck",
-					 "gathering", "hunting_trapping", "diplomacy", "caravan_guarding", "escorting", "stealth", "odd_jobs"]
+	var stat_keys = [
+		"health",
+		"defense",
+		"mana",
+		"spell_power",
+		"attack_power",
+		"movement_speed",
+		"luck",
+		"gathering",
+		"hunting_trapping",
+		"diplomacy",
+		"caravan_guarding",
+		"escorting",
+		"stealth",
+		"odd_jobs"
+		]
 	
 	for stat in stat_keys:
 		total_stats[stat] = 0
@@ -749,15 +767,13 @@ func update_party_selection_panel_states():
 func update_party_selection_panel_state(panel: Control, character: Character):
 	"""Update the visual state of a party selection panel"""
 	var is_in_party = current_party.has(character)
-	var button = panel.get_child(0) if panel.get_child_count() > 0 else null
+	
 	
 	# Get character status and determine if character is available
 	var character_status = get_character_status(character)
-	var is_available = character_status == "available"
 	
-	# Update button disabled state based on availability
-	if button and button is Button:
-		button.disabled = not is_available
+	# Note: UIUtilities character panels don't have buttons, they use gui_input for interaction
+	# The panel itself handles the click interaction through the gui_input signal
 	
 	# Update panel appearance based on selection state and status
 	if is_in_party:

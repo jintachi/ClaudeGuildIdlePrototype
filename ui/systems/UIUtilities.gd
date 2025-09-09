@@ -5,11 +5,15 @@ extends RefCounted
 static func create_character_panel(character: Character, context: String = "default") -> Panel:
 	"""Create a character panel for display with right-click support"""
 	var panel = Panel.new()
-	panel.custom_minimum_size = Vector2(200, 120)
+	panel.custom_minimum_size = Vector2(180, 120)
 	
 	# Store character reference and context for right-click handling
 	panel.set_meta("character", character)
 	panel.set_meta("context", context)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
 	
 	# Enable right-click detection
 	panel.gui_input.connect(_on_character_panel_gui_input.bind(panel))
@@ -17,41 +21,62 @@ static func create_character_panel(character: Character, context: String = "defa
 	var hbox = HBoxContainer.new()
 	panel.add_child(hbox)
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hbox.add_theme_constant_override("separation", 8)
+	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Add padding to prevent content from touching panel edges
+	hbox.add_theme_constant_override("separation", 6)
+	hbox.add_theme_constant_override("margin_left", 4)
+	hbox.add_theme_constant_override("margin_right", 4)
+	hbox.add_theme_constant_override("margin_top", 4)
+	hbox.add_theme_constant_override("margin_bottom", 4)
+	
 	
 	# Character portrait/icon
 	var portrait_texture = character.get_portrait_texture()
 	if portrait_texture:
 		var portrait = TextureRect.new()
 		portrait.texture = portrait_texture
-		portrait.custom_minimum_size = Vector2(50, 50)
+		portrait.custom_minimum_size = Vector2(100, 100) # Constrain maximum size
 		portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		portrait.clip_contents = true  # Prevent overflow
 		hbox.add_child(portrait)
+		
 	
 	# Character info container
 	var vbox = VBoxContainer.new()
 	hbox.add_child(vbox)
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 2)
+	
 	
 	# Character name
 	var name_label = Label.new()
 	name_label.text = character.character_name
-	name_label.add_theme_font_size_override("font_size", 14)
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.clip_contents = true
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(name_label)
 	
 	# Character class and quality
 	var details_label = Label.new()
 	var quality_name = "★".repeat(character.quality)  # Convert quality enum to star display
 	details_label.text = "%s - %s" % [character.get_class_name(), quality_name]
-	details_label.add_theme_font_size_override("font_size", 12)
+	details_label.add_theme_font_size_override("font_size", 10)
+	details_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details_label.clip_contents = true
+	details_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(details_label)
 	
 	# Character stats
 	var stats_label = Label.new()
 	stats_label.text = "ATK: %d | DEF: %d | SPD: %d" % [character.attack_power, character.defense, character.movement_speed]
-	stats_label.add_theme_font_size_override("font_size", 10)
+	stats_label.add_theme_font_size_override("font_size", 9)
+	stats_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stats_label.clip_contents = true
+	stats_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(stats_label)
 	
 	return panel

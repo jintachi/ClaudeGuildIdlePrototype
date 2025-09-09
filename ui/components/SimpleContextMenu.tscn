@@ -5,3 +5,4 @@
 [node name="SimpleContextMenu" type="VBoxContainer"]
 custom_minimum_size = Vector2(150, 50)
 script = ExtResource("1_0x8k2")
+

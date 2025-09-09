@@ -6,13 +6,14 @@ signal menu_item_selected(item_id: String, data: Dictionary)
 signal menu_closed()
 #endregion
 
-#region UI References
-@onready var menu_items_container: VBoxContainer = $VBoxContainer/MenuItems
-#endregion
 
 #region Menu Data
 var menu_items: Array[Dictionary] = []
 var menu_visible: bool = false
+#endregion
+
+#region UI References
+@onready var menu_items_container: VBoxContainer = $VBoxContainer/MenuItems
 #endregion
 
 func _ready():
@@ -50,17 +51,17 @@ func show_menu(items: Array[Dictionary], menu_position: Vector2):
 	menu_items = items
 	clear_menu_items()
 	create_menu_items()
-	
+
 	# Position the menu
 	global_position = menu_position
-	
+
 	# Ensure menu stays on screen
 	clamp_to_screen()
-	
+
 	# Show the menu
 	visible = true
 	menu_visible = true
-	
+
 	print("ContextMenu is now visible: ", visible)
 
 func hide_menu():
@@ -95,7 +96,7 @@ func create_menu_button(item_data: Dictionary) -> Button:
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Ensure buttons fill the container width
 	print("Created button: ", button.text, " with mouse_filter: ", button.mouse_filter)
-	
+
 	# Set button style
 	var style_box = StyleBoxFlat.new()
 	style_box.bg_color = Color(0.2, 0.2, 0.25, 0.9)
@@ -108,7 +109,7 @@ func create_menu_button(item_data: Dictionary) -> Button:
 	style_box.corner_radius_top_right = 2
 	style_box.corner_radius_bottom_right = 2
 	style_box.corner_radius_bottom_left = 2
-	
+
 	button.add_theme_stylebox_override("normal", style_box)
 	
 	# Hover style
