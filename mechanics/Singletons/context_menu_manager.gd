@@ -1,5 +1,14 @@
 extends Node
 
+#region Signals
+signal menu_shown()
+signal menu_hidden()
+#endregion
+
+#region Preloads
+const AdventurerInspectionPanel = preload("res://ui/components/AdventurerInspectionPanel.tscn")
+#endregion
+
 #region Singleton Setup
 static var instance: Node
 #endregion
@@ -7,11 +16,6 @@ static var instance: Node
 #region Context Menu System
 var context_menu_scene: PackedScene
 var current_menu: Control = null  # Changed from ContextMenu to Control since ContextMenu class doesn't exist yet
-#endregion
-
-#region Signals
-signal menu_shown()
-signal menu_hidden()
 #endregion
 
 func _ready():
@@ -94,6 +98,11 @@ func show_context_menu(items: Array[Dictionary], position: Vector2):
 	"""Show a context menu with the given items at the specified position"""
 	print("ContextMenuManager.show_context_menu called with ", items.size(), " items at position: ", position)
 	
+	# Check if we have any items
+	if items.is_empty():
+		print("ERROR: No items provided to context menu")
+		return
+	
 	# Hide any existing menu first
 	if current_menu:
 		print("Hiding existing context menu before creating new one...")
@@ -101,12 +110,23 @@ func show_context_menu(items: Array[Dictionary], position: Vector2):
 	
 	# Create context menu programmatically
 	print("Creating context menu programmatically...")
-	current_menu = create_context_menu_programmatically(items[0].get("data", {}).get("character"), position)
+	var character = items[0].get("data", {}).get("character")
+	if not character:
+		print("ERROR: No character found in first menu item")
+		return
+		
+	current_menu = create_context_menu_programmatically(character, position)
 	print("Context menu created: ", current_menu != null)
 	
 	if current_menu:
-		# Add to the scene tree directly
-		get_tree().current_scene.add_child(current_menu)
+		# Add to the UI layer instead of directly to scene
+		# Since we're creating the menu programmatically, we need to add it directly to the UI layer
+		var ui_layer = UILayerManager.get_layer()
+		if ui_layer:
+			ui_layer.add_child(current_menu)
+		else:
+			# Fallback to scene tree if UI layer not available
+			get_tree().current_scene.add_child(current_menu)
 		menu_shown.emit()
 		print("Context menu shown and signal emitted")
 	else:
@@ -116,13 +136,8 @@ func hide_context_menu():
 	"""Hide the current context menu"""
 	if current_menu:
 		print("Hiding simple context menu...")
-		# Disconnect signals first to prevent issues
-		if current_menu.is_connected("menu_item_selected", _on_menu_item_selected):
-			current_menu.menu_item_selected.disconnect(_on_menu_item_selected)
-		if current_menu.is_connected("menu_closed", _on_menu_closed):
-			current_menu.menu_closed.disconnect(_on_menu_closed)
-		
-		# Remove from scene tree and cleanup
+		# Remove from UI layer and cleanup
+		UILayerManager.remove_from_layer(current_menu)
 		current_menu.queue_free()
 		current_menu = null
 		menu_hidden.emit()
@@ -263,8 +278,7 @@ func _handle_stats_menu(data: Dictionary):
 	if character:
 		print("Showing stats for: ", character.character_name)
 		# Show the character inspection panel
-		var panel_scene = preload("res://ui/components/AdventurerInspectionPanel.tscn")
-		var panel = UILayerManager.add_modal_to_layer(panel_scene)
+		var panel = UILayerManager.add_modal_to_layer(AdventurerInspectionPanel)
 		if panel:
 			# Set the character and show the panel
 			panel.inspect_character(character)
