@@ -102,18 +102,18 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.3
 
-[node name="PersonnelReportLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
+[node name="GuildStatsLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
 layout_mode = 2
-text = "Personnel Report"
+text = "Guild Statistics"
 horizontal_alignment = 1
 
 [node name="GuildStatsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="GuildStatsLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel"]
+[node name="PersonnelReportLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel"]
 layout_mode = 2
-text = "Guild Statistics"
+text = "Personnel Report"
 horizontal_alignment = 1
 
 [node name="StatsContainer" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel"]
@@ -126,6 +126,11 @@ layout_mode = 2
 [node name="AvailableIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AvailableAdventurers"]
 layout_mode = 2
 text = "⚔️"
+horizontal_alignment = 1
+
+[node name="AvailableName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AvailableAdventurers"]
+layout_mode = 2
+text = "Available Members:"
 horizontal_alignment = 1
 
 [node name="AvailableCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AvailableAdventurers"]
@@ -141,6 +146,11 @@ layout_mode = 2
 text = "🏃"
 horizontal_alignment = 1
 
+[node name="ActiveName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/ActiveAdventurers"]
+layout_mode = 2
+text = "Active Members:"
+horizontal_alignment = 1
+
 [node name="ActiveCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/ActiveAdventurers"]
 layout_mode = 2
 text = "0"
@@ -152,6 +162,11 @@ layout_mode = 2
 [node name="AwaitingCompletionIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingCompletionAdventurers"]
 layout_mode = 2
 text = "✅"
+horizontal_alignment = 1
+
+[node name="AwaitingCompletionName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingCompletionAdventurers"]
+layout_mode = 2
+text = "Awaiting Completion:"
 horizontal_alignment = 1
 
 [node name="AwaitingCompletionCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingCompletionAdventurers"]
@@ -167,6 +182,11 @@ layout_mode = 2
 text = "🏅"
 horizontal_alignment = 1
 
+[node name="AwaitingPromotionName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingPromotionAdventurers"]
+layout_mode = 2
+text = "Awaiting Promotion:"
+horizontal_alignment = 1
+
 [node name="AwaitingPromotionCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingPromotionAdventurers"]
 layout_mode = 2
 text = "0"
@@ -180,6 +200,11 @@ layout_mode = 2
 text = "😴"
 horizontal_alignment = 1
 
+[node name="IdleName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/IdleAdventurers"]
+layout_mode = 2
+text = "Idle Members:"
+horizontal_alignment = 1
+
 [node name="IdleCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/IdleAdventurers"]
 layout_mode = 2
 text = "0"
@@ -191,6 +216,11 @@ layout_mode = 2
 [node name="InjuredIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/InjuredAdventurers"]
 layout_mode = 2
 text = "🩹"
+horizontal_alignment = 1
+
+[node name="InjuredName" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/InjuredAdventurers"]
+layout_mode = 2
+text = "Injured Members:"
 horizontal_alignment = 1
 
 [node name="InjuredCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/InjuredAdventurers"]

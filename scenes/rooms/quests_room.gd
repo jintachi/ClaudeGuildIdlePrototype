@@ -92,6 +92,7 @@ func setup_room_specific_ui():
 	# Connect to guild manager signals for quest updates
 	if GuildManager:
 		GuildManager.quest_completed.connect(_on_quest_completed)
+		GuildManager.character_recruited.connect(_on_character_recruited)
 		SignalBus.quest_card_selected.connect(_on_quest_card_selected)
 	
 	# Connect to character status change signals
@@ -448,6 +449,14 @@ func _on_available_quest_cards_received(quest_cards: Array):
 
 func _on_available_characters_received(characters: Array[Character]):
 	"""Handle available characters data received from data access layer"""
+	print("QuestsRoom: Received ", characters.size(), " available characters")
+	for i in range(characters.size()):
+		var char = characters[i]
+		if char:
+			print("  Character ", i, ": ", char.character_name, " (", char.get_class_name(), ")")
+		else:
+			print("  Character ", i, ": null")
+	
 	local_available_characters = characters
 	update_party_selection_display()
 
@@ -527,12 +536,9 @@ func update_party_selection_display():
 	if not current_selected_quest_card:
 		return
 		
-	# Only recreate panels if the grid is empty (first time or after clearing)
-	if guild_roster_grid.get_child_count() == 0:
-		update_available_characters_display(local_available_characters)
-	else:
-		# Just update the visual states of existing panels
-		update_party_selection_panel_states()
+	# Always refresh the character panels to ensure all available characters are shown
+	# This handles cases where new characters are recruited or character statuses change
+	update_available_characters_display(local_available_characters)
 	
 	update_stats_comparison_table()
 	update_start_quest_button_state()
@@ -712,22 +718,32 @@ func get_current_party_total_stats() -> Dictionary:
 
 func update_available_characters_display(available_chars: Array):
 	"""Update the available characters display"""
+	print("QuestsRoom: update_available_characters_display called with ", available_chars.size(), " characters")
+	
 	# Clear existing panels using UIUtilities
 	UIUtilities.clear_container(guild_roster_grid)
+	print("QuestsRoom: Cleared guild_roster_grid, now has ", guild_roster_grid.get_child_count(), " children")
 	
 	# Create new panels for each available character using UIUtilities
-	for character in available_chars:
-		var char_panel = UIUtilities.create_character_panel(character, "party_selection")
-		guild_roster_grid.add_child(char_panel)
-		
-		# Connect click handler to the panel (left-click for party selection)
-		char_panel.gui_input.connect(func(event): _on_character_panel_input(event, character))
-		
-		# Store character reference
-		char_panel.set_meta("character", character)
-		
-		# Update visual state
-		update_party_selection_panel_state(char_panel, character)
+	for i in range(available_chars.size()):
+		var character = available_chars[i]
+		if character:
+			print("QuestsRoom: Creating panel for character ", i, ": ", character.character_name)
+			var char_panel = UIUtilities.create_character_panel(character, "party_selection")
+			guild_roster_grid.add_child(char_panel)
+			
+			# Connect click handler to the panel (left-click for party selection)
+			char_panel.gui_input.connect(func(event): _on_character_panel_input(event, character))
+			
+			# Store character reference
+			char_panel.set_meta("character", character)
+			
+			# Update visual state
+			update_party_selection_panel_state(char_panel, character)
+		else:
+			print("QuestsRoom: Character ", i, " is null, skipping")
+	
+	print("QuestsRoom: Finished creating panels, guild_roster_grid now has ", guild_roster_grid.get_child_count(), " children")
 
 func update_start_quest_button_state():
 	"""Update the start quest button state based on current party and quest"""
@@ -833,6 +849,12 @@ func _on_quest_completed(quest: Quest):
 	# SignalBus.request_available_quest_cards.emit()
 	# SignalBus.request_available_characters.emit()
 
+func _on_character_recruited(_character: Character):
+	"""Handle when a new character is recruited"""
+	print("QuestsRoom: Character recruited: ", _character.character_name)
+	# Request fresh character data to update the member selection panel
+	SignalBus.request_available_characters.emit()
+
 func _on_start_quest_button_pressed():
 	"""Handle start quest button press"""
 	print("AVAILABLE_QUESTS: Quest Started button pressed")
@@ -866,8 +888,7 @@ func _on_quest_inventory_button_pressed():
 	
 	# Create quest inventory panel if it doesn't exist
 	if not quest_inventory_panel:
-		var quest_inventory_scene = preload("res://ui/components/QuestInventoryPanel.tscn")
-		quest_inventory_panel = quest_inventory_scene.instantiate()
+		quest_inventory_panel = load("res://ui/components/QuestInventoryPanel.tscn").instantiate()
 		quest_inventory_panel.items_confirmed.connect(_on_quest_items_confirmed)
 		quest_inventory_panel.panel_closed.connect(_on_quest_inventory_panel_closed)
 		add_child(quest_inventory_panel)

@@ -37,6 +37,14 @@ var awaiting_promotion_count_label: Label
 var idle_adventurers_count_label: Label
 var injured_adventurers_count_label: Label
 
+# Guild stats name labels
+var available_adventurers_name_label: Label
+var active_adventurers_name_label: Label
+var awaiting_completion_name_label: Label
+var awaiting_promotion_name_label: Label
+var idle_adventurers_name_label: Label
+var injured_adventurers_name_label: Label
+
 # Stats update tracking
 var last_stats_update_time: float = 0.0
 var stats_update_interval: float = 1.0  # Update every second
@@ -100,6 +108,7 @@ func setup_guild_stats():
 	var available_container = stats_container.get_node("AvailableAdventurers")
 	if available_container:
 		available_adventurers_count_label = available_container.get_node("AvailableCount")
+		available_adventurers_name_label = available_container.get_node("AvailableName")
 		var available_icon = available_container.get_node("AvailableIcon")
 		if available_icon:
 			available_icon.tooltip_text = "Available Adventurers - Ready to go on quests"
@@ -107,6 +116,7 @@ func setup_guild_stats():
 	var active_container = stats_container.get_node("ActiveAdventurers")
 	if active_container:
 		active_adventurers_count_label = active_container.get_node("ActiveCount")
+		active_adventurers_name_label = active_container.get_node("ActiveName")
 		var active_icon = active_container.get_node("ActiveIcon")
 		if active_icon:
 			active_icon.tooltip_text = "Active Adventurers - Currently on quests"
@@ -114,6 +124,7 @@ func setup_guild_stats():
 	var awaiting_completion_container = stats_container.get_node("AwaitingCompletionAdventurers")
 	if awaiting_completion_container:
 		awaiting_completion_count_label = awaiting_completion_container.get_node("AwaitingCompletionCount")
+		awaiting_completion_name_label = awaiting_completion_container.get_node("AwaitingCompletionName")
 		var awaiting_completion_icon = awaiting_completion_container.get_node("AwaitingCompletionIcon")
 		if awaiting_completion_icon:
 			awaiting_completion_icon.tooltip_text = "Adventurers Awaiting Quest Completion - Quest finished, waiting for results"
@@ -121,6 +132,7 @@ func setup_guild_stats():
 	var awaiting_promotion_container = stats_container.get_node("AwaitingPromotionAdventurers")
 	if awaiting_promotion_container:
 		awaiting_promotion_count_label = awaiting_promotion_container.get_node("AwaitingPromotionCount")
+		awaiting_promotion_name_label = awaiting_promotion_container.get_node("AwaitingPromotionName")
 		var awaiting_promotion_icon = awaiting_promotion_container.get_node("AwaitingPromotionIcon")
 		if awaiting_promotion_icon:
 			awaiting_promotion_icon.tooltip_text = "Adventurers Awaiting Promotion - Ready to be promoted"
@@ -128,6 +140,7 @@ func setup_guild_stats():
 	var idle_container = stats_container.get_node("IdleAdventurers")
 	if idle_container:
 		idle_adventurers_count_label = idle_container.get_node("IdleCount")
+		idle_adventurers_name_label = idle_container.get_node("IdleName")
 		var idle_icon = idle_container.get_node("IdleIcon")
 		if idle_icon:
 			idle_icon.tooltip_text = "Idle Adventurers - Available but not assigned to quests"
@@ -135,6 +148,7 @@ func setup_guild_stats():
 	var injured_container = stats_container.get_node("InjuredAdventurers")
 	if injured_container:
 		injured_adventurers_count_label = injured_container.get_node("InjuredCount")
+		injured_adventurers_name_label = injured_container.get_node("InjuredName")
 		var injured_icon = injured_container.get_node("InjuredIcon")
 		if injured_icon:
 			injured_icon.tooltip_text = "Injured Adventurers - Recovering from injuries"
@@ -613,7 +627,7 @@ func update_guild_stats():
 	if idle_count < 0:
 		idle_count = 0
 	
-	# Update the labels
+	# Update the count labels
 	if available_adventurers_count_label:
 		available_adventurers_count_label.text = str(available_count)
 	
@@ -631,6 +645,25 @@ func update_guild_stats():
 	
 	if injured_adventurers_count_label:
 		injured_adventurers_count_label.text = str(injured_count)
+	
+	# Update the name labels with proper formatting
+	if available_adventurers_name_label:
+		available_adventurers_name_label.text = "Available Members:"
+	
+	if active_adventurers_name_label:
+		active_adventurers_name_label.text = "Active Members:"
+	
+	if awaiting_completion_name_label:
+		awaiting_completion_name_label.text = "Awaiting Completion:"
+	
+	if awaiting_promotion_name_label:
+		awaiting_promotion_name_label.text = "Awaiting Promotion:"
+	
+	if idle_adventurers_name_label:
+		idle_adventurers_name_label.text = "Idle Members:"
+	
+	if injured_adventurers_name_label:
+		injured_adventurers_name_label.text = "Injured Members:"
 
 func update_objectives_display():
 	"""Update the objectives tracker display"""

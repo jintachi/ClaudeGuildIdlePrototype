@@ -4,7 +4,7 @@
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
 [ext_resource type="PackedScene" uid="uid://nd6jwxmofr8v" path="res://ui/components/AdventurerInspectionPanel.tscn" id="3_7vkpg"]
 
-[node name="RosterRoom" type="Control" node_paths=PackedStringArray("roster_list", "adventurer_inspection_panel", "roster_inspection_panel", "room_container", "back_button", "room_title_label")]
+[node name="RosterRoom" type="Control" node_paths=PackedStringArray("roster_list", "adventurer_inspection_panel", "roster_inspection_panel", "roster_info_label", "room_container", "back_button", "room_title_label")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,6 +16,7 @@ script = ExtResource("1")
 roster_list = NodePath("VBoxContainer/RoomContainer/MainContent/RosterList")
 adventurer_inspection_panel = NodePath("VBoxContainer/RoomContainer/MainContent/AdventurerInspectionPanel")
 roster_inspection_panel = NodePath("VBoxContainer/RoomContainer/MainContent/RosterList/RosterScroll/RosterVBox")
+roster_info_label = NodePath("VBoxContainer/RoomContainer/RosterHeader/RosterInfo")
 room_name = "Guild Roster"
 room_description = "The Guild Roster is the central database of all registered Adventurers in the Guild"
 room_container = NodePath("VBoxContainer/RoomContainer")

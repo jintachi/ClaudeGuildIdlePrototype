@@ -119,7 +119,7 @@ func emit_game_ready():
 func initialize_guild():
 	# Initialize objectives system
 	if not objectives_system:
-		objectives_system = load("res://mechanics/objectives.gd").new()
+		objectives_system = Objectives
 	
 	if roster.is_empty():
 		# Start with one basic character

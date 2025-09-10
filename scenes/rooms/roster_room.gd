@@ -5,6 +5,7 @@ extends BaseRoom
 @export var roster_list: VBoxContainer
 @export var adventurer_inspection_panel: Control
 @export var roster_inspection_panel: Control
+@export var roster_info_label: Label
 
 # Character selection state
 var selected_character: Character = null
@@ -24,6 +25,7 @@ func setup_room_specific_ui():
 func on_room_entered():
 	"""Called when entering the roster room"""
 	update_room_display()
+	update_roster_info()
 	
 	# Show placeholder if no characters in roster
 	if GuildManager.roster.is_empty():
@@ -40,6 +42,7 @@ func _process(delta: float):
 func update_room_display():
 	"""Update the roster display"""
 	update_roster_display()
+	update_roster_info()
 
 func update_roster_display():
 	"""Update the roster display with all characters"""
@@ -59,6 +62,30 @@ func update_roster_display():
 	# Auto-select first character if none selected
 	if not selected_character and not GuildManager.roster.is_empty():
 		select_adventurer(GuildManager.roster[0])
+
+func update_roster_info():
+	"""Update the roster info label with current roster count"""
+	if not roster_info_label or not GuildManager:
+		return
+	
+	var current_size = GuildManager.roster.size()
+	var max_size = get_max_roster_size()
+	
+	roster_info_label.text = "Guild Roster (%d/%d)" % [current_size, max_size]
+
+func get_max_roster_size() -> int:
+	"""Get the maximum roster size from objectives or default"""
+	if GuildManager and GuildManager.objectives_system:
+		# Check if roster expansion objectives are completed
+		if GuildManager.objectives_system.is_objective_completed("roster_expansion_3"):
+			return 50
+		if GuildManager.objectives_system.is_objective_completed("roster_expansion_2"):
+			return 20
+		if GuildManager.objectives_system.is_objective_completed("roster_expansion_1"):
+			return 10
+	
+	# Default starting roster size
+	return 5
 
 func create_character_panel(character: Character) -> Control:
 	"""Create a character panel for the roster display"""
@@ -108,8 +135,7 @@ func create_character_panel(character: Character) -> Control:
 	vbox.add_child(name_label)
 	
 	# Experience bar
-	var experience_bar_scene = preload("res://ui/components/ExperienceBar.tscn")
-	var experience_bar = experience_bar_scene.instantiate()
+	var experience_bar = load("res://ui/components/ExperienceBar.tscn").instantiate()
 	experience_bar.set_compact_mode(true)  # Use compact mode for character panels
 	experience_bar.update_experience(character)
 	vbox.add_child(experience_bar)
@@ -201,8 +227,7 @@ func create_injury_recovery_bar(character: Character) -> Control:
 	recovery_container.add_child(time_label)
 	
 	# Recovery progress bar
-	var progress_bar_scene = preload("res://ui/components/NineSliceProgressBar.tscn")
-	var progress_bar = progress_bar_scene.instantiate()
+	var progress_bar = load("res://ui/components/NineSliceProgressBar.tscn").instantiate()
 	progress_bar.name = "RecoveryProgressBar"
 	progress_bar.max_value = 100
 	var injury_duration = character.injury_duration
@@ -286,7 +311,7 @@ func update_character_panel_experience(panel_button: Control, character: Charact
 		if experience_bar and experience_bar.has_method("update_experience"):
 			experience_bar.update_experience(character)
 
-func update_injury_recovery_progress(delta: float):
+func update_injury_recovery_progress(_delta: float):
 	"""Update injury recovery progress bars for all injured characters"""
 	for child in roster_list.get_children():
 		if child.has_meta("character"):
@@ -345,11 +370,12 @@ func get_roster_size_info() -> Dictionary:
 	}
 
 # Signal handlers
-func _on_character_recruited(character: Character):
+func _on_character_recruited(_character: Character):
 	"""Handle when a new character is recruited"""
 	update_room_display()
+	update_roster_info()
 
-func _on_quest_completed(quest: Quest):
+func _on_quest_completed(_quest: Quest):
 	"""Handle when a quest is completed"""
 	# Refresh character panels to update status and experience
 	refresh_all_character_panels()
