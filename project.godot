@@ -32,6 +32,7 @@ DragPreviewManager="*res://mechanics/Singletons/drag_preview_manager.gd"
 NotificationManager="*res://ui/Notifications.tscn"
 CustomRoomCreator="*res://scenes/rooms/custom_rooms/CustomRoomCreator.gd"
 DataAccessLayer="*res://mechanics/Singletons/data_access_layer.gd"
+Objectives="*res://mechanics/objectives.gd"
 
 [display]
 

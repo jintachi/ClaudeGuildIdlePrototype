@@ -39,6 +39,9 @@ signal quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_sta
 @export var quests_completed_by_rank: Dictionary = {}
 @export var transformations_unlocked: Dictionary = {"Roster Size": 5, "Healer's Guild": false, "Armory": false, "Market": false, "Training Ground's": false, "Library": false, "Workshop": false}
 
+# Objectives System (replaces transformation system)
+var objectives_system
+
 # Save System
 @export var last_save_time: float = 0.0
 @export var auto_save_interval: float = 600.0  # 10 minutes
@@ -79,6 +82,7 @@ func _process(delta):
 		update_quest_timers(delta)
 		update_recruitment_timer(delta)
 		update_auto_save(delta)
+		check_objectives()  # Check objectives periodically
 
 
 func initialize_game():
@@ -113,6 +117,10 @@ func emit_game_ready():
 	print("GuildManager: Game ready signal emitted!")
 
 func initialize_guild():
+	# Initialize objectives system
+	if not objectives_system:
+		objectives_system = load("res://mechanics/objectives.gd").new()
+	
 	if roster.is_empty():
 		# Start with one basic character
 		var starter = Character.new("Guild Founder", Character.CharacterClass.ATTACKER, Character.Quality.TWO_STAR)
@@ -1434,40 +1442,40 @@ func get_available_rooms() -> Array[Dictionary]:
 		"unlock_requirement": ""
 	})
 	
-	# Unlockable rooms based on transformations
-	if transformations_unlocked.get("Training Ground's", false):
+	# Unlockable rooms based on objectives system
+	if objectives_system and objectives_system.is_room_unlocked("Training Grounds"):
 		rooms.append({
 			"name": "Training Grounds",
 			"description": "Train and improve your characters",
 			"is_unlocked": true,
-			"unlock_requirement": "Complete 10 quests"
+			"unlock_requirement": "Complete Training Grounds objective"
 		})
 	
-	if transformations_unlocked.get("Library", false):
+	if objectives_system and objectives_system.is_room_unlocked("Library"):
 		rooms.append({
 			"name": "Library",
 			"description": "Research and skill development",
 			"is_unlocked": true,
-			"unlock_requirement": "Reach 50 influence"
+			"unlock_requirement": "Complete Library objective"
 		})
 	
-	if transformations_unlocked.get("Workshop", false):
+	if objectives_system and objectives_system.is_room_unlocked("Workshop"):
 		rooms.append({
 			"name": "Workshop",
 			"description": "Craft and enhance equipment",
 			"is_unlocked": true,
-			"unlock_requirement": "Reach 100 influence"
+			"unlock_requirement": "Complete Workshop objective"
 		})
 	
-	if transformations_unlocked.get("Armory", false):
+	if objectives_system and objectives_system.is_room_unlocked("Armory"):
 		rooms.append({
 			"name": "Armory",
 			"description": "Manage equipment and gear",
 			"is_unlocked": true,
-			"unlock_requirement": "Reach 25 influence"
+			"unlock_requirement": "Complete Armory objective"
 		})
 	
-	if transformations_unlocked.get("Healer's Guild", false):
+	if objectives_system and objectives_system.is_room_unlocked("Healer's Guild"):
 		rooms.append({
 			"name": "Healer's Guild",
 			"description": "Heal injured characters",
@@ -1476,6 +1484,144 @@ func get_available_rooms() -> Array[Dictionary]:
 		})
 	
 	return rooms
+
+#region Objectives System Integration
+func check_objectives():
+	"""Check and update all objectives based on current guild state"""
+	if not objectives_system:
+		return
+	
+	var guild_data = get_guild_data_for_objectives()
+	
+	# Update all objective statuses
+	for objective_id in objectives_system.objectives.keys():
+		objectives_system.update_objective_status(objective_id, guild_data)
+	
+	# Check for newly available objectives that can be completed
+	var available_objectives = objectives_system.get_available_objectives()
+	for objective in available_objectives:
+		# Auto-complete certain objectives
+		if should_auto_complete_objective(objective):
+			complete_objective(objective.id)
+
+func get_guild_data_for_objectives() -> Dictionary:
+	"""Get current guild data for objective requirement checking"""
+	var d_rank_members = roster.filter(func(c): return c.rank >= Character.Rank.D).size()
+	var c_rank_members = roster.filter(func(c): return c.rank >= Character.Rank.C).size()
+	var b_rank_members = roster.filter(func(c): return c.rank >= Character.Rank.B).size()
+	var level_5_members = roster.filter(func(c): return c.level >= 5).size()
+	
+	var d_rank_quests = quests_completed_by_rank.get(Quest.QuestRank.D, 0)
+	var c_rank_quests = quests_completed_by_rank.get(Quest.QuestRank.C, 0)
+	var b_rank_quests = quests_completed_by_rank.get(Quest.QuestRank.B, 0)
+	
+	var injured_count = 0
+	var promotions_completed = 0
+	var total_gold_earned = 0
+	
+	for character in roster:
+		if character.is_injured():
+			injured_count += 1
+		if character.promotions_succeeded > 0:
+			promotions_completed += character.promotions_succeeded
+		total_gold_earned += character.total_gold_earned
+	
+	return {
+		"roster_size": roster.size(),
+		"quests_completed": total_quests_completed,
+		"d_rank_members": d_rank_members,
+		"c_rank_members": c_rank_members,
+		"b_rank_members": b_rank_members,
+		"d_rank_quests": d_rank_quests,
+		"c_rank_quests": c_rank_quests,
+		"b_rank_quests": b_rank_quests,
+		"characters_level_5": level_5_members,
+		"injured_characters": injured_count,
+		"promotions_completed": promotions_completed,
+		"gold_earned": total_gold_earned,
+		"influence": influence
+	}
+
+func should_auto_complete_objective(objective) -> bool:
+	"""Determine if an objective should be auto-completed"""
+	# Auto-complete system unlocks and achievements
+	match objective.category:
+		0: # SYSTEM_UNLOCK
+			return true
+		1: # ACHIEVEMENT
+			return true
+		2: # STORY_PROGRESSION
+			return true
+		_:
+			return false
+
+func complete_objective(objective_id: String) -> bool:
+	"""Complete an objective and apply its rewards"""
+	if not objectives_system:
+		return false
+	
+	var success = objectives_system.complete_objective(objective_id)
+	if success:
+		var objective = objectives_system.get_objective_by_id(objective_id)
+		apply_objective_rewards(objective)
+		
+		# Emit signal for objective completion
+		SignalBus.objective_completed.emit(objective_id, objective.name)
+		
+		print("GuildManager: Completed objective: ", objective.name)
+	
+	return success
+
+func apply_objective_rewards(objective):
+	"""Apply the rewards from a completed objective"""
+	var rewards = objective.rewards
+	
+	# Apply influence reward
+	if rewards.has("influence"):
+		influence += rewards.influence
+	
+	# Apply gold reward
+	if rewards.has("gold"):
+		# Add gold to guild resources (you may need to implement this)
+		pass
+	
+	# Unlock rooms
+	if rewards.has("unlock_room"):
+		var room_name = rewards.unlock_room
+		if not room_name in unlocked_rooms:
+			unlocked_rooms.append(room_name)
+			print("GuildManager: Unlocked room: ", room_name)
+	
+	# Unlock systems
+	if rewards.has("unlock_system"):
+		var system_name = rewards.unlock_system
+		print("GuildManager: Unlocked system: ", system_name)
+		# Handle system unlocks here
+	
+	# Increase roster size
+	if rewards.has("max_roster_size"):
+		var new_max = rewards.max_roster_size
+		# Update max roster size (you may need to implement this)
+		print("GuildManager: Increased max roster size to: ", new_max)
+
+func is_objective_completed(objective_id: String) -> bool:
+	"""Check if a specific objective is completed"""
+	if not objectives_system:
+		return false
+	return objectives_system.is_objective_completed(objective_id)
+
+func is_system_unlocked(system_name: String) -> bool:
+	"""Check if a specific system is unlocked through objectives"""
+	if not objectives_system:
+		return false
+	return objectives_system.is_system_unlocked(system_name)
+
+func is_room_unlocked_by_objectives(room_name: String) -> bool:
+	"""Check if a specific room is unlocked through objectives"""
+	if not objectives_system:
+		return false
+	return objectives_system.is_room_unlocked(room_name)
+#endregion
 
 func get_ui_notification_data() -> Dictionary:
 	"""Get data for UI notifications and alerts"""
