@@ -16,6 +16,11 @@ signal game_loading_completed()  # Emitted when game loading is finished
 signal room_unlocked(room_name:String)
 #endregion
 
+#region Objectives System Signals
+signal objective_completed(objective_id: String, objective_name: String)
+signal objective_available(objective_id: String, objective_name: String)
+#endregion
+
 #region Character Management Signals
 signal character_recruited(character: Character)
 signal character_promoted(character: Character)

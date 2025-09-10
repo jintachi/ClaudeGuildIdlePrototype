@@ -10,6 +10,9 @@ extends BaseRoom
 @export var awaiting_completion_panel: VBoxContainer
 @export var promotion_panel: VBoxContainer
 @export var quest_counter_panel: Panel
+@export var guild_stats_panel: VBoxContainer
+@export var personnel_report_panel: VBoxContainer
+@export var objectives_tracker_panel: VBoxContainer
 #@export var quest_completion_panel: Panel
 
 # Track quest panels for smooth updates
@@ -26,6 +29,23 @@ var available_quest_count_label: Label
 var active_quest_count_label: Label
 var awaiting_quest_count_label: Label
 
+# Guild stats labels
+var available_adventurers_count_label: Label
+var active_adventurers_count_label: Label
+var awaiting_completion_count_label: Label
+var awaiting_promotion_count_label: Label
+var idle_adventurers_count_label: Label
+var injured_adventurers_count_label: Label
+
+# Stats update tracking
+var last_stats_update_time: float = 0.0
+var stats_update_interval: float = 1.0  # Update every second
+
+# Objectives tracking
+var objectives_vbox: VBoxContainer
+var objectives_instance
+var objective_panels: Dictionary = {}  # objective_id -> panel
+
 func _init():
 	room_name = "Main Hall"
 	room_description = "The central hub of your guild"
@@ -39,6 +59,12 @@ func setup_room_specific_ui():
 	
 	# Setup quest counters
 	setup_quest_counters()
+	
+	# Setup guild stats
+	setup_guild_stats()
+	
+	# Setup objectives tracker
+	setup_objectives_tracker()
 
 func setup_quest_counters():
 	"""Setup quest counter labels and initial values"""
@@ -59,6 +85,82 @@ func setup_quest_counters():
 	
 	# Update initial counts
 	update_quest_counters()
+
+func setup_guild_stats():
+	"""Setup guild stats labels and tooltips"""
+	if not guild_stats_panel:
+		return
+	
+	# Get the stats container
+	var stats_container = guild_stats_panel.get_node("StatsContainer")
+	if not stats_container:
+		return
+	
+	# Setup each stat label with tooltips
+	var available_container = stats_container.get_node("AvailableAdventurers")
+	if available_container:
+		available_adventurers_count_label = available_container.get_node("AvailableCount")
+		var available_icon = available_container.get_node("AvailableIcon")
+		if available_icon:
+			available_icon.tooltip_text = "Available Adventurers - Ready to go on quests"
+	
+	var active_container = stats_container.get_node("ActiveAdventurers")
+	if active_container:
+		active_adventurers_count_label = active_container.get_node("ActiveCount")
+		var active_icon = active_container.get_node("ActiveIcon")
+		if active_icon:
+			active_icon.tooltip_text = "Active Adventurers - Currently on quests"
+	
+	var awaiting_completion_container = stats_container.get_node("AwaitingCompletionAdventurers")
+	if awaiting_completion_container:
+		awaiting_completion_count_label = awaiting_completion_container.get_node("AwaitingCompletionCount")
+		var awaiting_completion_icon = awaiting_completion_container.get_node("AwaitingCompletionIcon")
+		if awaiting_completion_icon:
+			awaiting_completion_icon.tooltip_text = "Adventurers Awaiting Quest Completion - Quest finished, waiting for results"
+	
+	var awaiting_promotion_container = stats_container.get_node("AwaitingPromotionAdventurers")
+	if awaiting_promotion_container:
+		awaiting_promotion_count_label = awaiting_promotion_container.get_node("AwaitingPromotionCount")
+		var awaiting_promotion_icon = awaiting_promotion_container.get_node("AwaitingPromotionIcon")
+		if awaiting_promotion_icon:
+			awaiting_promotion_icon.tooltip_text = "Adventurers Awaiting Promotion - Ready to be promoted"
+	
+	var idle_container = stats_container.get_node("IdleAdventurers")
+	if idle_container:
+		idle_adventurers_count_label = idle_container.get_node("IdleCount")
+		var idle_icon = idle_container.get_node("IdleIcon")
+		if idle_icon:
+			idle_icon.tooltip_text = "Idle Adventurers - Available but not assigned to quests"
+	
+	var injured_container = stats_container.get_node("InjuredAdventurers")
+	if injured_container:
+		injured_adventurers_count_label = injured_container.get_node("InjuredCount")
+		var injured_icon = injured_container.get_node("InjuredIcon")
+		if injured_icon:
+			injured_icon.tooltip_text = "Injured Adventurers - Recovering from injuries"
+	
+	# Update initial stats
+	update_guild_stats()
+
+func setup_objectives_tracker():
+	"""Setup objectives tracker UI and connect to GuildManager's objectives system"""
+	if not objectives_tracker_panel:
+		return
+	
+	# Get the objectives VBox container
+	objectives_vbox = objectives_tracker_panel.get_node("ObjectivesScroll/ObjectivesVBox")
+	if not objectives_vbox:
+		return
+	
+	# Connect to GuildManager's objectives system
+	if GuildManager and GuildManager.objectives_system:
+		objectives_instance = GuildManager.objectives_system
+	else:
+		print("MainHallRoom: GuildManager or objectives_system not available")
+		return
+	
+	# Update initial objectives display
+	update_objectives_display()
 
 func on_room_entered():
 	"""Called when entering the main hall"""
@@ -96,6 +198,13 @@ func _process(delta: float):
 	
 	# Update awaiting completion time displays
 	update_awaiting_completion_times(delta)
+	
+	# Update guild stats and objectives periodically
+	last_stats_update_time += delta
+	if last_stats_update_time >= stats_update_interval:
+		update_guild_stats()
+		update_objectives_display()
+		last_stats_update_time = 0.0
 
 func update_room_display():
 	"""Update the main hall display"""
@@ -104,6 +213,8 @@ func update_room_display():
 	update_awaiting_completion_display()
 	update_promotion_display()
 	update_quest_counters()
+	update_guild_stats()
+	update_objectives_display()
 
 func update_active_quests_display():
 	"""Update the active quests display"""
@@ -205,8 +316,7 @@ func create_quest_progress_bar(quest: Quest) -> Control:
 	progress_container.add_theme_constant_override("separation", 10)
 	
 	# Progress bar
-	var progress_bar_scene = preload("res://ui/components/NineSliceProgressBar.tscn")
-	var progress_bar = progress_bar_scene.instantiate()
+	var progress_bar = load("res://ui/components/NineSliceProgressBar.tscn").instantiate()
 	progress_bar.name = "ProgressBar"
 	progress_bar.max_value = 100
 	progress_bar.value = quest.get_progress_percentage()
@@ -459,6 +569,9 @@ func _on_quest_card_moved(quest_card: CompactQuestCard, from_state: String, to_s
 	
 	# Update quest counters whenever a quest card moves
 	update_quest_counters()
+	
+	# Update guild stats when quest cards move (affects character status)
+	update_guild_stats()
 
 func update_quest_counters():
 	"""Update the quest counter displays with current counts"""
@@ -477,3 +590,182 @@ func update_quest_counters():
 		active_quest_count_label.text = str(active_count)
 	if awaiting_quest_count_label:
 		awaiting_quest_count_label.text = str(awaiting_count)
+
+func update_guild_stats():
+	"""Update the guild statistics display"""
+	if not GuildManager:
+		return
+	
+	# Get character status summary from GuildManager
+	var status_summary = GuildManager.get_character_status_summary()
+	
+	# Calculate additional stats
+	var available_count = status_summary.get("available", 0)
+	var on_quest_count = status_summary.get("on_quest", 0)
+	var waiting_count = status_summary.get("waiting", 0)
+	var injured_count = status_summary.get("injured", 0)
+	
+	# Get characters needing promotion
+	var promotion_count = GuildManager.get_characters_needing_promotion().size()
+	
+	# Calculate idle adventurers (available but not on quests)
+	var idle_count = available_count - on_quest_count
+	if idle_count < 0:
+		idle_count = 0
+	
+	# Update the labels
+	if available_adventurers_count_label:
+		available_adventurers_count_label.text = str(available_count)
+	
+	if active_adventurers_count_label:
+		active_adventurers_count_label.text = str(on_quest_count)
+	
+	if awaiting_completion_count_label:
+		awaiting_completion_count_label.text = str(waiting_count)
+	
+	if awaiting_promotion_count_label:
+		awaiting_promotion_count_label.text = str(promotion_count)
+	
+	if idle_adventurers_count_label:
+		idle_adventurers_count_label.text = str(idle_count)
+	
+	if injured_adventurers_count_label:
+		injured_adventurers_count_label.text = str(injured_count)
+
+func update_objectives_display():
+	"""Update the objectives tracker display"""
+	if not objectives_instance or not objectives_vbox or not GuildManager:
+		return
+	
+	# Get current guild data for objective checking
+	var guild_data = GuildManager.get_guild_data_for_objectives()
+	
+	# Update objective statuses
+	for objective_id in objectives_instance.objectives.keys():
+		objectives_instance.update_objective_status(objective_id, guild_data)
+	
+	# Clear existing objective panels
+	for child in objectives_vbox.get_children():
+		objectives_vbox.remove_child(child)
+		child.queue_free()
+	objective_panels.clear()
+	
+	# Display visible objectives
+	var visible_objectives = objectives_instance.get_visible_objectives()
+	for objective in visible_objectives:
+		var objective_panel = create_objective_panel(objective)
+		objectives_vbox.add_child(objective_panel)
+		objective_panels[objective.id] = objective_panel
+
+
+func create_objective_panel(objective) -> Control:
+	"""Create a UI panel for displaying an objective"""
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(0, 80)
+	panel.add_theme_stylebox_override("panel", create_objective_stylebox(objective.status))
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 5)
+	panel.add_child(vbox)
+	
+	# Objective title and status
+	var title_hbox = HBoxContainer.new()
+	vbox.add_child(title_hbox)
+	
+	var status_icon = Label.new()
+	status_icon.text = get_status_icon(objective.status)
+	status_icon.add_theme_font_size_override("font_size", 16)
+	title_hbox.add_child(status_icon)
+	
+	var title_label = Label.new()
+	title_label.text = objective.name
+	title_label.add_theme_font_size_override("font_size", 14)
+	title_label.add_theme_color_override("font_color", get_status_color(objective.status))
+	title_hbox.add_child(title_label)
+	
+	# Objective description
+	var desc_label = Label.new()
+	desc_label.text = objective.description
+	desc_label.add_theme_font_size_override("font_size", 11)
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(desc_label)
+	
+	# Requirements or completion info
+	if objective.status == 1: # AVAILABLE
+		var req_label = Label.new()
+		req_label.text = "✅ Ready to complete!"
+		req_label.add_theme_font_size_override("font_size", 10)
+		req_label.add_theme_color_override("font_color", Color.GREEN)
+		vbox.add_child(req_label)
+	elif objective.status == 3: # COMPLETED
+		var comp_label = Label.new()
+		var completion_time = Time.get_datetime_string_from_unix_time(objective.completion_time)
+		comp_label.text = "Completed: " + completion_time
+		comp_label.add_theme_font_size_override("font_size", 10)
+		comp_label.add_theme_color_override("font_color", Color.GOLD)
+		vbox.add_child(comp_label)
+	else:
+		var req_label = Label.new()
+		req_label.text = "Requirements not met"
+		req_label.add_theme_font_size_override("font_size", 10)
+		req_label.add_theme_color_override("font_color", Color.GRAY)
+		vbox.add_child(req_label)
+	
+	return panel
+
+func get_status_icon(status) -> String:
+	"""Get the icon for an objective status"""
+	match status:
+		0: # LOCKED
+			return "🔒"
+		1: # AVAILABLE
+			return "✅"
+		2: # IN_PROGRESS
+			return "⏳"
+		3: # COMPLETED
+			return "🏆"
+		_:
+			return "❓"
+
+func get_status_color(status) -> Color:
+	"""Get the color for an objective status"""
+	match status:
+		0: # LOCKED
+			return Color.GRAY
+		1: # AVAILABLE
+			return Color.GREEN
+		2: # IN_PROGRESS
+			return Color.YELLOW
+		3: # COMPLETED
+			return Color.GOLD
+		_:
+			return Color.WHITE
+
+func create_objective_stylebox(status) -> StyleBox:
+	"""Create a stylebox for an objective panel based on its status"""
+	var stylebox = StyleBoxFlat.new()
+	
+	match status:
+		0: # LOCKED
+			stylebox.bg_color = Color(0.2, 0.2, 0.2, 0.8)
+		1: # AVAILABLE
+			stylebox.bg_color = Color(0.1, 0.3, 0.1, 0.8)
+		2: # IN_PROGRESS
+			stylebox.bg_color = Color(0.3, 0.3, 0.1, 0.8)
+		3: # COMPLETED
+			stylebox.bg_color = Color(0.3, 0.2, 0.1, 0.8)
+		_:
+			stylebox.bg_color = Color(0.2, 0.2, 0.2, 0.8)
+	
+	stylebox.border_width_left = 2
+	stylebox.border_width_right = 2
+	stylebox.border_width_top = 2
+	stylebox.border_width_bottom = 2
+	stylebox.border_color = Color(0.5, 0.5, 0.5, 0.5)
+	stylebox.corner_radius_top_left = 5
+	stylebox.corner_radius_top_right = 5
+	stylebox.corner_radius_bottom_left = 5
+	stylebox.corner_radius_bottom_right = 5
+	
+	return stylebox

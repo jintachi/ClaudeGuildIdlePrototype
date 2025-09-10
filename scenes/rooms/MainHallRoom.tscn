@@ -3,7 +3,7 @@
 [ext_resource type="Theme" uid="uid://bxlt2ju7qgrqv" path="res://theme.tres" id="2"]
 [ext_resource type="Script" uid="uid://dybfvc1re01bw" path="res://scenes/rooms/main_hall_room.gd" id="2_4wxht"]
 
-[node name="MainHallRoom" type="Control" node_paths=PackedStringArray("active_quests_panel", "awaiting_completion_panel", "promotion_panel", "quest_counter_panel", "room_container")]
+[node name="MainHallRoom" type="Control" node_paths=PackedStringArray("active_quests_panel", "awaiting_completion_panel", "promotion_panel", "quest_counter_panel", "guild_stats_panel", "personnel_report_panel", "objectives_tracker_panel", "room_container")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,10 +12,13 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2")
 script = ExtResource("2_4wxht")
-active_quests_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll/ActiveQuestsVBox")
+active_quests_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/InProgressQuestsPanel/ActiveQuestsScroll/ActiveQuestsVBox")
 awaiting_completion_panel = NodePath("RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel")
-promotion_panel = NodePath("RoomContainer/RoomContent/Body/PromotionPanel")
+promotion_panel = NodePath("RoomContainer/RoomContent/Body/PersonnelReportPanel/PromotionPanel")
 quest_counter_panel = NodePath("RoomContainer/QuestCounterPanel")
+guild_stats_panel = NodePath("RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel")
+personnel_report_panel = NodePath("RoomContainer/RoomContent/Body/PersonnelReportPanel")
+objectives_tracker_panel = NodePath("RoomContainer/RoomContent/Body/MainHallContent/ObjectivesTrackerPanel")
 room_container = NodePath("RoomContainer")
 
 [node name="RoomContainer" type="VBoxContainer" parent="."]
@@ -34,56 +37,181 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="QuestsContainer" type="HBoxContainer" parent="RoomContainer/RoomContent/Body"]
+[node name="QuestsContainer" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+size_flags_stretch_ratio = 0.3
 
-[node name="ActiveQuestsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
+[node name="InProgressLabel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
 layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ActiveQuestsLabel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel"]
-layout_mode = 2
-text = "Active Quests"
+text = "In Progress Quests"
 horizontal_alignment = 1
 
-[node name="ActiveQuestsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel"]
+[node name="InProgressQuestsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ActiveQuestsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/ActiveQuestsPanel/ActiveQuestsScroll"]
+[node name="ActiveQuestsScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/InProgressQuestsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActiveQuestsVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/InProgressQuestsPanel/ActiveQuestsScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="AwaitingCompletionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="QuestCompletionPanel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel"]
+[node name="QuestCompletionPanel" type="Label" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
 layout_mode = 2
 text = "Quest Completion Panel"
 horizontal_alignment = 1
+
+[node name="AwaitingCompletionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer"]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="AwaitingScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/QuestsContainer/AwaitingCompletionPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PromotionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+[node name="MainHallContent" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.25
+size_flags_stretch_ratio = 0.6
 
-[node name="PromotionLabel" type="Label" parent="RoomContainer/RoomContent/Body/PromotionPanel"]
+[node name="ObjectivesTracker" type="Label" parent="RoomContainer/RoomContent/Body/MainHallContent"]
+layout_mode = 2
+text = "Guild Objectives"
+horizontal_alignment = 1
+
+[node name="ObjectivesTrackerPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/MainHallContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ObjectivesScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/MainHallContent/ObjectivesTrackerPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ObjectivesVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/MainHallContent/ObjectivesTrackerPanel/ObjectivesScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PersonnelReportPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="PersonnelReportLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
+layout_mode = 2
+text = "Personnel Report"
+horizontal_alignment = 1
+
+[node name="GuildStatsPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="GuildStatsLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel"]
+layout_mode = 2
+text = "Guild Statistics"
+horizontal_alignment = 1
+
+[node name="StatsContainer" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AvailableAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="AvailableIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AvailableAdventurers"]
+layout_mode = 2
+text = "⚔️"
+horizontal_alignment = 1
+
+[node name="AvailableCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AvailableAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="ActiveAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="ActiveIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/ActiveAdventurers"]
+layout_mode = 2
+text = "🏃"
+horizontal_alignment = 1
+
+[node name="ActiveCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/ActiveAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="AwaitingCompletionAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="AwaitingCompletionIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingCompletionAdventurers"]
+layout_mode = 2
+text = "✅"
+horizontal_alignment = 1
+
+[node name="AwaitingCompletionCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingCompletionAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="AwaitingPromotionAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="AwaitingPromotionIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingPromotionAdventurers"]
+layout_mode = 2
+text = "🏅"
+horizontal_alignment = 1
+
+[node name="AwaitingPromotionCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/AwaitingPromotionAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="IdleAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="IdleIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/IdleAdventurers"]
+layout_mode = 2
+text = "😴"
+horizontal_alignment = 1
+
+[node name="IdleCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/IdleAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="InjuredAdventurers" type="HBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer"]
+layout_mode = 2
+
+[node name="InjuredIcon" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/InjuredAdventurers"]
+layout_mode = 2
+text = "🩹"
+horizontal_alignment = 1
+
+[node name="InjuredCount" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/GuildStatsPanel/StatsContainer/InjuredAdventurers"]
+layout_mode = 2
+text = "0"
+horizontal_alignment = 1
+
+[node name="PromotionPanel" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PromotionLabel" type="Label" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/PromotionPanel"]
 layout_mode = 2
 text = "Characters Ready for Promotion"
 horizontal_alignment = 1
 
-[node name="PromotionScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/PromotionPanel"]
+[node name="PromotionScroll" type="ScrollContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/PromotionPanel"]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="PromotionVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PromotionPanel/PromotionScroll"]
+[node name="PromotionVBox" type="VBoxContainer" parent="RoomContainer/RoomContent/Body/PersonnelReportPanel/PromotionPanel/PromotionScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
